@@ -2,6 +2,8 @@ package com.exchangerate.manager.repository;
 
 import com.exchangerate.manager.entity.ExchangeRate;
 
+import jakarta.persistence.EntityManager;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -33,6 +35,9 @@ class ExchangeRateRepositoryTest {
     @Autowired
     private ExchangeRateRepository repository;
 
+    @Autowired
+    private EntityManager entityManager;
+
     @Test
     void savesAndFindsByCurrencyCodeAndRateDate() {
         ExchangeRate rate = new ExchangeRate();
@@ -55,5 +60,46 @@ class ExchangeRateRepositoryTest {
         Optional<ExchangeRate> found = repository.findByCurrencyCodeAndRateDate("ZZZ", LocalDate.of(1999, 1, 1));
 
         assertThat(found).isEmpty();
+    }
+
+    @Test
+    void upsertInsertsWhenAbsent() {
+        String currencyCode = "JPY";
+        LocalDate rateDate = LocalDate.of(2026, 8, 21);
+        BigDecimal rateToUsd = new BigDecimal("0.006700");
+
+        repository.upsert(currencyCode, rateToUsd, rateDate);
+        entityManager.clear();
+
+        Optional<ExchangeRate> found = repository.findByCurrencyCodeAndRateDate(currencyCode, rateDate);
+
+        assertThat(found).isPresent();
+        assertThat(found.get().getCurrencyCode()).isEqualTo(currencyCode);
+        assertThat(found.get().getRateDate()).isEqualTo(rateDate);
+        assertThat(found.get().getRateToUsd()).isEqualByComparingTo(rateToUsd);
+    }
+
+    @Test
+    void upsertUpdatesInPlaceOnConflict() {
+        String currencyCode = "GBP";
+        LocalDate rateDate = LocalDate.of(2026, 8, 21);
+        BigDecimal initialRate = new BigDecimal("1.270000");
+        BigDecimal updatedRate = new BigDecimal("1.310000");
+
+        repository.upsert(currencyCode, initialRate, rateDate);
+        entityManager.clear();
+
+        Optional<ExchangeRate> afterInsert = repository.findByCurrencyCodeAndRateDate(currencyCode, rateDate);
+        assertThat(afterInsert).isPresent();
+        assertThat(afterInsert.get().getRateToUsd()).isEqualByComparingTo(initialRate);
+
+        repository.upsert(currencyCode, updatedRate, rateDate);
+        entityManager.clear();
+
+        Optional<ExchangeRate> afterUpdate = repository.findByCurrencyCodeAndRateDate(currencyCode, rateDate);
+        assertThat(afterUpdate).isPresent();
+        assertThat(afterUpdate.get().getCurrencyCode()).isEqualTo(currencyCode);
+        assertThat(afterUpdate.get().getRateDate()).isEqualTo(rateDate);
+        assertThat(afterUpdate.get().getRateToUsd()).isEqualByComparingTo(updatedRate);
     }
 }

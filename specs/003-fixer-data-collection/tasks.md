@@ -98,7 +98,7 @@ currency exists for the current date (quickstart.md "Validate: scheduled collect
 - [X] T009 [P] [US1] `RateCollectionServiceTest` happy-path case (EUR cross-rate math correct
       for several currencies, `USD` forced to `1.000000`) in
       `backend/src/test/java/com/exchangerate/manager/service/RateCollectionServiceTest.java`
-- [ ] T010 [P] [US1] Add upsert test cases to the existing
+- [X] T010 [P] [US1] Add upsert test cases to the existing
       `backend/src/test/java/com/exchangerate/manager/repository/ExchangeRateRepositoryTest.java`
       — insert-when-absent and update-in-place-on-conflict for the same
       `(currency_code, rate_date)`
