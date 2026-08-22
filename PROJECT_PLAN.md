@@ -19,11 +19,11 @@ Ordered steps for Exchange Rate Management System (see TASK.md, CLAUDE.md). Mark
 
 ## 2. Fixer.io Data Collection
 
-- [ ] Fixer.io client (RestClient), config for API key via env var
-- [ ] Scheduled job: fetch once daily at 00:05 GMT, persist `date` field from response (not fetch date)
-- [ ] Upsert on (currency_code, rate_date) — `INSERT ... ON CONFLICT` or JPA saveOrUpdate keyed on composite
-- [ ] ShedLock (JDBC provider, same Postgres DB, lock table from section 1) so only one instance calls Fixer.io per scheduled run
-- [ ] Manual refresh endpoint (optional, 4.4) — triggers fetch/upsert, must not touch usage counters
+- [x] Fixer.io client (RestClient), config for API key via env var
+- [x] Scheduled job: fetch once daily at 00:05 GMT, persist `date` field from response (not fetch date)
+- [x] Upsert on (currency_code, rate_date) — `INSERT ... ON CONFLICT` or JPA saveOrUpdate keyed on composite
+- [x] ShedLock (JDBC provider, same Postgres DB, lock table from section 1) so only one instance calls Fixer.io per scheduled run
+- [x] Manual refresh endpoint (optional, 4.4) — triggers fetch/upsert, must not touch usage counters
 
 ## 3. Exchange Rate API (4.2)
 
