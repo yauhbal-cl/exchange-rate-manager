@@ -1,52 +1,10 @@
-openapi: 3.0.3
-info:
-  title: Exchange Rate Management System API
-  version: 0.1.0
-  description: >
-    Exchange Rate Management System REST API. Provides exchange rate data,
-    historical tracking, and AI-powered trend insights.
-servers:
-  - url: /api/v1
+# Phase 1 contract fragment: Exchange Rate API
+#
+# This documents the paths/schemas to be merged into contracts/openapi.yaml (the real source of
+# truth per CLAUDE.md — edit that file directly during implementation; this fragment is the
+# design record, not a second source).
+
 paths:
-  /status:
-    get:
-      operationId: getStatus
-      summary: Report service and database health
-      tags: [Status]
-      responses:
-        '200':
-          description: Service is healthy
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ServiceStatus'
-        '503':
-          description: Service is unhealthy (e.g. database unreachable)
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ServiceStatus'
-  /exchange/refresh:
-    post:
-      operationId: refreshExchangeRates
-      summary: Manually trigger an on-demand exchange rate collection run
-      description: >
-        Fetches the latest exchange rates from the external rate provider and upserts them,
-        independent of the daily schedule. Does not affect per-currency usage counters.
-      tags: [Exchange Rate Collection]
-      responses:
-        '200':
-          description: Collection run completed; rates were fetched and upserted
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/RefreshResult'
-        '502':
-          description: The external rate provider was unreachable or returned an error
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetail'
   /exchange:
     get:
       operationId: getExchangeRate
@@ -107,46 +65,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UsageAnalyticsResponse'
+
 components:
   schemas:
-    ServiceStatus:
-      type: object
-      required: [status, databaseConnected, timestamp]
-      properties:
-        status:
-          type: string
-          enum: [UP, DOWN]
-        databaseConnected:
-          type: boolean
-        timestamp:
-          type: string
-          format: date-time
-    RefreshResult:
-      type: object
-      required: [currenciesCollected, rateDate]
-      properties:
-        currenciesCollected:
-          type: integer
-          format: int32
-          description: Number of currencies successfully upserted in this run
-        rateDate:
-          type: string
-          format: date
-          description: The rate date reported by the provider and persisted in this run
-    ProblemDetail:
-      type: object
-      description: RFC 9457 problem details
-      properties:
-        type:
-          type: string
-        title:
-          type: string
-        status:
-          type: integer
-        detail:
-          type: string
-        instance:
-          type: string
     ExchangeRateResponse:
       type: object
       required: [fromCurrency, toCurrency, rate, rateDate, fromCurrencyUsageCount, toCurrencyUsageCount]
