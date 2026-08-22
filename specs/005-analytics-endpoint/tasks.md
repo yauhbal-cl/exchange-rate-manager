@@ -58,7 +58,7 @@ Existing single-module Spring Boot backend, extended in place — see plan.md Pr
 
 ### Tests for User Story 1
 
-- [ ] T006 [P] [US1] Repository test for the trend join/range query (dates present for both currencies included, dates missing either currency's data excluded, range boundaries respected) in `backend/src/test/java/com/exchangerate/manager/repository/ExchangeRateRepositoryTest.java`
+- [X] T006 [P] [US1] Repository test for the trend join/range query (dates present for both currencies included, dates missing either currency's data excluded, range boundaries respected) in `backend/src/test/java/com/exchangerate/manager/repository/ExchangeRateRepositoryTest.java`
 - [X] T007 [P] [US1] Service test for `ExchangeRateService` trend logic: default 30-day window when dates omitted, unknown-currency rejection, `startDate > endDate` rejection, spread-adjusted rate computed identically to `lookup`, chronological ordering, no usage-counter increment in `backend/src/test/java/com/exchangerate/manager/service/ExchangeRateServiceTest.java`
 - [ ] T008 [P] [US1] Controller/integration test for `GET /exchange/trend`: happy path, empty-range-with-no-data returns empty array, unknown currency returns 400 `ProblemDetail`, `startDate > endDate` returns 400 `ProblemDetail`, usage counters unchanged before/after in `backend/src/test/java/com/exchangerate/manager/controller/ExchangeControllerIT.java`
 
