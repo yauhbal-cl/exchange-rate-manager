@@ -44,6 +44,36 @@ public interface CurrencyUsageRepository extends JpaRepository<CurrencyUsage, Lo
     List<CurrencyUsageProjection> findAllCurrencyUsage();
 
     /**
+     * Returns usage-analytics rows for every currency that has ever appeared in
+     * {@code exchange_rates}, ranked by {@code queryCount DESC, currencyCode ASC} (FR-008
+     * tie-break), optionally capped to {@code limit} rows and/or filtered to only currencies
+     * queried within the last {@code recentDays} days.
+     * <p>
+     * When {@code recentDays} is non-null, rows with a null {@code lastQueriedAt} (never
+     * queried) are excluded, and remaining rows must have {@code lastQueriedAt >= now() -
+     * recentDays days}. When {@code recentDays} is null, no recency filtering is applied and
+     * never-queried currencies (queryCount = 0) are still included, same as
+     * {@link #findAllCurrencyUsage()}.
+     * <p>
+     * When {@code limit} is non-null, at most that many rows are returned after ranking and
+     * filtering; when null, {@code LIMIT NULL} in Postgres is equivalent to no limit at all.
+     */
+    @Query(value = """
+            SELECT er.currency_code AS currencyCode,
+                   COALESCE(cu.query_count, 0) AS queryCount,
+                   cu.last_queried_at AS lastQueriedAt
+            FROM (SELECT DISTINCT currency_code FROM exchange_rates) er
+            LEFT JOIN currency_usage cu ON cu.currency_code = er.currency_code
+            WHERE (:recentDays IS NULL
+                   OR (cu.last_queried_at IS NOT NULL
+                       AND cu.last_queried_at >= now() - (:recentDays || ' days')::interval))
+            ORDER BY COALESCE(cu.query_count, 0) DESC, er.currency_code ASC
+            LIMIT :limit
+            """, nativeQuery = true)
+    List<CurrencyUsageProjection> findCurrencyUsage(@Param("limit") Integer limit,
+                                                     @Param("recentDays") Integer recentDays);
+
+    /**
      * Interface-based projection for {@link #findAllCurrencyUsage()}; getter names map to the
      * native query's column aliases (case-insensitive, underscore-to-camelCase).
      */

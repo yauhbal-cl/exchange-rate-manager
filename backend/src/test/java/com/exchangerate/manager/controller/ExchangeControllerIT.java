@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,7 +16,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -38,6 +42,7 @@ class ExchangeControllerIT extends AbstractIntegrationTest {
 
     private static final String ENDPOINT = "/api/v1/exchange";
     private static final String USAGE_ENDPOINT = "/api/v1/exchange/usage";
+    private static final String TREND_ENDPOINT = "/api/v1/exchange/trend";
 
     // Neither EUR nor GBP appear in SpreadLookup's explicit tiers, so both fall to the DEFAULT
     // spread (2.75). Keep the math context identical to ExchangeRateService's so the
@@ -57,6 +62,14 @@ class ExchangeControllerIT extends AbstractIntegrationTest {
     // A date with no rate data seeded for it, used to exercise the "no rate data for date" path.
     private static final LocalDate NO_DATA_DATE = LocalDate.of(1999, 1, 1);
 
+    // Currency pair dedicated to the /trend tests, distinct from FROM_CURRENCY/TO_CURRENCY above
+    // to avoid collisions with the /exchange tests in this class. Neither is in SpreadLookup's
+    // explicit tiers, so both fall to DEFAULT_SPREAD, same as FROM_CURRENCY/TO_CURRENCY.
+    // CHF/AUD are reserved for ExchangeRateServiceConcurrencyIT's non-transactional, real-commit
+    // concurrency test — using them here would collide with its committed currency_usage rows.
+    private static final String TREND_FROM_CURRENCY = "NZD";
+    private static final String TREND_TO_CURRENCY = "SEK";
+
     @Autowired
     private MockMvc mockMvc;
 
@@ -65,6 +78,17 @@ class ExchangeControllerIT extends AbstractIntegrationTest {
 
     @Autowired
     private CurrencyUsageRepository currencyUsageRepository;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
+    private static BigDecimal computeExpectedRate(BigDecimal fromRateToUsd, BigDecimal toRateToUsd) {
+        BigDecimal rateRatio = toRateToUsd.divide(fromRateToUsd, RATE_MATH_CONTEXT);
+        BigDecimal spreadFactor = BigDecimal.valueOf(100)
+                .subtract(DEFAULT_SPREAD)
+                .divide(BigDecimal.valueOf(100), RATE_MATH_CONTEXT);
+        return rateRatio.multiply(spreadFactor, RATE_MATH_CONTEXT);
+    }
 
     @Test
     void getExchangeRateReturnsSpreadAdjustedRateForExplicitPastDate() throws Exception {
@@ -213,5 +237,191 @@ class ExchangeControllerIT extends AbstractIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.currencies").isArray())
                 .andExpect(jsonPath("$.currencies", org.hamcrest.Matchers.hasSize(0)));
+    }
+
+    @Test
+    void getExchangeRateTrendReturnsSpreadAdjustedSeriesForExplicitRange() throws Exception {
+        LocalDate day1 = RATE_DATE;
+        LocalDate day2 = RATE_DATE.plusDays(1);
+        BigDecimal fromRateDay1 = new BigDecimal("1.000000");
+        BigDecimal toRateDay1 = new BigDecimal("1.500000");
+        BigDecimal fromRateDay2 = new BigDecimal("1.100000");
+        BigDecimal toRateDay2 = new BigDecimal("1.600000");
+
+        exchangeRateRepository.upsert(TREND_FROM_CURRENCY, fromRateDay1, day1);
+        exchangeRateRepository.upsert(TREND_TO_CURRENCY, toRateDay1, day1);
+        exchangeRateRepository.upsert(TREND_FROM_CURRENCY, fromRateDay2, day2);
+        exchangeRateRepository.upsert(TREND_TO_CURRENCY, toRateDay2, day2);
+
+        BigDecimal expectedRateDay1 = computeExpectedRate(fromRateDay1, toRateDay1);
+        BigDecimal expectedRateDay2 = computeExpectedRate(fromRateDay2, toRateDay2);
+
+        MvcResult result = mockMvc.perform(get(TREND_ENDPOINT)
+                        .param("from", TREND_FROM_CURRENCY)
+                        .param("to", TREND_TO_CURRENCY)
+                        .param("startDate", day1.toString())
+                        .param("endDate", day2.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.fromCurrency").value(TREND_FROM_CURRENCY))
+                .andExpect(jsonPath("$.toCurrency").value(TREND_TO_CURRENCY))
+                .andExpect(jsonPath("$.points", org.hamcrest.Matchers.hasSize(2)))
+                .andExpect(jsonPath("$.points[0].rateDate").value(day1.toString()))
+                .andExpect(jsonPath("$.points[1].rateDate").value(day2.toString()))
+                .andReturn();
+
+        var parsed = com.jayway.jsonpath.JsonPath.parse(result.getResponse().getContentAsString());
+        assertThat(new BigDecimal(parsed.read("$.points[0].rate").toString()))
+                .isEqualByComparingTo(expectedRateDay1);
+        assertThat(new BigDecimal(parsed.read("$.points[1].rate").toString()))
+                .isEqualByComparingTo(expectedRateDay2);
+    }
+
+    @Test
+    void getExchangeRateTrendReturnsEmptyArrayWhenNoDataInRange() throws Exception {
+        exchangeRateRepository.upsert(TREND_FROM_CURRENCY, new BigDecimal("1.000000"), RATE_DATE);
+        exchangeRateRepository.upsert(TREND_TO_CURRENCY, new BigDecimal("1.500000"), RATE_DATE);
+
+        mockMvc.perform(get(TREND_ENDPOINT)
+                        .param("from", TREND_FROM_CURRENCY)
+                        .param("to", TREND_TO_CURRENCY)
+                        .param("startDate", NO_DATA_DATE.toString())
+                        .param("endDate", NO_DATA_DATE.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.points", org.hamcrest.Matchers.hasSize(0)));
+    }
+
+    @Test
+    void getExchangeRateTrendReturns400ForUnknownCurrency() throws Exception {
+        exchangeRateRepository.upsert(TREND_TO_CURRENCY, new BigDecimal("1.500000"), RATE_DATE);
+
+        mockMvc.perform(get(TREND_ENDPOINT)
+                        .param("from", UNKNOWN_CURRENCY)
+                        .param("to", TREND_TO_CURRENCY))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.containsString(UNKNOWN_CURRENCY)));
+    }
+
+    @Test
+    void getExchangeRateTrendReturns400WhenStartDateAfterEndDate() throws Exception {
+        exchangeRateRepository.upsert(TREND_FROM_CURRENCY, new BigDecimal("1.000000"), RATE_DATE);
+        exchangeRateRepository.upsert(TREND_TO_CURRENCY, new BigDecimal("1.500000"), RATE_DATE);
+
+        mockMvc.perform(get(TREND_ENDPOINT)
+                        .param("from", TREND_FROM_CURRENCY)
+                        .param("to", TREND_TO_CURRENCY)
+                        .param("startDate", RATE_DATE.toString())
+                        .param("endDate", RATE_DATE.minusDays(1).toString()))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void getExchangeRateTrendDoesNotIncrementUsageCounters() throws Exception {
+        exchangeRateRepository.upsert(TREND_FROM_CURRENCY, new BigDecimal("1.000000"), RATE_DATE);
+        exchangeRateRepository.upsert(TREND_TO_CURRENCY, new BigDecimal("1.500000"), RATE_DATE);
+
+        assertThat(currencyUsageRepository.findByCurrencyCode(TREND_FROM_CURRENCY)).isEmpty();
+        assertThat(currencyUsageRepository.findByCurrencyCode(TREND_TO_CURRENCY)).isEmpty();
+
+        mockMvc.perform(get(TREND_ENDPOINT)
+                        .param("from", TREND_FROM_CURRENCY)
+                        .param("to", TREND_TO_CURRENCY)
+                        .param("startDate", RATE_DATE.toString())
+                        .param("endDate", RATE_DATE.toString()))
+                .andExpect(status().isOk());
+
+        assertThat(currencyUsageRepository.findByCurrencyCode(TREND_FROM_CURRENCY)).isEmpty();
+        assertThat(currencyUsageRepository.findByCurrencyCode(TREND_TO_CURRENCY)).isEmpty();
+    }
+
+    @Test
+    void getUsageAnalyticsWithLimitReturnsTopRankedCurrenciesInOrder() throws Exception {
+        currencyUsageRepository.deleteAll();
+        exchangeRateRepository.deleteAll();
+
+        exchangeRateRepository.upsert("AAA", new BigDecimal("1.000000"), RATE_DATE);
+        exchangeRateRepository.upsert("BBB", new BigDecimal("1.000000"), RATE_DATE);
+        exchangeRateRepository.upsert("CCC", new BigDecimal("1.000000"), RATE_DATE);
+
+        jdbcTemplate.update(
+                "INSERT INTO currency_usage (currency_code, query_count, last_queried_at) VALUES (?, ?, ?)",
+                "AAA", 5, Timestamp.from(Instant.now()));
+        jdbcTemplate.update(
+                "INSERT INTO currency_usage (currency_code, query_count, last_queried_at) VALUES (?, ?, ?)",
+                "BBB", 10, Timestamp.from(Instant.now()));
+
+        mockMvc.perform(get(USAGE_ENDPOINT).param("limit", "2"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.currencies", org.hamcrest.Matchers.hasSize(2)))
+                .andExpect(jsonPath("$.currencies[0].currencyCode").value("BBB"))
+                .andExpect(jsonPath("$.currencies[1].currencyCode").value("AAA"));
+    }
+
+    @Test
+    void getUsageAnalyticsOmittedLimitReturnsAllCurrenciesSameOrdering() throws Exception {
+        currencyUsageRepository.deleteAll();
+        exchangeRateRepository.deleteAll();
+
+        exchangeRateRepository.upsert("AAA", new BigDecimal("1.000000"), RATE_DATE);
+        exchangeRateRepository.upsert("BBB", new BigDecimal("1.000000"), RATE_DATE);
+
+        mockMvc.perform(get(USAGE_ENDPOINT))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.currencies", org.hamcrest.Matchers.hasSize(2)));
+    }
+
+    @Test
+    void getUsageAnalyticsReturns400ForNonPositiveLimit() throws Exception {
+        mockMvc.perform(get(USAGE_ENDPOINT).param("limit", "0"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void getUsageAnalyticsWithRecentDaysExcludesStaleAndNeverQueriedCurrencies() throws Exception {
+        currencyUsageRepository.deleteAll();
+        exchangeRateRepository.deleteAll();
+
+        exchangeRateRepository.upsert("AAA", new BigDecimal("1.000000"), RATE_DATE);
+        exchangeRateRepository.upsert("BBB", new BigDecimal("1.000000"), RATE_DATE);
+        exchangeRateRepository.upsert("CCC", new BigDecimal("1.000000"), RATE_DATE);
+
+        jdbcTemplate.update(
+                "INSERT INTO currency_usage (currency_code, query_count, last_queried_at) VALUES (?, ?, ?)",
+                "AAA", 1, Timestamp.from(Instant.now()));
+        jdbcTemplate.update(
+                "INSERT INTO currency_usage (currency_code, query_count, last_queried_at) VALUES (?, ?, ?)",
+                "BBB", 1, Timestamp.from(Instant.now().minus(30, ChronoUnit.DAYS)));
+
+        mockMvc.perform(get(USAGE_ENDPOINT).param("recentDays", "7"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.currencies", org.hamcrest.Matchers.hasSize(1)))
+                .andExpect(jsonPath("$.currencies[0].currencyCode").value("AAA"));
+    }
+
+    @Test
+    void getUsageAnalyticsReturns400ForNonPositiveRecentDays() throws Exception {
+        mockMvc.perform(get(USAGE_ENDPOINT).param("recentDays", "0"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void getUsageAnalyticsCombinesLimitAndRecentDays() throws Exception {
+        currencyUsageRepository.deleteAll();
+        exchangeRateRepository.deleteAll();
+
+        exchangeRateRepository.upsert("AAA", new BigDecimal("1.000000"), RATE_DATE);
+        exchangeRateRepository.upsert("BBB", new BigDecimal("1.000000"), RATE_DATE);
+        exchangeRateRepository.upsert("CCC", new BigDecimal("1.000000"), RATE_DATE);
+
+        jdbcTemplate.update(
+                "INSERT INTO currency_usage (currency_code, query_count, last_queried_at) VALUES (?, ?, ?)",
+                "AAA", 3, Timestamp.from(Instant.now()));
+        jdbcTemplate.update(
+                "INSERT INTO currency_usage (currency_code, query_count, last_queried_at) VALUES (?, ?, ?)",
+                "BBB", 5, Timestamp.from(Instant.now()));
+
+        mockMvc.perform(get(USAGE_ENDPOINT).param("limit", "1").param("recentDays", "7"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.currencies", org.hamcrest.Matchers.hasSize(1)))
+                .andExpect(jsonPath("$.currencies[0].currencyCode").value("BBB"));
     }
 }

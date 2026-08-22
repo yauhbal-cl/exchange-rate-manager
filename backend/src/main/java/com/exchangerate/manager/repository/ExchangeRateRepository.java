@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 public interface ExchangeRateRepository extends JpaRepository<ExchangeRate, Long> {
@@ -25,6 +26,38 @@ public interface ExchangeRateRepository extends JpaRepository<ExchangeRate, Long
                    ")",
            nativeQuery = true)
     Optional<LocalDate> findLatestCommonDate(@Param("from") String from, @Param("to") String to);
+
+    /**
+     * Returns one row per {@code rate_date} within {@code [startDate, endDate]} for which both
+     * {@code from} and {@code to} have stored rates, joined on {@code rate_date}. Dates missing
+     * either currency's data are never returned. Ordered chronologically ascending.
+     */
+    @Query(value = "SELECT a.rate_date AS rateDate, " +
+                   "       a.rate_to_usd AS fromRateToUsd, " +
+                   "       b.rate_to_usd AS toRateToUsd " +
+                   "FROM exchange_rates a " +
+                   "JOIN exchange_rates b ON b.rate_date = a.rate_date AND b.currency_code = :to " +
+                   "WHERE a.currency_code = :from " +
+                   "AND a.rate_date BETWEEN :startDate AND :endDate " +
+                   "ORDER BY a.rate_date ASC",
+           nativeQuery = true)
+    List<RateTrendProjection> findTrend(@Param("from") String from,
+                                         @Param("to") String to,
+                                         @Param("startDate") LocalDate startDate,
+                                         @Param("endDate") LocalDate endDate);
+
+    /**
+     * Interface-based projection for {@link #findTrend}; getter names map to the native query's
+     * column aliases (case-insensitive, underscore-to-camelCase).
+     */
+    interface RateTrendProjection {
+
+        LocalDate getRateDate();
+
+        BigDecimal getFromRateToUsd();
+
+        BigDecimal getToRateToUsd();
+    }
 
     @Modifying
     @Query(value = "INSERT INTO exchange_rates (currency_code, rate_to_usd, rate_date) " +

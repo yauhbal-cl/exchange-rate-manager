@@ -1,3 +1,11 @@
+export * from './exchangeRateAnalytics.service';
+import { ExchangeRateAnalyticsService } from './exchangeRateAnalytics.service';
+export * from './exchangeRateCollection.service';
+import { ExchangeRateCollectionService } from './exchangeRateCollection.service';
+export * from './exchangeRateLookup.service';
+import { ExchangeRateLookupService } from './exchangeRateLookup.service';
+export * from './exchangeRateUsageAnalytics.service';
+import { ExchangeRateUsageAnalyticsService } from './exchangeRateUsageAnalytics.service';
 export * from './status.service';
 import { StatusService } from './status.service';
-export const APIS = [StatusService];
+export const APIS = [ExchangeRateAnalyticsService, ExchangeRateCollectionService, ExchangeRateLookupService, ExchangeRateUsageAnalyticsService, StatusService];

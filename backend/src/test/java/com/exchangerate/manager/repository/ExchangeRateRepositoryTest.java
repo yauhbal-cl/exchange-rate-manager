@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -101,5 +102,101 @@ class ExchangeRateRepositoryTest extends AbstractIntegrationTest {
         assertThat(afterUpdate.get().getCurrencyCode()).isEqualTo(currencyCode);
         assertThat(afterUpdate.get().getRateDate()).isEqualTo(rateDate);
         assertThat(afterUpdate.get().getRateToUsd()).isEqualByComparingTo(updatedRate);
+    }
+
+    @Test
+    void findTrendIncludesDatePresentForBothCurrencies() {
+        String from = "AUD";
+        String to = "CAD";
+        LocalDate rateDate = LocalDate.of(2026, 8, 10);
+        BigDecimal fromRate = new BigDecimal("0.660000");
+        BigDecimal toRate = new BigDecimal("0.730000");
+
+        repository.upsert(from, fromRate, rateDate);
+        repository.upsert(to, toRate, rateDate);
+        entityManager.clear();
+
+        List<ExchangeRateRepository.RateTrendProjection> trend =
+                repository.findTrend(from, to, rateDate, rateDate);
+
+        assertThat(trend).hasSize(1);
+        assertThat(trend.get(0).getRateDate()).isEqualTo(rateDate);
+        assertThat(trend.get(0).getFromRateToUsd()).isEqualByComparingTo(fromRate);
+        assertThat(trend.get(0).getToRateToUsd()).isEqualByComparingTo(toRate);
+    }
+
+    @Test
+    void findTrendExcludesDatePresentForOnlyOneCurrency() {
+        String from = "CHF";
+        String to = "NZD";
+        LocalDate rateDate = LocalDate.of(2026, 8, 10);
+
+        repository.upsert(from, new BigDecimal("1.100000"), rateDate);
+        // no rate stored for `to` on this date
+        entityManager.clear();
+
+        List<ExchangeRateRepository.RateTrendProjection> trend =
+                repository.findTrend(from, to, rateDate, rateDate);
+
+        assertThat(trend).isEmpty();
+    }
+
+    @Test
+    void findTrendIncludesBoundaryDatesAndExcludesDatesOutsideRange() {
+        String from = "SEK";
+        String to = "NOK";
+        LocalDate startDate = LocalDate.of(2026, 8, 10);
+        LocalDate endDate = LocalDate.of(2026, 8, 12);
+        LocalDate beforeStart = startDate.minusDays(1);
+        LocalDate afterEnd = endDate.plusDays(1);
+
+        for (LocalDate date : List.of(beforeStart, startDate, endDate, afterEnd)) {
+            repository.upsert(from, new BigDecimal("0.100000"), date);
+            repository.upsert(to, new BigDecimal("0.200000"), date);
+        }
+        entityManager.clear();
+
+        List<ExchangeRateRepository.RateTrendProjection> trend =
+                repository.findTrend(from, to, startDate, endDate);
+
+        assertThat(trend)
+                .extracting(ExchangeRateRepository.RateTrendProjection::getRateDate)
+                .containsExactly(startDate, endDate);
+    }
+
+    @Test
+    void findTrendReturnsResultsOrderedChronologicallyAscending() {
+        String from = "DKK";
+        String to = "PLN";
+        LocalDate earliest = LocalDate.of(2026, 8, 10);
+        LocalDate middle = LocalDate.of(2026, 8, 11);
+        LocalDate latest = LocalDate.of(2026, 8, 12);
+
+        // Insert out of order to verify the query enforces ordering, not insertion order.
+        for (LocalDate date : List.of(latest, earliest, middle)) {
+            repository.upsert(from, new BigDecimal("0.300000"), date);
+            repository.upsert(to, new BigDecimal("0.400000"), date);
+        }
+        entityManager.clear();
+
+        List<ExchangeRateRepository.RateTrendProjection> trend =
+                repository.findTrend(from, to, earliest, latest);
+
+        assertThat(trend)
+                .extracting(ExchangeRateRepository.RateTrendProjection::getRateDate)
+                .containsExactly(earliest, middle, latest);
+    }
+
+    @Test
+    void findTrendReturnsEmptyListWhenNoQualifyingDatesInRange() {
+        String from = "HUF";
+        String to = "CZK";
+        LocalDate startDate = LocalDate.of(2030, 1, 1);
+        LocalDate endDate = LocalDate.of(2030, 1, 31);
+
+        List<ExchangeRateRepository.RateTrendProjection> trend =
+                repository.findTrend(from, to, startDate, endDate);
+
+        assertThat(trend).isEmpty();
     }
 }

@@ -2,6 +2,7 @@ package com.exchangerate.manager.controller;
 
 import com.exchangerate.manager.client.FixerApiException;
 import com.exchangerate.manager.mapper.ExchangeRateResponseMapper;
+import com.exchangerate.manager.mapper.ExchangeRateTrendResponseMapper;
 import com.exchangerate.manager.mapper.UsageAnalyticsMapper;
 import com.exchangerate.manager.repository.CurrencyUsageRepository;
 import com.exchangerate.manager.service.ExchangeRateService;
@@ -57,6 +58,9 @@ class ExchangeControllerTest {
 
     @MockitoBean
     private UsageAnalyticsMapper usageAnalyticsMapper;
+
+    @MockitoBean
+    private ExchangeRateTrendResponseMapper exchangeRateTrendResponseMapper;
 
     @Test
     void refreshReturns200WithResultOnSuccess() throws Exception {

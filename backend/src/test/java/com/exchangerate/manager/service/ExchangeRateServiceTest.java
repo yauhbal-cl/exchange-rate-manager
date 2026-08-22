@@ -2,11 +2,14 @@ package com.exchangerate.manager.service;
 
 import com.exchangerate.manager.entity.CurrencyUsage;
 import com.exchangerate.manager.entity.ExchangeRate;
+import com.exchangerate.manager.exception.InvalidDateRangeException;
+import com.exchangerate.manager.exception.UnknownCurrencyException;
 import com.exchangerate.manager.repository.CurrencyUsageRepository;
 import com.exchangerate.manager.repository.ExchangeRateRepository;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -15,10 +18,16 @@ import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 /**
@@ -161,5 +170,144 @@ class ExchangeRateServiceTest {
 
         BigDecimal expected = expectedRate(eurToUsd, usdToUsd, eurSpread.max(usdSpread));
         assertThat(result.rate()).isEqualByComparingTo(expected);
+    }
+
+    private static ExchangeRateRepository.RateTrendProjection trendRowOf(
+            LocalDate rateDate, BigDecimal fromRateToUsd, BigDecimal toRateToUsd) {
+        ExchangeRateRepository.RateTrendProjection row = mock(ExchangeRateRepository.RateTrendProjection.class);
+        when(row.getRateDate()).thenReturn(rateDate);
+        when(row.getFromRateToUsd()).thenReturn(fromRateToUsd);
+        when(row.getToRateToUsd()).thenReturn(toRateToUsd);
+        return row;
+    }
+
+    @Test
+    void getTrendWithoutDatesDefaultsToLast30DayWindow() {
+        LocalDate today = LocalDate.now();
+        LocalDate expectedStart = today.minusDays(29);
+
+        when(exchangeRateRepository.existsByCurrencyCode("EUR")).thenReturn(true);
+        when(exchangeRateRepository.existsByCurrencyCode("USD")).thenReturn(true);
+        when(spreadLookup.spreadFor("EUR")).thenReturn(BigDecimal.ZERO);
+        when(spreadLookup.spreadFor("USD")).thenReturn(BigDecimal.ZERO);
+        when(exchangeRateRepository.findTrend(eq("EUR"), eq("USD"), any(), any()))
+                .thenReturn(List.of());
+
+        exchangeRateService.getTrend("EUR", "USD", null, null);
+
+        ArgumentCaptor<LocalDate> startCaptor = ArgumentCaptor.forClass(LocalDate.class);
+        ArgumentCaptor<LocalDate> endCaptor = ArgumentCaptor.forClass(LocalDate.class);
+        verify(exchangeRateRepository).findTrend(eq("EUR"), eq("USD"), startCaptor.capture(), endCaptor.capture());
+
+        assertThat(startCaptor.getValue()).isEqualTo(expectedStart);
+        assertThat(endCaptor.getValue()).isEqualTo(today);
+    }
+
+    @Test
+    void getTrendWithUnknownFromCurrencyThrows() {
+        when(exchangeRateRepository.existsByCurrencyCode("XXX")).thenReturn(false);
+
+        assertThatThrownBy(() -> exchangeRateService.getTrend("XXX", "USD", null, null))
+                .isInstanceOf(UnknownCurrencyException.class)
+                .hasMessage("Unknown currency code: XXX");
+    }
+
+    @Test
+    void getTrendWithUnknownToCurrencyThrows() {
+        when(exchangeRateRepository.existsByCurrencyCode("EUR")).thenReturn(true);
+        when(exchangeRateRepository.existsByCurrencyCode("XXX")).thenReturn(false);
+
+        assertThatThrownBy(() -> exchangeRateService.getTrend("EUR", "XXX", null, null))
+                .isInstanceOf(UnknownCurrencyException.class)
+                .hasMessage("Unknown currency code: XXX");
+    }
+
+    @Test
+    void getTrendWithStartDateAfterEndDateThrows() {
+        when(exchangeRateRepository.existsByCurrencyCode("EUR")).thenReturn(true);
+        when(exchangeRateRepository.existsByCurrencyCode("USD")).thenReturn(true);
+
+        LocalDate startDate = LocalDate.of(2026, 8, 20);
+        LocalDate endDate = LocalDate.of(2026, 8, 10);
+
+        assertThatThrownBy(() -> exchangeRateService.getTrend("EUR", "USD", startDate, endDate))
+                .isInstanceOf(InvalidDateRangeException.class);
+    }
+
+    @Test
+    void getTrendComputesSpreadAdjustedRateUsingSameFormulaAsLookup() {
+        LocalDate startDate = LocalDate.of(2026, 8, 1);
+        LocalDate endDate = LocalDate.of(2026, 8, 3);
+        BigDecimal eurToUsd = new BigDecimal("1.080000");
+        BigDecimal gbpToUsd = new BigDecimal("1.260000");
+        BigDecimal eurSpread = new BigDecimal("2.75");
+        BigDecimal gbpSpread = new BigDecimal("3.25");
+
+        when(exchangeRateRepository.existsByCurrencyCode("EUR")).thenReturn(true);
+        when(exchangeRateRepository.existsByCurrencyCode("GBP")).thenReturn(true);
+        when(spreadLookup.spreadFor("EUR")).thenReturn(eurSpread);
+        when(spreadLookup.spreadFor("GBP")).thenReturn(gbpSpread);
+
+        ExchangeRateRepository.RateTrendProjection row =
+                trendRowOf(LocalDate.of(2026, 8, 2), eurToUsd, gbpToUsd);
+        when(exchangeRateRepository.findTrend("EUR", "GBP", startDate, endDate))
+                .thenReturn(List.of(row));
+
+        List<RateTrendPoint> result = exchangeRateService.getTrend("EUR", "GBP", startDate, endDate);
+
+        BigDecimal expected = expectedRate(eurToUsd, gbpToUsd, eurSpread.max(gbpSpread));
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).rateDate()).isEqualTo(LocalDate.of(2026, 8, 2));
+        assertThat(result.get(0).rate()).isEqualByComparingTo(expected);
+    }
+
+    @Test
+    void getTrendPreservesOrderOfRepositoryResults() {
+        LocalDate startDate = LocalDate.of(2026, 8, 1);
+        LocalDate endDate = LocalDate.of(2026, 8, 5);
+        BigDecimal eurSpread = new BigDecimal("2.75");
+        BigDecimal gbpSpread = new BigDecimal("3.25");
+
+        when(exchangeRateRepository.existsByCurrencyCode("EUR")).thenReturn(true);
+        when(exchangeRateRepository.existsByCurrencyCode("GBP")).thenReturn(true);
+        when(spreadLookup.spreadFor("EUR")).thenReturn(eurSpread);
+        when(spreadLookup.spreadFor("GBP")).thenReturn(gbpSpread);
+
+        LocalDate day1 = LocalDate.of(2026, 8, 1);
+        LocalDate day2 = LocalDate.of(2026, 8, 2);
+        LocalDate day3 = LocalDate.of(2026, 8, 3);
+
+        ExchangeRateRepository.RateTrendProjection row1 =
+                trendRowOf(day1, new BigDecimal("1.080000"), new BigDecimal("1.260000"));
+        ExchangeRateRepository.RateTrendProjection row2 =
+                trendRowOf(day2, new BigDecimal("1.081000"), new BigDecimal("1.261000"));
+        ExchangeRateRepository.RateTrendProjection row3 =
+                trendRowOf(day3, new BigDecimal("1.082000"), new BigDecimal("1.262000"));
+
+        when(exchangeRateRepository.findTrend("EUR", "GBP", startDate, endDate))
+                .thenReturn(List.of(row1, row2, row3));
+
+        List<RateTrendPoint> result = exchangeRateService.getTrend("EUR", "GBP", startDate, endDate);
+
+        assertThat(result).extracting(RateTrendPoint::rateDate)
+                .containsExactly(day1, day2, day3);
+    }
+
+    @Test
+    void getTrendNeverInteractsWithCurrencyUsageRepository() {
+        LocalDate startDate = LocalDate.of(2026, 8, 1);
+        LocalDate endDate = LocalDate.of(2026, 8, 3);
+
+        when(exchangeRateRepository.existsByCurrencyCode("EUR")).thenReturn(true);
+        when(exchangeRateRepository.existsByCurrencyCode("GBP")).thenReturn(true);
+        when(spreadLookup.spreadFor("EUR")).thenReturn(BigDecimal.ZERO);
+        when(spreadLookup.spreadFor("GBP")).thenReturn(BigDecimal.ZERO);
+        when(exchangeRateRepository.findTrend("EUR", "GBP", startDate, endDate))
+                .thenReturn(List.of());
+
+        exchangeRateService.getTrend("EUR", "GBP", startDate, endDate);
+
+        verifyNoInteractions(currencyUsageRepository);
     }
 }
