@@ -84,6 +84,19 @@ Database connection via `src/main/resources/application.yml`:
 - Host, port, credentials match `docker-compose.yml` defaults
 - Configurable via `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` env vars
 
+Fixer.io data collection requires a `FIXER_API_KEY` env var. The daily scheduled job (and the
+manual refresh endpoint) call Fixer.io's `/latest` endpoint to collect exchange rates, and this
+key authenticates that call. There is no default (`fixer.api-key: ${FIXER_API_KEY}` in
+`application.yml`) — the backend fails to start without it.
+
+- Sign up for a free key at [fixer.io](https://fixer.io/) (free tier is sufficient) and copy the
+  "Access Key" from the dashboard.
+- Set it before running the backend:
+  ```bash
+  export FIXER_API_KEY=your-key-here
+  ```
+- `FIXER_BASE_URL` is optional and defaults to `https://data.fixer.io/api`.
+
 ## Prerequisites
 
 - Java 21 + Maven 3.9.x (backend)
