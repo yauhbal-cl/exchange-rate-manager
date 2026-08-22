@@ -133,7 +133,7 @@ verify a response with a subset of `symbols` still persists exactly those curren
 
 ### Tests for User Story 2
 
-- [ ] T013 [P] [US2] `FixerClientTest` failure cases (non-2xx, network error, `success:false`
+- [X] T013 [P] [US2] `FixerClientTest` failure cases (non-2xx, network error, `success:false`
       body → `FixerApiException`) added to
       `backend/src/test/java/com/exchangerate/manager/client/FixerClientTest.java`
 - [ ] T014 [P] [US2] `RateCollectionServiceTest` cases: (a) `FixerApiException` from the client
