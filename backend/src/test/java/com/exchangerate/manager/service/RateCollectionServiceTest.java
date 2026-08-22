@@ -82,11 +82,13 @@ class RateCollectionServiceTest {
     }
 
     @Test
-    void collectAbortsWithZeroWritesWhenProviderCallFails() {
+    void collectPropagatesFailureWithZeroWritesAttempted() {
         when(fixerClient.getLatestRates())
                 .thenThrow(new com.exchangerate.manager.client.FixerApiException("simulated provider failure"));
 
-        org.junit.jupiter.api.Assertions.assertDoesNotThrow(() -> rateCollectionService.collect());
+        org.junit.jupiter.api.Assertions.assertThrows(
+                com.exchangerate.manager.client.FixerApiException.class,
+                () -> rateCollectionService.collect());
 
         verify(exchangeRateRepository, org.mockito.Mockito.never()).upsert(any(), any(), any());
     }

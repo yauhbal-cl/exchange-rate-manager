@@ -1,6 +1,5 @@
 package com.exchangerate.manager.service;
 
-import com.exchangerate.manager.client.FixerApiException;
 import com.exchangerate.manager.client.FixerClient;
 import com.exchangerate.manager.client.FixerLatestResponse;
 import com.exchangerate.manager.repository.ExchangeRateRepository;
@@ -18,11 +17,15 @@ import java.util.Map;
 /**
  * Collects the latest EUR-based rates from Fixer.io and upserts USD-based cross-rates for every
  * currency in the response.
+ *
+ * <p>Lets {@link com.exchangerate.manager.client.FixerApiException} propagate on failure — the
+ * caller decides how to react: {@link com.exchangerate.manager.scheduler.RateCollectionScheduler}
+ * logs it (a null return from {@code collect()} would otherwise be indistinguishable from
+ * ShedLock skipping the method because another run already holds the lock), and
+ * {@code ExchangeController} maps it to a 502 response for the manual-refresh path.
  */
 @Service
 public class RateCollectionService {
-
-    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(RateCollectionService.class);
 
     private final FixerClient fixerClient;
 
@@ -36,13 +39,7 @@ public class RateCollectionService {
     @Transactional
     @SchedulerLock(name = "fixer-rate-collection")
     public RefreshResult collect() {
-        FixerLatestResponse response;
-        try {
-            response = fixerClient.getLatestRates();
-        } catch (FixerApiException e) {
-            log.error("Fixer.io rate collection failed: {}", e.getMessage(), e);
-            return null;
-        }
+        FixerLatestResponse response = fixerClient.getLatestRates();
         Map<String, BigDecimal> rates = response.getRates();
         LocalDate rateDate = response.getDate();
         BigDecimal eurToUsd = rates.get("USD");
