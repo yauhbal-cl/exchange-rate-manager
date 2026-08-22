@@ -80,4 +80,35 @@ class RateCollectionServiceTest {
 
         verify(exchangeRateRepository, times(3)).upsert(any(), any(), any());
     }
+
+    @Test
+    void collectAbortsWithZeroWritesWhenProviderCallFails() {
+        when(fixerClient.getLatestRates())
+                .thenThrow(new com.exchangerate.manager.client.FixerApiException("simulated provider failure"));
+
+        org.junit.jupiter.api.Assertions.assertDoesNotThrow(() -> rateCollectionService.collect());
+
+        verify(exchangeRateRepository, org.mockito.Mockito.never()).upsert(any(), any(), any());
+    }
+
+    @Test
+    void collectUpsertsOnlyCurrenciesPresentInResponse() {
+        Map<String, BigDecimal> rates = new LinkedHashMap<>();
+        rates.put("USD", new BigDecimal("1.080000"));
+        rates.put("GBP", new BigDecimal("0.860000"));
+
+        FixerLatestResponse response = new FixerLatestResponse();
+        response.setSuccess(true);
+        response.setBase("EUR");
+        response.setDate(RATE_DATE);
+        response.setRates(rates);
+
+        when(fixerClient.getLatestRates()).thenReturn(response);
+
+        rateCollectionService.collect();
+
+        verify(exchangeRateRepository).upsert(eq("USD"), any(), eq(RATE_DATE));
+        verify(exchangeRateRepository).upsert(eq("GBP"), any(), eq(RATE_DATE));
+        verify(exchangeRateRepository, times(2)).upsert(any(), any(), any());
+    }
 }
