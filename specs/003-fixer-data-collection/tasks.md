@@ -185,7 +185,7 @@ schedule alone (US1) plus its failure handling (US2) fully satisfies the core fe
 - [X] T018 [US3] Regenerate the server interface from `contracts/openapi.yaml`
       (`cd backend && ./mvnw generate-sources`) to produce the `refreshExchangeRates`
       interface method for `POST /exchange/refresh`
-- [ ] T019 [P] [US3] Create `RefreshResult` DTO (`currenciesCollected`, `rateDate`) in
+- [X] T019 [P] [US3] Create `RefreshResult` DTO (`currenciesCollected`, `rateDate`) in
       `backend/src/main/java/com/exchangerate/manager/service/RefreshResult.java` per
       data-model.md
 - [ ] T020 [US3] Change `RateCollectionService.collect()` (T011) to return a `RefreshResult`
