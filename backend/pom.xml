@@ -175,6 +175,22 @@
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
 
+            <!-- Runs *IT.java integration tests during the integration-test/verify phases.
+                 Version comes from spring-boot-starter-parent's pluginManagement (3.5.6 as of
+                 Spring Boot 4.1.1); do not pin it separately here. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
             <!-- OpenAPI Code Generation -->
             <plugin>
                 <groupId>org.openapitools</groupId>
