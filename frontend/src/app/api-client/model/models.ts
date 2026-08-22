@@ -5,4 +5,5 @@ export * from './problemDetail';
 export * from './rateTrendPoint';
 export * from './refreshResult';
 export * from './serviceStatus';
+export * from './trendInsightResponse';
 export * from './usageAnalyticsResponse';

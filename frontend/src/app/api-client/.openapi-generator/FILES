@@ -3,6 +3,7 @@ README.md
 api.base.service.ts
 api.module.ts
 api/api.ts
+api/exchangeRateAIInsight.service.ts
 api/exchangeRateAnalytics.service.ts
 api/exchangeRateCollection.service.ts
 api/exchangeRateLookup.service.ts
@@ -20,6 +21,7 @@ model/problemDetail.ts
 model/rateTrendPoint.ts
 model/refreshResult.ts
 model/serviceStatus.ts
+model/trendInsightResponse.ts
 model/usageAnalyticsResponse.ts
 param.ts
 provide-api.ts
