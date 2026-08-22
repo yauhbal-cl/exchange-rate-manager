@@ -31,7 +31,7 @@ Existing single-module Spring Boot backend, extended in place — see plan.md Pr
 
 - [X] T001 Add `/exchange/trend` path and `ExchangeRateTrendResponse`/`RateTrendPoint` schemas to `contracts/openapi.yaml`, per `specs/005-analytics-endpoint/contracts/analytics-endpoints.yaml`
 - [X] T002 Extend `/exchange/usage` in `contracts/openapi.yaml` with optional `limit` (`integer`, `minimum: 1`) and `recentDays` (`integer`, `minimum: 1`) query parameters, per `specs/005-analytics-endpoint/contracts/analytics-endpoints.yaml`
-- [ ] T003 Regenerate backend server interfaces/DTOs by running `cd backend && ./mvnw generate-sources` and confirm `getExchangeRateTrend`/`getUsageAnalytics` signatures land in the generated API interface
+- [X] T003 Regenerate backend server interfaces/DTOs by running `cd backend && ./mvnw generate-sources` and confirm `getExchangeRateTrend`/`getUsageAnalytics` signatures land in the generated API interface
 
 **Checkpoint**: Contract updated and regenerated; generated `ExchangeRateTrendResponse`, `RateTrendPoint` DTOs and updated `getUsageAnalytics` signature exist before any story implementation begins.
 
