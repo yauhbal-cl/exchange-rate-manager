@@ -26,6 +26,27 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ServiceStatus'
+  /exchange/refresh:
+    post:
+      operationId: refreshExchangeRates
+      summary: Manually trigger an on-demand exchange rate collection run
+      description: >
+        Fetches the latest exchange rates from the external rate provider and upserts them,
+        independent of the daily schedule. Does not affect per-currency usage counters.
+      tags: [Exchange Rate Collection]
+      responses:
+        '200':
+          description: Collection run completed; rates were fetched and upserted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefreshResult'
+        '502':
+          description: The external rate provider was unreachable or returned an error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
 components:
   schemas:
     ServiceStatus:
@@ -40,3 +61,29 @@ components:
         timestamp:
           type: string
           format: date-time
+    RefreshResult:
+      type: object
+      required: [currenciesCollected, rateDate]
+      properties:
+        currenciesCollected:
+          type: integer
+          format: int32
+          description: Number of currencies successfully upserted in this run
+        rateDate:
+          type: string
+          format: date
+          description: The rate date reported by the provider and persisted in this run
+    ProblemDetail:
+      type: object
+      description: RFC 9457 problem details
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string
