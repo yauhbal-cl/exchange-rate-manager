@@ -66,7 +66,7 @@ optionally, US3) build on
       `symbols` restriction so the full provider set is returned per FR-005), deserializes into
       `FixerLatestResponse`, throws `FixerApiException` on network error, non-2xx, or
       `success:false` (depends on T003, T004)
-- [ ] T006 [P] Create `SchedulerLockConfig` in
+- [X] T006 [P] Create `SchedulerLockConfig` in
       `backend/src/main/java/com/exchangerate/manager/config/SchedulerLockConfig.java` —
       `@EnableSchedulerLock(defaultLockAtMostFor = "PT10M")` plus a `LockProvider` bean
       (`JdbcTemplateLockProvider` over the existing `DataSource`) per research.md §4
