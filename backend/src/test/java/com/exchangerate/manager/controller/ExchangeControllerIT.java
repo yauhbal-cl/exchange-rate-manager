@@ -25,9 +25,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * PostgreSQL instance (see {@code ExchangeRateRepositoryTest} for the same convention: no
  * H2/Testcontainers, real DB, {@code @Transactional} rollback-per-test for isolation).
  *
- * <p>Scope is the happy path only (T014): an explicit past {@code date} query param, with both
- * currencies present in the store. Error paths (missing/unknown currency, no data for date, etc.)
- * are T017/US2's job, and usage-counter assertions are T019/T020's job — neither is covered here.
+ * <p>Covers the US1 happy path (explicit past {@code date}, both currencies present) and US2's
+ * three rejected-lookup cases (unknown currency, same currency on both sides, no data for date).
+ * Usage-counter assertions are T019/T020's job and are not covered here.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 @AutoConfigureMockMvc
@@ -47,6 +47,12 @@ class ExchangeControllerIT {
     private static final String TO_CURRENCY = "GBP";
     private static final BigDecimal FROM_RATE_TO_USD = new BigDecimal("1.080000");
     private static final BigDecimal TO_RATE_TO_USD = new BigDecimal("0.860000");
+
+    // Obviously-fake 3-letter code, never seeded into exchange_rates by any test in this class.
+    private static final String UNKNOWN_CURRENCY = "ZZZ";
+
+    // A date with no rate data seeded for it, used to exercise the "no rate data for date" path.
+    private static final LocalDate NO_DATA_DATE = LocalDate.of(1999, 1, 1);
 
     @Autowired
     private MockMvc mockMvc;
@@ -82,5 +88,42 @@ class ExchangeControllerIT {
                 .toString();
 
         assertThat(new BigDecimal(rateAsText)).isEqualByComparingTo(expectedRate);
+    }
+
+    @Test
+    void getExchangeRateReturns400ForUnknownCurrency() throws Exception {
+        exchangeRateRepository.upsert(TO_CURRENCY, TO_RATE_TO_USD, RATE_DATE);
+
+        mockMvc.perform(get(ENDPOINT)
+                        .param("from", UNKNOWN_CURRENCY)
+                        .param("to", TO_CURRENCY)
+                        .param("date", RATE_DATE.toString()))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.containsString(UNKNOWN_CURRENCY)));
+    }
+
+    @Test
+    void getExchangeRateReturns400ForSameCurrencyOnBothSides() throws Exception {
+        exchangeRateRepository.upsert(FROM_CURRENCY, FROM_RATE_TO_USD, RATE_DATE);
+
+        mockMvc.perform(get(ENDPOINT)
+                        .param("from", FROM_CURRENCY)
+                        .param("to", FROM_CURRENCY)
+                        .param("date", RATE_DATE.toString()))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.containsString(FROM_CURRENCY)));
+    }
+
+    @Test
+    void getExchangeRateReturns404WhenNoRateDataForDate() throws Exception {
+        exchangeRateRepository.upsert(FROM_CURRENCY, FROM_RATE_TO_USD, RATE_DATE);
+        exchangeRateRepository.upsert(TO_CURRENCY, TO_RATE_TO_USD, RATE_DATE);
+
+        mockMvc.perform(get(ENDPOINT)
+                        .param("from", FROM_CURRENCY)
+                        .param("to", TO_CURRENCY)
+                        .param("date", NO_DATA_DATE.toString()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.containsString(NO_DATA_DATE.toString())));
     }
 }
