@@ -92,7 +92,7 @@ currency exists for the current date (quickstart.md "Validate: scheduled collect
 
 ### Tests for User Story 1
 
-- [ ] T008 [P] [US1] `FixerClientTest` (happy path: request URL/params, response
+- [X] T008 [P] [US1] `FixerClientTest` (happy path: request URL/params, response
       deserialization) using `MockRestServiceServer` in
       `backend/src/test/java/com/exchangerate/manager/client/FixerClientTest.java`
 - [ ] T009 [P] [US1] `RateCollectionServiceTest` happy-path case (EUR cross-rate math correct
