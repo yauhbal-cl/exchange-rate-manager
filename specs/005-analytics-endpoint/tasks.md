@@ -43,8 +43,8 @@ Existing single-module Spring Boot backend, extended in place — see plan.md Pr
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T004 Create `InvalidDateRangeException` (extends the codebase's existing runtime-exception base pattern, mirroring `UnknownCurrencyException`) in `backend/src/main/java/com/exchangerate/manager/exception/InvalidDateRangeException.java`
-- [ ] T005 Map `InvalidDateRangeException` to a 400 `ProblemDetail` in `backend/src/main/java/com/exchangerate/manager/exception/GlobalExceptionHandler.java`, following the existing handler pattern for `UnknownCurrencyException`
+- [X] T004 Create `InvalidDateRangeException` (extends the codebase's existing runtime-exception base pattern, mirroring `UnknownCurrencyException`) in `backend/src/main/java/com/exchangerate/manager/exception/InvalidDateRangeException.java`
+- [X] T005 Map `InvalidDateRangeException` to a 400 `ProblemDetail` in `backend/src/main/java/com/exchangerate/manager/exception/GlobalExceptionHandler.java`, following the existing handler pattern for `UnknownCurrencyException`
 
 **Checkpoint**: Foundation ready — US1, US2, US3 implementation can now proceed (US1 needs T004/T005; US2/US3 only need Phase 1).
 
