@@ -1,5 +1,6 @@
 package com.exchangerate.manager.controller;
 
+import com.exchangerate.manager.AbstractIntegrationTest;
 import com.exchangerate.manager.repository.CurrencyUsageRepository;
 import com.exchangerate.manager.repository.ExchangeRateRepository;
 
@@ -22,9 +23,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Full-HTTP integration test for {@code GET /api/v1/exchange} against the real docker-compose
- * PostgreSQL instance (see {@code ExchangeRateRepositoryTest} for the same convention: no
- * H2/Testcontainers, real DB, {@code @Transactional} rollback-per-test for isolation).
+ * Full-HTTP integration test for {@code GET /api/v1/exchange} against a Testcontainers-managed
+ * PostgreSQL instance (see {@link AbstractIntegrationTest}), with {@code @Transactional}
+ * rollback-per-test for isolation.
  *
  * <p>Covers the US1 happy path (explicit past {@code date}, both currencies present) and US2's
  * three rejected-lookup cases (unknown currency, same currency on both sides, no data for date).
@@ -33,7 +34,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 @AutoConfigureMockMvc
 @Transactional
-class ExchangeControllerIT {
+class ExchangeControllerIT extends AbstractIntegrationTest {
 
     private static final String ENDPOINT = "/api/v1/exchange";
     private static final String USAGE_ENDPOINT = "/api/v1/exchange/usage";

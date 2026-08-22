@@ -1,5 +1,6 @@
 package com.exchangerate.manager.service;
 
+import com.exchangerate.manager.AbstractIntegrationTest;
 import com.exchangerate.manager.repository.CurrencyUsageRepository;
 import com.exchangerate.manager.repository.ExchangeRateRepository;
 
@@ -32,7 +33,8 @@ import static org.assertj.core.api.Assertions.assertThat;
  * approach", wrapping this test in a single transaction would hide the very row-lock contention
  * being verified, since a single transaction only ever sees its own uncommitted writes and never
  * truly contends with itself. As a consequence, the seeded {@code exchange_rates} rows for this
- * test are NOT rolled back and persist in the DB afterward; this is an accepted tradeoff for this
+ * test are NOT rolled back and persist in the DB afterward (in the Testcontainers-managed
+ * instance, see {@link AbstractIntegrationTest}); this is an accepted tradeoff for this
  * specific test. The seed date is unique to this class (not used by any other test file) and
  * {@code upsert} is idempotent per {@code (currency_code, rate_date)}, so re-running this test
  * cannot corrupt any other test's assertions. The chosen currency codes (CHF/AUD) are not used by
@@ -40,7 +42,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * collide with another test's "never queried" assertions either.
  */
 @SpringBootTest
-class ExchangeRateServiceConcurrencyIT {
+class ExchangeRateServiceConcurrencyIT extends AbstractIntegrationTest {
 
     private static final int CONCURRENT_LOOKUPS = 20;
     private static final int THREAD_POOL_SIZE = 10;
