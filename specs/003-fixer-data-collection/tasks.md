@@ -188,7 +188,7 @@ schedule alone (US1) plus its failure handling (US2) fully satisfies the core fe
 - [X] T019 [P] [US3] Create `RefreshResult` DTO (`currenciesCollected`, `rateDate`) in
       `backend/src/main/java/com/exchangerate/manager/service/RefreshResult.java` per
       data-model.md
-- [ ] T020 [US3] Change `RateCollectionService.collect()` (T011) to return a `RefreshResult`
+- [X] T020 [US3] Change `RateCollectionService.collect()` (T011) to return a `RefreshResult`
       (currency count + rate date) instead of `void`, updating T012's scheduler call site to
       discard the return value (depends on T011, T019)
 - [ ] T021 [US3] Create `ExchangeController` implementing the generated

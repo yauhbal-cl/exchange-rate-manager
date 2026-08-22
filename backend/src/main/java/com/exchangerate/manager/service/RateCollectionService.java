@@ -35,13 +35,13 @@ public class RateCollectionService {
 
     @Transactional
     @SchedulerLock(name = "fixer-rate-collection")
-    public void collect() {
+    public RefreshResult collect() {
         FixerLatestResponse response;
         try {
             response = fixerClient.getLatestRates();
         } catch (FixerApiException e) {
             log.error("Fixer.io rate collection failed: {}", e.getMessage(), e);
-            return;
+            return null;
         }
         Map<String, BigDecimal> rates = response.getRates();
         LocalDate rateDate = response.getDate();
@@ -53,5 +53,7 @@ public class RateCollectionService {
             BigDecimal rateToUsd = eurToX.divide(eurToUsd, 6, RoundingMode.HALF_UP);
             exchangeRateRepository.upsert(currencyCode, rateToUsd, rateDate);
         }
+
+        return new RefreshResult(rates.size(), rateDate);
     }
 }
