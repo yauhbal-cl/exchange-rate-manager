@@ -1,6 +1,7 @@
 package com.exchangerate.manager.service;
 
 import com.exchangerate.manager.entity.ExchangeRate;
+import com.exchangerate.manager.exception.InvalidDateRangeException;
 import com.exchangerate.manager.exception.RateDataNotFoundException;
 import com.exchangerate.manager.exception.SameCurrencyException;
 import com.exchangerate.manager.exception.UnknownCurrencyException;
@@ -16,6 +17,7 @@ import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -76,5 +78,44 @@ public class ExchangeRateService {
 
         return new ExchangeRateLookupResult(
                 from, to, rate, effectiveDate, fromCurrencyUsageCount, toCurrencyUsageCount);
+    }
+
+    /**
+     * Returns the spread-adjusted historical rate series for {@code from}/{@code to} across
+     * {@code [startDate, endDate]}, one entry per date both currencies have stored data for,
+     * ordered chronologically ascending. Read-only: never increments usage counters.
+     */
+    @Transactional
+    public List<RateTrendPoint> getTrend(String from, String to, LocalDate startDate, LocalDate endDate) {
+        if (!exchangeRateRepository.existsByCurrencyCode(from)) {
+            throw new UnknownCurrencyException("Unknown currency code: " + from);
+        }
+        if (!exchangeRateRepository.existsByCurrencyCode(to)) {
+            throw new UnknownCurrencyException("Unknown currency code: " + to);
+        }
+
+        LocalDate today = LocalDate.now();
+        LocalDate effectiveStartDate = startDate != null ? startDate : today.minusDays(29);
+        LocalDate effectiveEndDate = endDate != null ? endDate : today;
+
+        if (effectiveStartDate.isAfter(effectiveEndDate)) {
+            throw new InvalidDateRangeException(
+                    "startDate " + effectiveStartDate + " must not be after endDate " + effectiveEndDate);
+        }
+
+        BigDecimal fromSpread = spreadLookup.spreadFor(from);
+        BigDecimal toSpread = spreadLookup.spreadFor(to);
+        BigDecimal maxSpread = fromSpread.max(toSpread);
+        BigDecimal spreadFactor = BigDecimal.valueOf(100)
+                .subtract(maxSpread)
+                .divide(BigDecimal.valueOf(100), RATE_MATH_CONTEXT);
+
+        return exchangeRateRepository.findTrend(from, to, effectiveStartDate, effectiveEndDate).stream()
+                .map(row -> {
+                    BigDecimal rateRatio = row.getToRateToUsd().divide(row.getFromRateToUsd(), RATE_MATH_CONTEXT);
+                    BigDecimal rate = rateRatio.multiply(spreadFactor, RATE_MATH_CONTEXT);
+                    return new RateTrendPoint(row.getRateDate(), rate);
+                })
+                .toList();
     }
 }
