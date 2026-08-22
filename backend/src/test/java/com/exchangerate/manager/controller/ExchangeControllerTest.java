@@ -3,6 +3,8 @@ package com.exchangerate.manager.controller;
 import com.exchangerate.manager.api.model.TrendInsightResponse;
 import com.exchangerate.manager.client.FixerApiException;
 import com.exchangerate.manager.exception.AiInsightUnavailableException;
+import com.exchangerate.manager.exception.RateDataNotFoundException;
+import com.exchangerate.manager.exception.TrendRangeTooLargeException;
 import com.exchangerate.manager.mapper.ExchangeRateResponseMapper;
 import com.exchangerate.manager.mapper.ExchangeRateTrendResponseMapper;
 import com.exchangerate.manager.mapper.TrendInsightResponseMapper;
@@ -131,6 +133,38 @@ class ExchangeControllerTest {
                 .andExpect(status().isServiceUnavailable())
                 .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.detail").value("AI insight generation is currently unavailable"));
+    }
+
+    @Test
+    void getExchangeRateTrendInsightReturns404WhenNoDataFound() throws Exception {
+        when(trendInsightService.generateInsight(anyString(), anyString(), any(), any()))
+                .thenThrow(new RateDataNotFoundException(
+                        "No rate data found for currencies 'EUR' and 'USD' between 2099-01-01 and 2099-01-31"));
+
+        mockMvc.perform(get("/api/v1/exchange/trend/insight")
+                        .param("from", "EUR")
+                        .param("to", "USD"))
+                .andExpect(status().isNotFound())
+                .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.detail").value(
+                        "No rate data found for currencies 'EUR' and 'USD' between 2099-01-01 and 2099-01-31"));
+    }
+
+    @Test
+    void getExchangeRateTrendInsightReturns400WhenRangeTooLarge() throws Exception {
+        when(trendInsightService.generateInsight(anyString(), anyString(), any(), any()))
+                .thenThrow(new TrendRangeTooLargeException(
+                        "Requested range 2024-01-01 to 2026-06-01 spans 883 days, which exceeds the maximum of 365"
+                                + " daily points supported for AI trend insight generation"));
+
+        mockMvc.perform(get("/api/v1/exchange/trend/insight")
+                        .param("from", "EUR")
+                        .param("to", "USD"))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.detail").value(
+                        "Requested range 2024-01-01 to 2026-06-01 spans 883 days, which exceeds the maximum of 365"
+                                + " daily points supported for AI trend insight generation"));
     }
 
     /**
