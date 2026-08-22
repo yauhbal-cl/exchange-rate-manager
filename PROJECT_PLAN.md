@@ -4,23 +4,22 @@ Ordered steps for Exchange Rate Management System (see TASK.md, CLAUDE.md). Mark
 
 ## 0. Repo & Contract Setup
 
-- [ ] Scaffold `backend/` (Spring Boot 4.1.1, Java 21, Maven) and `frontend/` (Angular 21) sibling folders
-- [ ] Write `contracts/openapi.yaml` — paths: `GET /exchange`, `GET /analytics`, `GET /exchange/insight`, `POST /exchange/refresh` (optional); schemas per Appendix A
-- [ ] Wire `openapi-generator-maven-plugin` in `backend/pom.xml` (generate-sources phase)
-- [ ] Wire `openapi-generator-cli` npm script (`generate:api`) in `frontend/package.json`
-- [ ] `docker-compose.yml` — PostgreSQL 17 service (add Ollama service later)
-- [ ] `docker compose up -d` — bring Postgres up before any migration/entity work
+- [x] Scaffold `backend/` (Spring Boot 4.1.1, Java 21, Maven) and `frontend/` (Angular 21) sibling folders
+- [x] Write `contracts/openapi.yaml` — paths: `GET /exchange`, `GET /analytics`, `GET /exchange/insight`, `POST /exchange/refresh` (optional); schemas per Appendix A
+- [x] Wire `openapi-generator-maven-plugin` in `backend/pom.xml` (generate-sources phase)
+- [x] Wire `openapi-generator-cli` npm script (`generate:api`) in `frontend/package.json`
+- [x] `docker-compose.yml` — PostgreSQL 17 service (add Ollama service later)
+- [x] `docker compose up -d` — bring Postgres up before any migration/entity work
 
 ## 1. Backend Foundation
 
 - [ ] Package root `com.exchangerate.manager`, layering: controller → service → repository
 - [ ] Migration tool setup (Flyway/Liquibase) — include ShedLock's own lock table migration up front
 - [ ] DB schema / JPA entities: `ExchangeRate` (currency_code, rate_to_usd, rate_date, unique constraint on (currency_code, rate_date)), `CurrencyUsage` (currency_code, query_count, last_queried)
-- [ ] Spread reference table (Appendix B) — lookup keyed by currency code / "default", not if/else
 
 ## 2. Fixer.io Data Collection
 
-- [ ] Fixer.io client (WebClient/RestClient), config for API key via env var
+- [ ] Fixer.io client (RestClient), config for API key via env var
 - [ ] Scheduled job: fetch once daily at 00:05 GMT, persist `date` field from response (not fetch date)
 - [ ] Upsert on (currency_code, rate_date) — `INSERT ... ON CONFLICT` or JPA saveOrUpdate keyed on composite
 - [ ] ShedLock (JDBC provider, same Postgres DB, lock table from section 1) so only one instance calls Fixer.io per scheduled run
