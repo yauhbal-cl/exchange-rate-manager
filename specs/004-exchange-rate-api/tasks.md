@@ -210,7 +210,7 @@ actually performed, including currencies never queried.
       `backend/src/main/java/com/exchangerate/manager/mapper/UsageAnalyticsMapper.java` mapping
       the `findAllCurrencyUsage()` projection to the generated `CurrencyUsageEntry`/
       `UsageAnalyticsResponse` DTOs
-- [ ] T022 [US4] Implement `GET /exchange/usage` in `ExchangeController.java` by implementing the
+- [x] T022 [US4] Implement `GET /exchange/usage` in `ExchangeController.java` by implementing the
       generated `ExchangeApi` method: delegate to `CurrencyUsageRepository.findAllCurrencyUsage()`,
       map via `UsageAnalyticsMapper`, return 200 with `{"currencies": [...]}` (or `[]` when no
       rates have ever been stored)

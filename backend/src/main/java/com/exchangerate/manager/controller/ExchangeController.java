@@ -2,7 +2,10 @@ package com.exchangerate.manager.controller;
 
 import com.exchangerate.manager.api.ExchangeApi;
 import com.exchangerate.manager.api.model.ExchangeRateResponse;
+import com.exchangerate.manager.api.model.UsageAnalyticsResponse;
 import com.exchangerate.manager.mapper.ExchangeRateResponseMapper;
+import com.exchangerate.manager.mapper.UsageAnalyticsMapper;
+import com.exchangerate.manager.repository.CurrencyUsageRepository;
 import com.exchangerate.manager.service.CollectionInProgressException;
 import com.exchangerate.manager.service.ExchangeRateLookupResult;
 import com.exchangerate.manager.service.ExchangeRateService;
@@ -24,6 +27,8 @@ public class ExchangeController implements ExchangeApi {
     private final RateCollectionService rateCollectionService;
     private final ExchangeRateService exchangeRateService;
     private final ExchangeRateResponseMapper exchangeRateResponseMapper;
+    private final CurrencyUsageRepository currencyUsageRepository;
+    private final UsageAnalyticsMapper usageAnalyticsMapper;
 
     @Override
     public ResponseEntity<ExchangeRateResponse> getExchangeRate(String from, String to, LocalDate date) {
@@ -43,6 +48,12 @@ public class ExchangeController implements ExchangeApi {
 
         com.exchangerate.manager.api.model.RefreshResult body = new com.exchangerate.manager.api.model.RefreshResult(
                 result.getCurrenciesCollected(), result.getRateDate());
+        return ResponseEntity.ok(body);
+    }
+
+    @Override
+    public ResponseEntity<UsageAnalyticsResponse> getUsageAnalytics() {
+        UsageAnalyticsResponse body = usageAnalyticsMapper.toResponse(currencyUsageRepository.findAllCurrencyUsage());
         return ResponseEntity.ok(body);
     }
 }
