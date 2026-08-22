@@ -1,0 +1,117 @@
+# Proposed additions to contracts/openapi.yaml (applied during implementation, per the
+# repo's "edit the contract first, then regenerate both sides" workflow — this file is the
+# design-phase reference, not a second source of truth).
+
+paths:
+  /exchange/trend:
+    get:
+      operationId: getExchangeRateTrend
+      summary: Get the historical spread-adjusted exchange rate series for a currency pair
+      tags: [Exchange Rate Analytics]
+      parameters:
+        - name: from
+          in: query
+          required: true
+          schema:
+            type: string
+            pattern: '^[A-Z]{3}$'
+        - name: to
+          in: query
+          required: true
+          schema:
+            type: string
+            pattern: '^[A-Z]{3}$'
+        - name: startDate
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+          description: Defaults to 29 days before today when omitted
+        - name: endDate
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+          description: Defaults to today when omitted
+      responses:
+        '200':
+          description: >
+            Chronologically ordered trend points (empty array if no dates in range have data
+            for both currencies)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExchangeRateTrendResponse'
+        '400':
+          description: >
+            Unknown currency code, or startDate after endDate
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+
+  /exchange/usage:
+    get:
+      operationId: getUsageAnalytics
+      summary: Get per-currency usage analytics, optionally ranked and/or recency-filtered
+      tags: [Exchange Rate Usage Analytics]
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+          description: Return at most this many currencies, ranked by queryCount descending
+        - name: recentDays
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+          description: >
+            Only include currencies last queried within this many days of today; currencies
+            never queried are excluded when this parameter is supplied
+      responses:
+        '200':
+          description: Per-currency usage statistics (empty array if none match)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsageAnalyticsResponse'
+        '400':
+          description: Non-positive or malformed limit/recentDays
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+
+components:
+  schemas:
+    ExchangeRateTrendResponse:
+      type: object
+      required: [fromCurrency, toCurrency, points]
+      properties:
+        fromCurrency:
+          type: string
+        toCurrency:
+          type: string
+        points:
+          type: array
+          items:
+            $ref: '#/components/schemas/RateTrendPoint'
+    RateTrendPoint:
+      type: object
+      required: [rateDate, rate]
+      properties:
+        rateDate:
+          type: string
+          format: date
+        rate:
+          type: string
+          format: decimal
+          description: Spread-adjusted rate, exact decimal (transported as string)
