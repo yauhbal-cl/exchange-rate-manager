@@ -213,9 +213,23 @@ recovery/testing convenience on top of US1+US2
 **Purpose**: Final validation across whichever stories were implemented
 
 - [X] T022 Run `./mvnw verify` from `backend/` — confirm all new and existing tests pass
-- [ ] T023 Execute quickstart.md's full validation sequence end-to-end (scheduled path via
+- [X] T023 Execute quickstart.md's full validation sequence end-to-end (scheduled path via
       manual trigger, failure handling, concurrent-run rejection, and — if US3 was implemented —
-      the manual refresh endpoint and usage-counter-untouched checks)
+      the manual refresh endpoint and usage-counter-untouched checks) — ran against real
+      docker-compose Postgres with a live backend: app started cleanly (ShedLock/Flyway OK),
+      `POST /exchange/refresh` with an invalid `FIXER_API_KEY` returned `502` (verified log line
+      naming the failure), `exchange_rates`/`currency_usage` row counts stayed at 0 before/after
+      (FR-006/FR-009). This run surfaced and fixed a real bug (see the "Fix 502 vs 409
+      conflation" commit): `RateCollectionService` was swallowing `FixerApiException` itself,
+      making a provider failure indistinguishable from a ShedLock lock-conflict at the
+      controller — every failure came back as `409` instead of `502`. Fixed by letting the
+      exception propagate to callers (scheduler logs it; controller maps it to 502; only a
+      genuine ShedLock-skipped `null` now maps to 409). The happy-path scheduled-collection and
+      genuine concurrent-lock-rejection scenarios were NOT exercised end-to-end — both require a
+      real Fixer.io API key (this environment has none) and true concurrent request timing,
+      respectively; those remain covered at the unit/slice-test level only (T008/T009,
+      `refreshReturns409WhenScheduledRunHoldsLock` is `@Disabled` per T017's documented
+      rationale).
 
 ---
 
