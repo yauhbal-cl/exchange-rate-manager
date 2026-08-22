@@ -1,6 +1,9 @@
 package com.exchangerate.manager.service;
 
 import com.exchangerate.manager.entity.ExchangeRate;
+import com.exchangerate.manager.exception.RateDataNotFoundException;
+import com.exchangerate.manager.exception.SameCurrencyException;
+import com.exchangerate.manager.exception.UnknownCurrencyException;
 import com.exchangerate.manager.repository.ExchangeRateRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -24,14 +27,29 @@ public class ExchangeRateService {
     private final SpreadLookup spreadLookup;
 
     public ExchangeRateLookupResult lookup(String from, String to, LocalDate date) {
+        if (from.equals(to)) {
+            throw new SameCurrencyException(
+                    "The same currency code '" + from + "' was supplied for both 'from' and 'to'");
+        }
+        if (!exchangeRateRepository.existsByCurrencyCode(from)) {
+            throw new UnknownCurrencyException("Unknown currency code: " + from);
+        }
+        if (!exchangeRateRepository.existsByCurrencyCode(to)) {
+            throw new UnknownCurrencyException("Unknown currency code: " + to);
+        }
+
         LocalDate effectiveDate = date != null
                 ? date
-                : exchangeRateRepository.findLatestCommonDate(from, to).orElseThrow();
+                : exchangeRateRepository.findLatestCommonDate(from, to)
+                        .orElseThrow(() -> new RateDataNotFoundException(
+                                "No common rate date found for currencies '" + from + "' and '" + to + "'"));
 
         ExchangeRate fromRate = exchangeRateRepository.findByCurrencyCodeAndRateDate(from, effectiveDate)
-                .orElseThrow();
+                .orElseThrow(() -> new RateDataNotFoundException(
+                        "No rate data found for currency '" + from + "' on date " + effectiveDate));
         ExchangeRate toRate = exchangeRateRepository.findByCurrencyCodeAndRateDate(to, effectiveDate)
-                .orElseThrow();
+                .orElseThrow(() -> new RateDataNotFoundException(
+                        "No rate data found for currency '" + to + "' on date " + effectiveDate));
 
         BigDecimal fromSpread = spreadLookup.spreadFor(from);
         BigDecimal toSpread = spreadLookup.spreadFor(to);

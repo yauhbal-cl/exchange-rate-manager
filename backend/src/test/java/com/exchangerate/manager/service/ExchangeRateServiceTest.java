@@ -64,6 +64,8 @@ class ExchangeRateServiceTest {
         BigDecimal eurSpread = new BigDecimal("2.75");
         BigDecimal gbpSpread = new BigDecimal("3.25");
 
+        when(exchangeRateRepository.existsByCurrencyCode("EUR")).thenReturn(true);
+        when(exchangeRateRepository.existsByCurrencyCode("GBP")).thenReturn(true);
         when(exchangeRateRepository.findByCurrencyCodeAndRateDate("EUR", rateDate))
                 .thenReturn(Optional.of(rateOf("EUR", eurToUsd, rateDate)));
         when(exchangeRateRepository.findByCurrencyCodeAndRateDate("GBP", rateDate))
@@ -89,6 +91,8 @@ class ExchangeRateServiceTest {
         BigDecimal usdSpread = BigDecimal.ZERO;
         BigDecimal jpySpread = new BigDecimal("3.25");
 
+        when(exchangeRateRepository.existsByCurrencyCode("USD")).thenReturn(true);
+        when(exchangeRateRepository.existsByCurrencyCode("JPY")).thenReturn(true);
         when(exchangeRateRepository.findByCurrencyCodeAndRateDate("USD", rateDate))
                 .thenReturn(Optional.of(rateOf("USD", usdToUsd, rateDate)));
         when(exchangeRateRepository.findByCurrencyCodeAndRateDate("JPY", rateDate))
@@ -112,6 +116,8 @@ class ExchangeRateServiceTest {
         BigDecimal eurSpread = new BigDecimal("2.75");
         BigDecimal usdSpread = BigDecimal.ZERO;
 
+        when(exchangeRateRepository.existsByCurrencyCode("EUR")).thenReturn(true);
+        when(exchangeRateRepository.existsByCurrencyCode("USD")).thenReturn(true);
         when(exchangeRateRepository.findLatestCommonDate("EUR", "USD"))
                 .thenReturn(Optional.of(resolvedDate));
         when(exchangeRateRepository.findByCurrencyCodeAndRateDate("EUR", resolvedDate))
