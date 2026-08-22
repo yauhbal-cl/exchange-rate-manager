@@ -13,9 +13,9 @@ Ordered steps for Exchange Rate Management System (see TASK.md, CLAUDE.md). Mark
 
 ## 1. Backend Foundation
 
-- [ ] Package root `com.exchangerate.manager`, layering: controller → service → repository
-- [ ] Migration tool setup (Flyway/Liquibase) — include ShedLock's own lock table migration up front
-- [ ] DB schema / JPA entities: `ExchangeRate` (currency_code, rate_to_usd, rate_date, unique constraint on (currency_code, rate_date)), `CurrencyUsage` (currency_code, query_count, last_queried)
+- [x] Package root `com.exchangerate.manager`, layering: controller → service → repository
+- [x] Migration tool setup (Flyway/Liquibase) — include ShedLock's own lock table migration up front
+- [x] DB schema / JPA entities: `ExchangeRate` (currency_code, rate_to_usd, rate_date, unique constraint on (currency_code, rate_date)), `CurrencyUsage` (currency_code, query_count, last_queried)
 
 ## 2. Fixer.io Data Collection
 
