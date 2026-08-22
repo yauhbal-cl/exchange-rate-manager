@@ -24,6 +24,18 @@ spring:
     validate-on-migrate: true
     baseline-on-migrate: false
     locations: classpath:db/migration
+  ai:
+    ollama:
+      base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
+      chat:
+        model: llama3.2
+  # spring-ai-ollama 2.0.1 exposes no chat/client-level read-timeout property;
+  # OllamaApi uses Boot's shared auto-configured RestClient.Builder, so its read
+  # timeout is set via the generic property below (applies to all Boot-managed
+  # RestClient/WebClient builders, not just the Ollama one).
+  http:
+    clients:
+      read-timeout: ${AI_INSIGHT_TIMEOUT_SECONDS:30}s
 
 management:
   endpoints:
