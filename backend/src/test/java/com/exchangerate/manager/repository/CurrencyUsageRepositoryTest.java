@@ -1,5 +1,6 @@
 package com.exchangerate.manager.repository;
 
+import com.exchangerate.manager.AbstractIntegrationTest;
 import com.exchangerate.manager.entity.CurrencyUsage;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,13 +13,13 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Repository-layer test for {@link CurrencyUsageRepository}, run against the real
- * docker-compose PostgreSQL instance (not H2/Testcontainers) so that the unique
- * constraint and CHECK constraints on {@code currency_usage} are exercised for real.
+ * Repository-layer test for {@link CurrencyUsageRepository}, run against a Testcontainers-managed
+ * PostgreSQL instance (see {@link AbstractIntegrationTest}) so that the unique constraint and
+ * CHECK constraints on {@code currency_usage} are exercised for real.
  */
 @SpringBootTest
 @Transactional
-class CurrencyUsageRepositoryTest {
+class CurrencyUsageRepositoryTest extends AbstractIntegrationTest {
 
     private static final String TEST_CURRENCY_CODE = "ZZZ";
 

@@ -1,5 +1,6 @@
 package com.exchangerate.manager.repository;
 
+import com.exchangerate.manager.AbstractIntegrationTest;
 import com.exchangerate.manager.entity.ExchangeRate;
 
 import jakarta.persistence.EntityManager;
@@ -16,17 +17,16 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Repository-layer test against the real docker-compose PostgreSQL instance
- * (see application.yml). Not H2/Testcontainers, per research.md: the
- * correctness being verified here (unique constraints, CHECK constraints,
- * NUMERIC precision) is PostgreSQL-specific.
+ * Repository-layer test against a Testcontainers-managed PostgreSQL instance (see
+ * {@link AbstractIntegrationTest}): the correctness being verified here (unique constraints,
+ * CHECK constraints, NUMERIC precision) is PostgreSQL-specific.
  *
  * The class is wrapped in a transaction that is rolled back after each test
  * so saved rows never leak between test runs.
  */
 @SpringBootTest
 @Transactional
-class ExchangeRateRepositoryTest {
+class ExchangeRateRepositoryTest extends AbstractIntegrationTest {
 
     private static final String CURRENCY_CODE = "EUR";
     private static final LocalDate RATE_DATE = LocalDate.of(2026, 8, 20);

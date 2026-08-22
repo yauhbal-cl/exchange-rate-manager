@@ -1,6 +1,10 @@
 package com.exchangerate.manager.controller;
 
 import com.exchangerate.manager.client.FixerApiException;
+import com.exchangerate.manager.mapper.ExchangeRateResponseMapper;
+import com.exchangerate.manager.mapper.UsageAnalyticsMapper;
+import com.exchangerate.manager.repository.CurrencyUsageRepository;
+import com.exchangerate.manager.service.ExchangeRateService;
 import com.exchangerate.manager.service.RateCollectionService;
 import com.exchangerate.manager.service.RefreshResult;
 
@@ -19,24 +23,17 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Slice test for the (not-yet-implemented) {@code ExchangeController}, written test-first per the
- * TDD workflow for this feature. {@code ExchangeController} — implementing the generated
- * {@code com.exchangerate.manager.api.ExchangeApi} interface — and the {@link RefreshResult}
- * -returning overload of {@link RateCollectionService#collect()} are expected to be created by
- * concurrent/later tasks (T020/T021/T021a). Until both land, this file will not compile — that is
- * the expected in-progress state for this phase.
+ * Slice test for the {@code /exchange/refresh} endpoint of {@code ExchangeController} — which also
+ * implements the generated {@code com.exchangerate.manager.api.ExchangeApi} interface for the
+ * {@code /exchange} and {@code /exchange/usage} endpoints (see {@code ExchangeControllerIT} for
+ * those). Written test-first per the TDD workflow for this feature.
  *
  * <p>Uses a standard {@code @WebMvcTest} slice (no datasource, no repository layer loaded) with
- * {@code @MockitoBean} to stub {@link RateCollectionService}, following the same MockMvc
+ * {@code @MockitoBean} to stub every constructor collaborator of {@code ExchangeController}
+ * ({@link RateCollectionService}, {@link ExchangeRateService}, {@link ExchangeRateResponseMapper},
+ * {@link CurrencyUsageRepository}, {@link UsageAnalyticsMapper}) — only {@code
+ * rateCollectionService} is actually exercised by the tests below — following the same MockMvc
  * conventions as the rest of this codebase's REST layer (see {@link StatusController}).
- *
- * <p>FR-009 ("the endpoint must not write to {@code currency_usage}") is not asserted as a runtime
- * row-count check here: a {@code @WebMvcTest} slice never loads the repository/datasource layer in
- * the first place, so there is nothing to count. The guarantee is structural instead — this
- * controller depends on {@link RateCollectionService} only; it has no
- * {@code CurrencyUsageRepository} dependency at all, so there is no code path by which it could
- * touch that table. That structural fact is what this test's mocking (a single collaborator,
- * {@code RateCollectionService}) demonstrates.
  */
 @WebMvcTest(ExchangeController.class)
 class ExchangeControllerTest {
@@ -48,6 +45,18 @@ class ExchangeControllerTest {
 
     @MockitoBean
     private RateCollectionService rateCollectionService;
+
+    @MockitoBean
+    private ExchangeRateService exchangeRateService;
+
+    @MockitoBean
+    private ExchangeRateResponseMapper exchangeRateResponseMapper;
+
+    @MockitoBean
+    private CurrencyUsageRepository currencyUsageRepository;
+
+    @MockitoBean
+    private UsageAnalyticsMapper usageAnalyticsMapper;
 
     @Test
     void refreshReturns200WithResultOnSuccess() throws Exception {

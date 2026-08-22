@@ -1,11 +1,12 @@
 <!--
 Sync Impact Report
-Version change: 1.1.0 → 1.2.0
+Version change: 1.2.0 → 1.3.0
 Modified principles: none
-Added sections: none (materially expanded existing bullet)
-Modified sections:
-  - Technology Stack Requirements: Backend bullet now mandates Lombok for boilerplate and
-    MapStruct for DTO/entity mapping (no hand-written mapping logic)
+Added sections: none
+Added principles:
+  - X. Test Isolation via Testcontainers — tests MUST NOT run against a real/shared database;
+    integration tests MUST use Testcontainers (or equivalent ephemeral, code-provisioned
+    instances)
 Removed sections: none
 Deferred items: none
 -->
@@ -83,6 +84,16 @@ environment variable, without requiring code changes to switch targets.
 **Rationale**: The same build must run locally and against other environments without a rebuild
 tied to a hard-coded endpoint.
 
+### X. Test Isolation via Testcontainers
+Automated tests MUST NOT run against a real, shared, or persistent database instance. Any test
+requiring a database (unit tests that need real JPA/SQL behavior, or integration tests) MUST
+provision it as an ephemeral, code-controlled instance via Testcontainers (or an equivalent
+disposable-instance mechanism), started and torn down by the test run itself.
+
+**Rationale**: Tests against a shared or real database are flaky, leak state between runs, and
+risk corrupting production or shared dev data; an ephemeral per-run instance guarantees
+isolation and reproducibility.
+
 ## Technology Stack Requirements
 
 - **Backend**: Java 17 or later, Spring Boot, Maven, Hibernate/Spring Data JPA, any relational
@@ -129,4 +140,4 @@ Versioning policy (semantic versioning applied to governance content):
 Any complexity that appears to violate a principle (e.g., bypassing atomic counters, hard-coding
 a lookup as conditionals) MUST be justified in the relevant design/plan artifact or corrected.
 
-**Version**: 1.2.0 | **Ratified**: 2026-08-22 | **Last Amended**: 2026-08-22
+**Version**: 1.3.0 | **Ratified**: 2026-08-22 | **Last Amended**: 2026-08-22

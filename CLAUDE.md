@@ -74,6 +74,8 @@ context7 or the project's release-notes/changelog page before bumping any of the
   context verbatim (dates + values) — the system prompt constrains the model to a short, data-
   grounded commentary. No RAG, no fine-tuning. If Ollama/the model is unreachable, the insight
   endpoint should degrade to a clear error, not a fabricated insight.
+- **Test isolation**: never test against a real/shared database. DB-dependent tests (unit or
+  integration) must use Testcontainers to spin up an ephemeral instance per run.
 
 ## Commands
 
@@ -108,3 +110,7 @@ Fill in once each module is scaffolded (do not guess — verify against the actu
   it fits — follow current Angular idioms, not NgModules-era patterns.
 - Frontend styling: Tailwind CSS. No hand-rolled component CSS/SCSS where a utility class covers it.
 
+---
+
+**Doc version**: 1.1 (this file has its own revision counter, separate from the project
+constitution's version)
