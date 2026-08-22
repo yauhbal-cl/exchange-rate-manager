@@ -57,7 +57,7 @@ optionally, US3) build on
 - [X] T003 [P] Create `FixerLatestResponse` DTO (`success`, `base`, `date`, `rates` map,
       nullable `error`) in `backend/src/main/java/com/exchangerate/manager/client/FixerLatestResponse.java`
       per data-model.md
-- [ ] T004 [P] Create `FixerApiException` (wraps network failure, non-2xx, or a
+- [X] T004 [P] Create `FixerApiException` (wraps network failure, non-2xx, or a
       `success:false` error envelope) in
       `backend/src/main/java/com/exchangerate/manager/client/FixerApiException.java`
 - [ ] T005 Create `FixerClient` in
