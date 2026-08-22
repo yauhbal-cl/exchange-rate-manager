@@ -1,5 +1,6 @@
 package com.exchangerate.manager.controller;
 
+import com.exchangerate.manager.repository.CurrencyUsageRepository;
 import com.exchangerate.manager.repository.ExchangeRateRepository;
 
 import org.junit.jupiter.api.Test;
@@ -59,6 +60,9 @@ class ExchangeControllerIT {
 
     @Autowired
     private ExchangeRateRepository exchangeRateRepository;
+
+    @Autowired
+    private CurrencyUsageRepository currencyUsageRepository;
 
     @Test
     void getExchangeRateReturnsSpreadAdjustedRateForExplicitPastDate() throws Exception {
@@ -125,5 +129,20 @@ class ExchangeControllerIT {
                         .param("date", NO_DATA_DATE.toString()))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.containsString(NO_DATA_DATE.toString())));
+    }
+
+    @Test
+    void getExchangeRateRejectedLookupDoesNotIncrementUsageCounters() throws Exception {
+        exchangeRateRepository.upsert(FROM_CURRENCY, FROM_RATE_TO_USD, RATE_DATE);
+
+        assertThat(currencyUsageRepository.findByCurrencyCode(FROM_CURRENCY)).isEmpty();
+
+        mockMvc.perform(get(ENDPOINT)
+                        .param("from", FROM_CURRENCY)
+                        .param("to", FROM_CURRENCY)
+                        .param("date", RATE_DATE.toString()))
+                .andExpect(status().isBadRequest());
+
+        assertThat(currencyUsageRepository.findByCurrencyCode(FROM_CURRENCY)).isEmpty();
     }
 }
