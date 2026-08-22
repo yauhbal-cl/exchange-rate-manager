@@ -201,10 +201,18 @@ no-data/range-too-large all surface distinctly and correctly.
 **Purpose**: Validate the full slice end-to-end and close out documentation.
 
 - [X] T022 Run `cd backend && ./mvnw verify` and confirm all new and existing tests pass
-- [ ] T023 Execute `specs/006-ai-trend-insight/quickstart.md` Scenarios 1-4 against a locally
+- [X] T023 Execute `specs/006-ai-trend-insight/quickstart.md` Scenarios 1-4 against a locally
   running backend + Ollama (per its documented prerequisite: the earlier infra slice's `ollama`
   `docker-compose.yml` service and `ollama pull llama3.2` must already be done); record any
   deviation from expected responses
+  - All 4 scenarios passed (used EUR/USD 2026-08-20..2026-08-22, the only real ingested range
+    available locally, in place of the doc's illustrative dates).
+  - Deviation found and fixed: Spring AI's default retry autoconfiguration (10 attempts,
+    exponential backoff up to 3 min) retried the Ollama connection-refused failure well past the
+    configured 30s read-timeout, so the 503 in Scenario 2 initially took minutes instead of
+    surfacing promptly. Fixed by setting `spring.ai.retry.max-attempts: 1` in
+    `application.yml`, matching research.md's stateless/no-retry decision. Re-verified: 503 now
+    returns in ~2.5s, and recovery after restarting Ollama still returns 200 with a narrative.
 - [X] T024 [P] Update `contracts/README.md` if present, or any top-level API documentation index,
   to reference the new `/exchange/trend/insight` endpoint alongside the existing `/exchange/trend`
   entry

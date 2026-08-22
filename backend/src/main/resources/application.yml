@@ -29,6 +29,11 @@ spring:
       base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
       chat:
         model: llama3.2
+    retry:
+      # Spring AI's default retry (10 attempts, exponential backoff up to 3 min) would delay
+      # the AI-unavailable failure far past the read-timeout above; this feature is stateless
+      # and reports unavailability immediately instead (research.md "Recovery/reset behavior").
+      max-attempts: 1
   # spring-ai-ollama 2.0.1 exposes no chat/client-level read-timeout property;
   # OllamaApi uses Boot's shared auto-configured RestClient.Builder, so its read
   # timeout is set via the generic property below (applies to all Boot-managed
