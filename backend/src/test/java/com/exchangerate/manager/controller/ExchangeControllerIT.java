@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,6 +16,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.time.LocalDate;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -74,6 +77,9 @@ class ExchangeControllerIT extends AbstractIntegrationTest {
 
     @Autowired
     private CurrencyUsageRepository currencyUsageRepository;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
     private static BigDecimal computeExpectedRate(BigDecimal fromRateToUsd, BigDecimal toRateToUsd) {
         BigDecimal rateRatio = toRateToUsd.divide(fromRateToUsd, RATE_MATH_CONTEXT);
@@ -324,5 +330,47 @@ class ExchangeControllerIT extends AbstractIntegrationTest {
 
         assertThat(currencyUsageRepository.findByCurrencyCode(TREND_FROM_CURRENCY)).isEmpty();
         assertThat(currencyUsageRepository.findByCurrencyCode(TREND_TO_CURRENCY)).isEmpty();
+    }
+
+    @Test
+    void getUsageAnalyticsWithLimitReturnsTopRankedCurrenciesInOrder() throws Exception {
+        currencyUsageRepository.deleteAll();
+        exchangeRateRepository.deleteAll();
+
+        exchangeRateRepository.upsert("AAA", new BigDecimal("1.000000"), RATE_DATE);
+        exchangeRateRepository.upsert("BBB", new BigDecimal("1.000000"), RATE_DATE);
+        exchangeRateRepository.upsert("CCC", new BigDecimal("1.000000"), RATE_DATE);
+
+        jdbcTemplate.update(
+                "INSERT INTO currency_usage (currency_code, query_count, last_queried_at) VALUES (?, ?, ?)",
+                "AAA", 5, Timestamp.from(Instant.now()));
+        jdbcTemplate.update(
+                "INSERT INTO currency_usage (currency_code, query_count, last_queried_at) VALUES (?, ?, ?)",
+                "BBB", 10, Timestamp.from(Instant.now()));
+
+        mockMvc.perform(get(USAGE_ENDPOINT).param("limit", "2"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.currencies", org.hamcrest.Matchers.hasSize(2)))
+                .andExpect(jsonPath("$.currencies[0].currencyCode").value("BBB"))
+                .andExpect(jsonPath("$.currencies[1].currencyCode").value("AAA"));
+    }
+
+    @Test
+    void getUsageAnalyticsOmittedLimitReturnsAllCurrenciesSameOrdering() throws Exception {
+        currencyUsageRepository.deleteAll();
+        exchangeRateRepository.deleteAll();
+
+        exchangeRateRepository.upsert("AAA", new BigDecimal("1.000000"), RATE_DATE);
+        exchangeRateRepository.upsert("BBB", new BigDecimal("1.000000"), RATE_DATE);
+
+        mockMvc.perform(get(USAGE_ENDPOINT))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.currencies", org.hamcrest.Matchers.hasSize(2)));
+    }
+
+    @Test
+    void getUsageAnalyticsReturns400ForNonPositiveLimit() throws Exception {
+        mockMvc.perform(get(USAGE_ENDPOINT).param("limit", "0"))
+                .andExpect(status().isBadRequest());
     }
 }

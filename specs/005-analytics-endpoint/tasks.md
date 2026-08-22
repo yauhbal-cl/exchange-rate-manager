@@ -83,7 +83,7 @@ Existing single-module Spring Boot backend, extended in place — see plan.md Pr
 ### Tests for User Story 2
 
 - [X] T014 [P] [US2] Repository test for ranked projection query: descending `queryCount` order, `currencyCode` ascending tie-break, `limit` truncation, `limit` larger than available rows returns all rows in `backend/src/test/java/com/exchangerate/manager/repository/CurrencyUsageRepositoryTest.java`
-- [ ] T015 [P] [US2] Controller/integration test for `GET /exchange/usage?limit=N`: correct count/order/tie-break, omitted `limit` returns all currencies same ordering, non-positive `limit` returns 400 `ProblemDetail` in `backend/src/test/java/com/exchangerate/manager/controller/ExchangeControllerIT.java`
+- [X] T015 [P] [US2] Controller/integration test for `GET /exchange/usage?limit=N`: correct count/order/tie-break, omitted `limit` returns all currencies same ordering, non-positive `limit` returns 400 `ProblemDetail` in `backend/src/test/java/com/exchangerate/manager/controller/ExchangeControllerIT.java`
 
 ### Implementation for User Story 2
 
