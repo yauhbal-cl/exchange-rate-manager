@@ -145,6 +145,67 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ProblemDetail'
+  /exchange/trend/insight:
+    get:
+      operationId: getExchangeRateTrendInsight
+      summary: Get an AI-generated plain-language narrative of a currency pair's historical trend
+      tags: [Exchange Rate AI Insight]
+      parameters:
+        - name: from
+          in: query
+          required: true
+          schema:
+            type: string
+            pattern: '^[A-Z]{3}$'
+          description: Source currency code
+        - name: to
+          in: query
+          required: true
+          schema:
+            type: string
+            pattern: '^[A-Z]{3}$'
+          description: Target currency code
+        - name: startDate
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+          description: Defaults to 29 days before today when omitted
+        - name: endDate
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+          description: Defaults to today when omitted
+      responses:
+        '200':
+          description: A short narrative grounded strictly in the historical rates for this range
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrendInsightResponse'
+        '400':
+          description: >
+            Unknown currency code, startDate after endDate, or the resolved range spans more than
+            ~365 daily observations
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '404':
+          description: No historical rate data exists for the requested currency pair/range
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '503':
+          description: The local AI capability is unreachable; no narrative was generated or fabricated
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
   /exchange/usage:
     get:
       operationId: getUsageAnalytics
@@ -274,6 +335,27 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/CurrencyUsageEntry'
+    TrendInsightResponse:
+      type: object
+      required: [fromCurrency, toCurrency, startDate, endDate, narrative]
+      properties:
+        fromCurrency:
+          type: string
+        toCurrency:
+          type: string
+        startDate:
+          type: string
+          format: date
+          description: The resolved (default-applied) start of the summarized range
+        endDate:
+          type: string
+          format: date
+          description: The resolved (default-applied) end of the summarized range
+        narrative:
+          type: string
+          description: >
+            Short plain-language narrative grounded strictly in the historical rate values for
+            this range; never fabricated (see 503 response for the AI-unavailable case)
     CurrencyUsageEntry:
       type: object
       required: [currencyCode, queryCount, lastQueriedAt]
