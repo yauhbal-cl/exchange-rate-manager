@@ -1,13 +1,17 @@
 package com.exchangerate.manager.controller;
 
+import com.exchangerate.manager.api.model.TrendInsightResponse;
 import com.exchangerate.manager.client.FixerApiException;
 import com.exchangerate.manager.mapper.ExchangeRateResponseMapper;
 import com.exchangerate.manager.mapper.ExchangeRateTrendResponseMapper;
+import com.exchangerate.manager.mapper.TrendInsightResponseMapper;
 import com.exchangerate.manager.mapper.UsageAnalyticsMapper;
 import com.exchangerate.manager.repository.CurrencyUsageRepository;
 import com.exchangerate.manager.service.ExchangeRateService;
 import com.exchangerate.manager.service.RateCollectionService;
 import com.exchangerate.manager.service.RefreshResult;
+import com.exchangerate.manager.service.TrendInsightResult;
+import com.exchangerate.manager.service.TrendInsightService;
 
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -18,7 +22,10 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDate;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -62,6 +69,12 @@ class ExchangeControllerTest {
     @MockitoBean
     private ExchangeRateTrendResponseMapper exchangeRateTrendResponseMapper;
 
+    @MockitoBean
+    private TrendInsightService trendInsightService;
+
+    @MockitoBean
+    private TrendInsightResponseMapper trendInsightResponseMapper;
+
     @Test
     void refreshReturns200WithResultOnSuccess() throws Exception {
         RefreshResult result = new RefreshResult(5, LocalDate.of(2026, 8, 22));
@@ -79,6 +92,29 @@ class ExchangeControllerTest {
 
         mockMvc.perform(post(REFRESH_ENDPOINT))
                 .andExpect(status().isBadGateway());
+    }
+
+    @Test
+    void getExchangeRateTrendInsightReturns200WithNarrative() throws Exception {
+        LocalDate startDate = LocalDate.of(2026, 8, 1);
+        LocalDate endDate = LocalDate.of(2026, 8, 22);
+        TrendInsightResult result = new TrendInsightResult(
+                "EUR", "USD", startDate, endDate, "The EUR/USD rate held broadly steady over the period.");
+        TrendInsightResponse response = new TrendInsightResponse(
+                "EUR", "USD", startDate, endDate, "The EUR/USD rate held broadly steady over the period.");
+
+        when(trendInsightService.generateInsight(anyString(), anyString(), any(), any())).thenReturn(result);
+        when(trendInsightResponseMapper.toResponse(any())).thenReturn(response);
+
+        mockMvc.perform(get("/api/v1/exchange/trend/insight")
+                        .param("from", "EUR")
+                        .param("to", "USD"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.fromCurrency").value("EUR"))
+                .andExpect(jsonPath("$.toCurrency").value("USD"))
+                .andExpect(jsonPath("$.startDate").value(startDate.toString()))
+                .andExpect(jsonPath("$.endDate").value(endDate.toString()))
+                .andExpect(jsonPath("$.narrative").value("The EUR/USD rate held broadly steady over the period."));
     }
 
     /**
