@@ -24,4 +24,19 @@ public class GlobalExceptionHandler {
     public ProblemDetail handleCollectionInProgress(CollectionInProgressException e) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, e.getMessage());
     }
+
+    @ExceptionHandler(UnknownCurrencyException.class)
+    public ProblemDetail handleUnknownCurrency(UnknownCurrencyException e) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, e.getMessage());
+    }
+
+    @ExceptionHandler(SameCurrencyException.class)
+    public ProblemDetail handleSameCurrency(SameCurrencyException e) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, e.getMessage());
+    }
+
+    @ExceptionHandler(RateDataNotFoundException.class)
+    public ProblemDetail handleRateDataNotFound(RateDataNotFoundException e) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, e.getMessage());
+    }
 }
