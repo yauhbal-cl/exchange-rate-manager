@@ -1,5 +1,6 @@
 package com.exchangerate.manager.service;
 
+import com.exchangerate.manager.exception.AiInsightUnavailableException;
 import com.exchangerate.manager.repository.ExchangeRateRepository;
 
 import org.junit.jupiter.api.Test;
@@ -15,7 +16,10 @@ import java.time.LocalDate;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -114,5 +118,59 @@ class TrendInsightServiceTest {
         verify(chatClient).prompt();
         verify(requestSpec).call();
         verify(callResponseSpec).content();
+    }
+
+    @Test
+    void generateInsightThrowsAiInsightUnavailableWhenChatClientFails() {
+        LocalDate startDate = LocalDate.of(2026, 8, 1);
+        LocalDate endDate = LocalDate.of(2026, 8, 3);
+
+        List<RateTrendPoint> trendPoints = List.of(
+                new RateTrendPoint(LocalDate.of(2026, 8, 1), new BigDecimal("1.080000")),
+                new RateTrendPoint(LocalDate.of(2026, 8, 2), new BigDecimal("1.081500")),
+                new RateTrendPoint(LocalDate.of(2026, 8, 3), new BigDecimal("1.079800")));
+
+        when(exchangeRateRepository.existsByCurrencyCode("EUR")).thenReturn(true);
+        when(exchangeRateRepository.existsByCurrencyCode("USD")).thenReturn(true);
+        when(exchangeRateService.getTrend("EUR", "USD", startDate, endDate)).thenReturn(trendPoints);
+        doThrow(new RuntimeException("connection refused")).when(chatClient).prompt();
+
+        assertThatThrownBy(() -> trendInsightService.generateInsight("EUR", "USD", startDate, endDate))
+                .isInstanceOf(AiInsightUnavailableException.class);
+    }
+
+    @Test
+    void generateInsightSucceedsAfterAPriorFailureWithNoResetNeeded() {
+        LocalDate startDate = LocalDate.of(2026, 8, 1);
+        LocalDate endDate = LocalDate.of(2026, 8, 3);
+
+        List<RateTrendPoint> trendPoints = List.of(
+                new RateTrendPoint(LocalDate.of(2026, 8, 1), new BigDecimal("1.080000")),
+                new RateTrendPoint(LocalDate.of(2026, 8, 2), new BigDecimal("1.081500")),
+                new RateTrendPoint(LocalDate.of(2026, 8, 3), new BigDecimal("1.079800")));
+
+        when(exchangeRateRepository.existsByCurrencyCode("EUR")).thenReturn(true);
+        when(exchangeRateRepository.existsByCurrencyCode("USD")).thenReturn(true);
+        when(exchangeRateService.getTrend("EUR", "USD", startDate, endDate)).thenReturn(trendPoints);
+
+        doThrow(new RuntimeException("connection refused")).when(chatClient).prompt();
+
+        assertThatThrownBy(() -> trendInsightService.generateInsight("EUR", "USD", startDate, endDate))
+                .isInstanceOf(AiInsightUnavailableException.class);
+
+        String narrative = "The EUR/USD rate held broadly steady over the period, with a slight "
+                + "uptick mid-range before easing back near its starting level.";
+        doReturn(requestSpec).when(chatClient).prompt();
+        when(requestSpec.system(anyString())).thenReturn(requestSpec);
+        when(requestSpec.user(anyString())).thenReturn(requestSpec);
+        when(requestSpec.call()).thenReturn(callResponseSpec);
+        when(callResponseSpec.content()).thenReturn(narrative);
+
+        TrendInsightResult result = trendInsightService.generateInsight("EUR", "USD", startDate, endDate);
+
+        assertThat(result).isNotNull();
+        assertThat(result.narrative()).isEqualTo(narrative);
+        assertThat(result.fromCurrency()).isEqualTo("EUR");
+        assertThat(result.toCurrency()).isEqualTo("USD");
     }
 }
