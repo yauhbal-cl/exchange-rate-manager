@@ -146,9 +146,12 @@ verify a response with a subset of `symbols` still persists exactly those curren
 - [X] T015 [US2] In `RateCollectionService` (from T011), wrap the `FixerClient` call in a
       try/catch that logs at `ERROR` level and returns/rethrows without invoking any upsert
       call on failure (no partial writes; depends on T011)
-- [ ] T016 [US2] In `RateCollectionService`, iterate only over `response.rates.keySet()` (plus
+- [X] T016 [US2] In `RateCollectionService`, iterate only over `response.rates.keySet()` (plus
       `USD`) when upserting, so currencies absent from the response are naturally skipped rather
-      than causing a failure (depends on T011; verify against T014b)
+      than causing a failure (depends on T011; verify against T014b) — already satisfied by T011's
+      `for (Map.Entry<String, BigDecimal> entry : rates.entrySet())` loop, which never references a
+      hard-coded currency list; confirmed against T014's `collectUpsertsOnlyCurrenciesPresentInResponse`
+      test. No code change required.
 
 **Checkpoint**: User Stories 1 AND 2 both work independently — the daily job is now
 production-resilient to provider outages/partial responses
