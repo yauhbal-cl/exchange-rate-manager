@@ -230,7 +230,7 @@ actually performed, including currencies never queried.
 **Purpose**: Final validation across the whole feature.
 
 - [x] T024 Run `cd backend && ./mvnw verify` and confirm all new and existing tests pass
-- [ ] T025 Run `specs/004-exchange-rate-api/quickstart.md` Scenarios 1–4 against a live backend
+- [x] T025 Run `specs/004-exchange-rate-api/quickstart.md` Scenarios 1–4 against a live backend
       (`docker compose up -d` + `./mvnw spring-boot:run`) and confirm every expected status
       code/body/counter behavior matches
 
