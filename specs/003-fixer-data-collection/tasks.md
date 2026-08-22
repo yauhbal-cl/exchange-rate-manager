@@ -60,7 +60,7 @@ optionally, US3) build on
 - [X] T004 [P] Create `FixerApiException` (wraps network failure, non-2xx, or a
       `success:false` error envelope) in
       `backend/src/main/java/com/exchangerate/manager/client/FixerApiException.java`
-- [ ] T005 Create `FixerClient` in
+- [X] T005 Create `FixerClient` in
       `backend/src/main/java/com/exchangerate/manager/client/FixerClient.java` — wraps a
       `RestClient` bean, calls `GET {fixer.base-url}/latest?access_key={key}` (EUR base, no
       `symbols` restriction so the full provider set is returned per FR-005), deserializes into
