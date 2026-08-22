@@ -105,7 +105,7 @@ currency exists for the current date (quickstart.md "Validate: scheduled collect
 
 ### Implementation for User Story 1
 
-- [ ] T011 [US1] Create `RateCollectionService` in
+- [X] T011 [US1] Create `RateCollectionService` in
       `backend/src/main/java/com/exchangerate/manager/service/RateCollectionService.java` —
       calls `FixerClient`, computes `rateToUsd(X) = eurToX / eurToUsd` for every currency in
       the response plus `USD = 1.000000`, then upserts each via T007's repository method inside
