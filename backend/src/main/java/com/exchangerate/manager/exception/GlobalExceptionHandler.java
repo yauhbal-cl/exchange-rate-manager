@@ -42,9 +42,19 @@ public class GlobalExceptionHandler {
         return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, e.getMessage());
     }
 
+    @ExceptionHandler(TrendRangeTooLargeException.class)
+    public ProblemDetail handleTrendRangeTooLarge(TrendRangeTooLargeException e) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, e.getMessage());
+    }
+
     @ExceptionHandler(RateDataNotFoundException.class)
     public ProblemDetail handleRateDataNotFound(RateDataNotFoundException e) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, e.getMessage());
+    }
+
+    @ExceptionHandler(AiInsightUnavailableException.class)
+    public ProblemDetail handleAiInsightUnavailable(AiInsightUnavailableException e) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE, e.getMessage());
     }
 
     @ExceptionHandler(ConstraintViolationException.class)
