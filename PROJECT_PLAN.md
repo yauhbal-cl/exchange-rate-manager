@@ -27,11 +27,11 @@ Ordered steps for Exchange Rate Management System (see TASK.md, CLAUDE.md). Mark
 
 ## 3. Exchange Rate API (4.2)
 
-- [ ] Implement generated `GET /exchange` interface: from, to, optional date
-- [ ] Spread-adjusted calc service: `adjustedRate = (toRateUSD / fromRateUSD) × ((100 − MAX(toSpread, fromSpread)) / 100)`
-- [ ] No date → most recent available rates; date with no data → proper HTTP error (ProblemDetail)
-- [ ] Usage counter increment: atomic upsert `INSERT ... ON CONFLICT (currency_code) DO UPDATE SET count = count + 1` (no read-modify-write, no plain UPDATE that no-ops on missing row) for both currencies, safe under concurrency
-- [ ] Unknown currency / bad input → ProblemDetail 4xx responses
+- [x] Implement generated `GET /exchange` interface: from, to, optional date
+- [x] Spread-adjusted calc service: `adjustedRate = (toRateUSD / fromRateUSD) × ((100 − MAX(toSpread, fromSpread)) / 100)`
+- [x] No date → most recent available rates; date with no data → proper HTTP error (ProblemDetail)
+- [x] Usage counter increment: atomic upsert `INSERT ... ON CONFLICT (currency_code) DO UPDATE SET count = count + 1` (no read-modify-write, no plain UPDATE that no-ops on missing row) for both currencies, safe under concurrency
+- [x] Unknown currency / bad input → ProblemDetail 4xx responses
 
 ## 4. Analytics Endpoint (4.3)
 
