@@ -1,6 +1,8 @@
 package com.exchangerate.manager.service;
 
+import com.exchangerate.manager.entity.CurrencyUsage;
 import com.exchangerate.manager.entity.ExchangeRate;
+import com.exchangerate.manager.repository.CurrencyUsageRepository;
 import com.exchangerate.manager.repository.ExchangeRateRepository;
 
 import org.junit.jupiter.api.Test;
@@ -37,6 +39,9 @@ class ExchangeRateServiceTest {
     @Mock
     private SpreadLookup spreadLookup;
 
+    @Mock
+    private CurrencyUsageRepository currencyUsageRepository;
+
     @InjectMocks
     private ExchangeRateService exchangeRateService;
 
@@ -46,6 +51,13 @@ class ExchangeRateServiceTest {
         exchangeRate.setRateToUsd(rateToUsd);
         exchangeRate.setRateDate(rateDate);
         return exchangeRate;
+    }
+
+    private static CurrencyUsage usageOf(String currencyCode, long queryCount) {
+        CurrencyUsage currencyUsage = new CurrencyUsage();
+        currencyUsage.setCurrencyCode(currencyCode);
+        currencyUsage.setQueryCount(queryCount);
+        return currencyUsage;
     }
 
     private static BigDecimal expectedRate(BigDecimal fromRateToUsd, BigDecimal toRateToUsd, BigDecimal maxSpread) {
@@ -72,6 +84,10 @@ class ExchangeRateServiceTest {
                 .thenReturn(Optional.of(rateOf("GBP", gbpToUsd, rateDate)));
         when(spreadLookup.spreadFor("EUR")).thenReturn(eurSpread);
         when(spreadLookup.spreadFor("GBP")).thenReturn(gbpSpread);
+        when(currencyUsageRepository.findByCurrencyCode("EUR"))
+                .thenReturn(Optional.of(usageOf("EUR", 1L)));
+        when(currencyUsageRepository.findByCurrencyCode("GBP"))
+                .thenReturn(Optional.of(usageOf("GBP", 1L)));
 
         ExchangeRateLookupResult result = exchangeRateService.lookup("EUR", "GBP", rateDate);
 
@@ -99,6 +115,10 @@ class ExchangeRateServiceTest {
                 .thenReturn(Optional.of(rateOf("JPY", jpyToUsd, rateDate)));
         when(spreadLookup.spreadFor("USD")).thenReturn(usdSpread);
         when(spreadLookup.spreadFor("JPY")).thenReturn(jpySpread);
+        when(currencyUsageRepository.findByCurrencyCode("USD"))
+                .thenReturn(Optional.of(usageOf("USD", 1L)));
+        when(currencyUsageRepository.findByCurrencyCode("JPY"))
+                .thenReturn(Optional.of(usageOf("JPY", 1L)));
 
         ExchangeRateLookupResult result = exchangeRateService.lookup("USD", "JPY", rateDate);
 
@@ -126,6 +146,10 @@ class ExchangeRateServiceTest {
                 .thenReturn(Optional.of(rateOf("USD", usdToUsd, resolvedDate)));
         when(spreadLookup.spreadFor("EUR")).thenReturn(eurSpread);
         when(spreadLookup.spreadFor("USD")).thenReturn(usdSpread);
+        when(currencyUsageRepository.findByCurrencyCode("EUR"))
+                .thenReturn(Optional.of(usageOf("EUR", 1L)));
+        when(currencyUsageRepository.findByCurrencyCode("USD"))
+                .thenReturn(Optional.of(usageOf("USD", 1L)));
 
         ExchangeRateLookupResult result = exchangeRateService.lookup("EUR", "USD", null);
 

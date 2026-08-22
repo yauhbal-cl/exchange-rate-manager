@@ -4,11 +4,13 @@ import com.exchangerate.manager.entity.ExchangeRate;
 import com.exchangerate.manager.exception.RateDataNotFoundException;
 import com.exchangerate.manager.exception.SameCurrencyException;
 import com.exchangerate.manager.exception.UnknownCurrencyException;
+import com.exchangerate.manager.repository.CurrencyUsageRepository;
 import com.exchangerate.manager.repository.ExchangeRateRepository;
 
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
@@ -24,8 +26,10 @@ public class ExchangeRateService {
     private static final MathContext RATE_MATH_CONTEXT = new MathContext(20, RoundingMode.HALF_UP);
 
     private final ExchangeRateRepository exchangeRateRepository;
+    private final CurrencyUsageRepository currencyUsageRepository;
     private final SpreadLookup spreadLookup;
 
+    @Transactional
     public ExchangeRateLookupResult lookup(String from, String to, LocalDate date) {
         if (from.equals(to)) {
             throw new SameCurrencyException(
@@ -61,6 +65,16 @@ public class ExchangeRateService {
                 .divide(BigDecimal.valueOf(100), RATE_MATH_CONTEXT);
         BigDecimal rate = rateRatio.multiply(spreadFactor, RATE_MATH_CONTEXT);
 
-        return new ExchangeRateLookupResult(from, to, rate, effectiveDate, null, null);
+        currencyUsageRepository.incrementUsage(from);
+        Long fromCurrencyUsageCount = currencyUsageRepository.findByCurrencyCode(from)
+                .orElseThrow()
+                .getQueryCount();
+        currencyUsageRepository.incrementUsage(to);
+        Long toCurrencyUsageCount = currencyUsageRepository.findByCurrencyCode(to)
+                .orElseThrow()
+                .getQueryCount();
+
+        return new ExchangeRateLookupResult(
+                from, to, rate, effectiveDate, fromCurrencyUsageCount, toCurrencyUsageCount);
     }
 }
