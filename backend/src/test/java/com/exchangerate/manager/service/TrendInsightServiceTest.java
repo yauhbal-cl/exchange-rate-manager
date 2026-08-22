@@ -1,6 +1,7 @@
 package com.exchangerate.manager.service;
 
 import com.exchangerate.manager.exception.AiInsightUnavailableException;
+import com.exchangerate.manager.exception.RateDataNotFoundException;
 import com.exchangerate.manager.repository.ExchangeRateRepository;
 
 import org.junit.jupiter.api.Test;
@@ -21,6 +22,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 /**
@@ -172,5 +174,20 @@ class TrendInsightServiceTest {
         assertThat(result.narrative()).isEqualTo(narrative);
         assertThat(result.fromCurrency()).isEqualTo("EUR");
         assertThat(result.toCurrency()).isEqualTo("USD");
+    }
+
+    @Test
+    void generateInsightThrowsRateDataNotFoundWhenNoTrendPointsAndNeverCallsChatClient() {
+        LocalDate startDate = LocalDate.of(2026, 8, 1);
+        LocalDate endDate = LocalDate.of(2026, 8, 3);
+
+        when(exchangeRateRepository.existsByCurrencyCode("EUR")).thenReturn(true);
+        when(exchangeRateRepository.existsByCurrencyCode("USD")).thenReturn(true);
+        when(exchangeRateService.getTrend("EUR", "USD", startDate, endDate)).thenReturn(List.of());
+
+        assertThatThrownBy(() -> trendInsightService.generateInsight("EUR", "USD", startDate, endDate))
+                .isInstanceOf(RateDataNotFoundException.class);
+
+        verifyNoInteractions(chatClient);
     }
 }
