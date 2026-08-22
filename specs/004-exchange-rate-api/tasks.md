@@ -54,32 +54,32 @@ independently testable until this phase is done.
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T003 [P] Create `SpreadLookup` component in
+- [x] T003 [P] Create `SpreadLookup` component in
       `backend/src/main/java/com/exchangerate/manager/service/SpreadLookup.java` — immutable
       `Map<String, BigDecimal>` keyed by currency code plus a `"DEFAULT"` sentinel (`USD`→0.00,
       tier1→3.25, tier2→4.50, tier3→6.00, default→2.75 per Appendix B / data-model.md), with a
       `BigDecimal spreadFor(String currencyCode)` accessor that upper-cases the key and falls back
       to `DEFAULT`
-- [ ] T004 [P] Add `UnknownCurrencyException`, `SameCurrencyException`, `RateDataNotFoundException`
+- [x] T004 [P] Add `UnknownCurrencyException`, `SameCurrencyException`, `RateDataNotFoundException`
       in `backend/src/main/java/com/exchangerate/manager/exception/` following the existing
       exception shape used by `FixerApiException`/`CollectionInProgressException`
-- [ ] T005 Add handlers for the three new exception types to
+- [x] T005 Add handlers for the three new exception types to
       `backend/src/main/java/com/exchangerate/manager/exception/GlobalExceptionHandler.java`,
       mapping `UnknownCurrencyException`/`SameCurrencyException` → 400 `ProblemDetail` and
       `RateDataNotFoundException` → 404 `ProblemDetail`, each identifying the specific problem
       (FR-007, FR-004, FR-013)
-- [ ] T006 [P] Add `existsByCurrencyCode(String currencyCode)` and
+- [x] T006 [P] Add `existsByCurrencyCode(String currencyCode)` and
       `findLatestCommonDate(String from, String to)` (native correlated-EXISTS query per
       research.md, returning `Optional<LocalDate>`) to
       `backend/src/main/java/com/exchangerate/manager/repository/ExchangeRateRepository.java`
-- [ ] T007 [P] Add a currency-usage-analytics query method (e.g.
+- [x] T007 [P] Add a currency-usage-analytics query method (e.g.
       `findAllCurrencyUsage()` returning a projection of `currencyCode`, `queryCount`,
       `lastQueriedAt`) to
       `backend/src/main/java/com/exchangerate/manager/repository/CurrencyUsageRepository.java`,
       implemented as the `DISTINCT exchange_rates.currency_code LEFT JOIN currency_usage` native
       query from data-model.md so never-queried currencies return `0`/`null` instead of being
       omitted
-- [ ] T008 Add the atomic upsert-increment native query (`INSERT ... ON CONFLICT (currency_code)
+- [x] T008 Add the atomic upsert-increment native query (`INSERT ... ON CONFLICT (currency_code)
       DO UPDATE SET query_count = currency_usage.query_count + 1, last_queried_at = now()`) as
       `incrementUsage(String currencyCode)` to
       `backend/src/main/java/com/exchangerate/manager/repository/CurrencyUsageRepository.java`
@@ -100,10 +100,10 @@ computed from the most recent common date, with the correct spread applied.
 
 ### Implementation for User Story 1
 
-- [ ] T009 [US1] Create `ExchangeRateLookupResult` internal record (fromCurrency, toCurrency, rate,
+- [x] T009 [US1] Create `ExchangeRateLookupResult` internal record (fromCurrency, toCurrency, rate,
       rateDate, fromCurrencyUsageCount, toCurrencyUsageCount) in
       `backend/src/main/java/com/exchangerate/manager/service/ExchangeRateLookupResult.java`
-- [ ] T010 [US1] Create `ExchangeRateService` in
+- [x] T010 [US1] Create `ExchangeRateService` in
       `backend/src/main/java/com/exchangerate/manager/service/ExchangeRateService.java` with a
       `lookup(String from, String to, LocalDate date)` method: resolves effective date (supplied
       date, or `findLatestCommonDate` when absent), loads both currencies' `ExchangeRate` rows,
@@ -111,17 +111,17 @@ computed from the most recent common date, with the correct spread applied.
       `(toRateUsd / fromRateUsd) × ((100 − MAX(toSpread, fromSpread)) / 100)` with `BigDecimal`
       (explicit `MathContext`/scale per FR-014) — this task only covers the calculation path, not
       validation/error paths or the usage-counter write (see US2/US3)
-- [ ] T011 [P] [US1] Create `ExchangeRateResponseMapper` (MapStruct) in
+- [x] T011 [P] [US1] Create `ExchangeRateResponseMapper` (MapStruct) in
       `backend/src/main/java/com/exchangerate/manager/mapper/ExchangeRateResponseMapper.java`
       mapping `ExchangeRateLookupResult` → generated `ExchangeRateResponse` DTO
-- [ ] T012 [US1] Implement `GET /exchange` in
+- [x] T012 [US1] Implement `GET /exchange` in
       `backend/src/main/java/com/exchangerate/manager/controller/ExchangeController.java` by
       implementing the generated `ExchangeApi` method: delegate to `ExchangeRateService.lookup`,
       map via `ExchangeRateResponseMapper`, return 200
-- [ ] T013 [P] [US1] Unit tests for the spread formula and date-resolution logic (happy paths;
+- [x] T013 [P] [US1] Unit tests for the spread formula and date-resolution logic (happy paths;
       base-currency 0% spread; explicit-date vs. no-date resolution) in
       `backend/src/test/java/com/exchangerate/manager/service/ExchangeRateServiceTest.java`
-- [ ] T014 [US1] Integration test for the full HTTP round trip of `GET /exchange` (happy path,
+- [x] T014 [US1] Integration test for the full HTTP round trip of `GET /exchange` (happy path,
       explicit past date) in
       `backend/src/test/java/com/exchangerate/manager/controller/ExchangeControllerIT.java`
 
@@ -140,17 +140,17 @@ with no stored rate data, and verify each produces a distinct, well-structured e
 
 ### Implementation for User Story 2
 
-- [ ] T015 [US2] Extend `ExchangeRateService.lookup` (in `ExchangeRateService.java`) to validate
+- [x] T015 [US2] Extend `ExchangeRateService.lookup` (in `ExchangeRateService.java`) to validate
       before any calculation: reject `from == to` with `SameCurrencyException`; reject either code
       failing `existsByCurrencyCode` with `UnknownCurrencyException`; reject a resolved-date miss
       (explicit date with no row for either side, or no common date at all) with
       `RateDataNotFoundException` — all three short-circuit before touching usage counters
       (depends on T010)
-- [ ] T016 [P] [US2] Verify, after T002's regeneration, that the generated `ExchangeApi` parameter
+- [x] T016 [P] [US2] Verify, after T002's regeneration, that the generated `ExchangeApi` parameter
       constraints reject `from`/`to` not matching `^[A-Z]{3}$` (the contract already declares this
       `pattern`); only add an explicit check in `ExchangeController.java` if the generated
       constraint does not enforce it
-- [ ] T017 [US2] Integration tests for all three rejected-lookup cases (unknown currency → 400,
+- [x] T017 [US2] Integration tests for all three rejected-lookup cases (unknown currency → 400,
       same-currency-both-sides → 400, no-data-for-date → 404, each a `application/problem+json`
       body identifying the specific problem) in
       `backend/src/test/java/com/exchangerate/manager/controller/ExchangeControllerIT.java`
@@ -173,18 +173,18 @@ simultaneous lookups don't lose increments.
 
 ### Implementation for User Story 3
 
-- [ ] T018 [US3] Extend `ExchangeRateService.lookup` (in `ExchangeRateService.java`, wrapped
+- [x] T018 [US3] Extend `ExchangeRateService.lookup` (in `ExchangeRateService.java`, wrapped
       `@Transactional`) to call `CurrencyUsageRepository.incrementUsage` once for `from` and once
       for `to` only after the rate has been successfully computed, and populate
       `fromCurrencyUsageCount`/`toCurrencyUsageCount` on `ExchangeRateLookupResult` from the
       post-increment values (depends on T008, T015)
-- [ ] T019 [US3] Concurrent-increment test in
+- [x] T019 [US3] Concurrent-increment test in
       `backend/src/test/java/com/exchangerate/manager/service/ExchangeRateServiceTest.java` (or a
       dedicated non-`@Transactional` test class): fire N concurrent successful lookups against the
       same currency pair via `ExecutorService`/`CountDownLatch` and assert the final `query_count`
       equals exactly N for each currency (FR-009, SC-003) — per research.md, must NOT be wrapped in
       a single test transaction, or row-lock contention won't be exercised
-- [ ] T020 [P] [US3] Integration test confirming a rejected lookup (from US2's cases) leaves usage
+- [x] T020 [P] [US3] Integration test confirming a rejected lookup (from US2's cases) leaves usage
       counters unchanged in
       `backend/src/test/java/com/exchangerate/manager/controller/ExchangeControllerIT.java`
       (FR-010)
@@ -206,7 +206,7 @@ actually performed, including currencies never queried.
 
 ### Implementation for User Story 4
 
-- [ ] T021 [P] [US4] Create `UsageAnalyticsMapper` (MapStruct) in
+- [x] T021 [P] [US4] Create `UsageAnalyticsMapper` (MapStruct) in
       `backend/src/main/java/com/exchangerate/manager/mapper/UsageAnalyticsMapper.java` mapping
       the `findAllCurrencyUsage()` projection to the generated `CurrencyUsageEntry`/
       `UsageAnalyticsResponse` DTOs
