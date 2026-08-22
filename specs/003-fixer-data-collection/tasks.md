@@ -111,7 +111,7 @@ currency exists for the current date (quickstart.md "Validate: scheduled collect
       the response plus `USD = 1.000000`, then upserts each via T007's repository method inside
       one `@Transactional` method annotated `@SchedulerLock(name = "fixer-rate-collection")`
       (depends on T005, T006, T007)
-- [ ] T012 [US1] Create `RateCollectionScheduler` in
+- [X] T012 [US1] Create `RateCollectionScheduler` in
       `backend/src/main/java/com/exchangerate/manager/scheduler/RateCollectionScheduler.java`
       — `@Scheduled(cron = "0 5 0 * * *", zone = "GMT")` method delegating to
       `RateCollectionService` (depends on T011)
