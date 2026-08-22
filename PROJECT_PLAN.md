@@ -35,8 +35,8 @@ Ordered steps for Exchange Rate Management System (see TASK.md, CLAUDE.md). Mark
 
 ## 4. Analytics Endpoint (4.3)
 
-- [ ] Implement generated `GET /analytics` interface — query count per currency + query dates
-- [ ] Design response shape to support frontend Usage Analytics Dashboard (5.3)
+- [x] Implement generated `GET /analytics` interface — query count per currency + query dates
+- [x] Design response shape to support frontend Usage Analytics Dashboard (5.3)
 
 ## 5. AI Trend Insight (Section 7)
 
