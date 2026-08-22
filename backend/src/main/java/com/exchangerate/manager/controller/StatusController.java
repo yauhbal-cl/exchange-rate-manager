@@ -3,6 +3,7 @@ package com.exchangerate.manager.controller;
 import com.exchangerate.manager.api.StatusApi;
 import com.exchangerate.manager.api.model.ServiceStatus;
 import com.exchangerate.manager.service.StatusService;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

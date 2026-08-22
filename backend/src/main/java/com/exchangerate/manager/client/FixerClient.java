@@ -29,6 +29,9 @@ public class FixerClient {
         this.apiKey = apiKey;
     }
 
+    // Note: base-url is consumed only to build restClient above and isn't retained as a field,
+    // so @RequiredArgsConstructor can't derive this constructor — kept explicit.
+
     /**
      * Calls Fixer.io's {@code GET /latest} endpoint and returns the deserialized response.
      *

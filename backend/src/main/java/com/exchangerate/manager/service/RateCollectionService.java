@@ -4,6 +4,8 @@ import com.exchangerate.manager.client.FixerClient;
 import com.exchangerate.manager.client.FixerLatestResponse;
 import com.exchangerate.manager.repository.ExchangeRateRepository;
 
+import lombok.RequiredArgsConstructor;
+
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 
 import org.springframework.stereotype.Service;
@@ -25,16 +27,12 @@ import java.util.Map;
  * {@code ExchangeController} maps it to a 502 response for the manual-refresh path.
  */
 @Service
+@RequiredArgsConstructor
 public class RateCollectionService {
 
     private final FixerClient fixerClient;
 
     private final ExchangeRateRepository exchangeRateRepository;
-
-    public RateCollectionService(FixerClient fixerClient, ExchangeRateRepository exchangeRateRepository) {
-        this.fixerClient = fixerClient;
-        this.exchangeRateRepository = exchangeRateRepository;
-    }
 
     @Transactional
     @SchedulerLock(name = "fixer-rate-collection")

@@ -9,6 +9,12 @@ import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.SourceType;
@@ -20,6 +26,10 @@ import java.time.LocalDate;
 
 @Entity
 @Table(name = "exchange_rates")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class ExchangeRate {
 
     @Id
@@ -47,55 +57,4 @@ public class ExchangeRate {
     @CreationTimestamp(source = SourceType.DB)
     @Column(name = "created_at", nullable = false, updatable = false, insertable = false)
     private Instant createdAt;
-
-    public ExchangeRate() {
-    }
-
-    public ExchangeRate(Long id, String currencyCode, BigDecimal rateToUsd, LocalDate rateDate, Instant createdAt) {
-        this.id = id;
-        this.currencyCode = currencyCode;
-        this.rateToUsd = rateToUsd;
-        this.rateDate = rateDate;
-        this.createdAt = createdAt;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getCurrencyCode() {
-        return currencyCode;
-    }
-
-    public void setCurrencyCode(String currencyCode) {
-        this.currencyCode = currencyCode;
-    }
-
-    public BigDecimal getRateToUsd() {
-        return rateToUsd;
-    }
-
-    public void setRateToUsd(BigDecimal rateToUsd) {
-        this.rateToUsd = rateToUsd;
-    }
-
-    public LocalDate getRateDate() {
-        return rateDate;
-    }
-
-    public void setRateDate(LocalDate rateDate) {
-        this.rateDate = rateDate;
-    }
-
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(Instant createdAt) {
-        this.createdAt = createdAt;
-    }
 }

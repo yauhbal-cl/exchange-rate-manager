@@ -1,8 +1,10 @@
 package com.exchangerate.manager.service;
 
 import com.exchangerate.manager.api.model.ServiceStatus;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.time.OffsetDateTime;

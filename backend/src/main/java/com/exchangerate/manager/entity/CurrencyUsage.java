@@ -9,6 +9,12 @@ import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.PositiveOrZero;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.SourceType;
@@ -18,6 +24,10 @@ import java.time.Instant;
 
 @Entity
 @Table(name = "currency_usage")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class CurrencyUsage {
 
     @Id
@@ -41,46 +51,4 @@ public class CurrencyUsage {
     @CreationTimestamp(source = SourceType.DB)
     @Column(name = "last_queried_at", nullable = false, insertable = false)
     private Instant lastQueriedAt;
-
-    public CurrencyUsage() {
-    }
-
-    public CurrencyUsage(Long id, String currencyCode, Long queryCount, Instant lastQueriedAt) {
-        this.id = id;
-        this.currencyCode = currencyCode;
-        this.queryCount = queryCount;
-        this.lastQueriedAt = lastQueriedAt;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getCurrencyCode() {
-        return currencyCode;
-    }
-
-    public void setCurrencyCode(String currencyCode) {
-        this.currencyCode = currencyCode;
-    }
-
-    public Long getQueryCount() {
-        return queryCount;
-    }
-
-    public void setQueryCount(Long queryCount) {
-        this.queryCount = queryCount;
-    }
-
-    public Instant getLastQueriedAt() {
-        return lastQueriedAt;
-    }
-
-    public void setLastQueriedAt(Instant lastQueriedAt) {
-        this.lastQueriedAt = lastQueriedAt;
-    }
 }
