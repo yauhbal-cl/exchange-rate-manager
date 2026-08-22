@@ -29,6 +29,17 @@ services:
       timeout: 5s
       retries: 5
 
+  ollama-pull:
+    image: ollama/ollama:latest
+    container_name: exchange-rate-ollama-pull
+    depends_on:
+      ollama:
+        condition: service_healthy
+    environment:
+      OLLAMA_HOST: ollama:11434
+    entrypoint: ["ollama", "pull", "llama3.2"]
+    restart: "no"
+
 volumes:
   postgres_data:
   ollama_data:
