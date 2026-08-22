@@ -174,7 +174,7 @@ schedule alone (US1) plus its failure handling (US2) fully satisfies the core fe
 
 ### Tests for User Story 3 (OPTIONAL)
 
-- [ ] T017 [P] [US3] Contract/integration test for `POST /exchange/refresh` — `200` with
+- [X] T017 [P] [US3] Contract/integration test for `POST /exchange/refresh` — `200` with
       correct body on success, `502` `ProblemDetail` on `FixerApiException`, `409` `ProblemDetail`
       when a scheduled run already holds the lock, `currency_usage` row count unchanged
       before/after — in
