@@ -3,9 +3,11 @@ package com.exchangerate.manager.controller;
 import com.exchangerate.manager.api.ExchangeApi;
 import com.exchangerate.manager.api.model.ExchangeRateResponse;
 import com.exchangerate.manager.api.model.ExchangeRateTrendResponse;
+import com.exchangerate.manager.api.model.TrendInsightResponse;
 import com.exchangerate.manager.api.model.UsageAnalyticsResponse;
 import com.exchangerate.manager.mapper.ExchangeRateResponseMapper;
 import com.exchangerate.manager.mapper.ExchangeRateTrendResponseMapper;
+import com.exchangerate.manager.mapper.TrendInsightResponseMapper;
 import com.exchangerate.manager.mapper.UsageAnalyticsMapper;
 import com.exchangerate.manager.repository.CurrencyUsageRepository;
 import com.exchangerate.manager.service.CollectionInProgressException;
@@ -13,6 +15,8 @@ import com.exchangerate.manager.service.ExchangeRateLookupResult;
 import com.exchangerate.manager.service.ExchangeRateService;
 import com.exchangerate.manager.service.RateCollectionService;
 import com.exchangerate.manager.service.RateTrendPoint;
+import com.exchangerate.manager.service.TrendInsightResult;
+import com.exchangerate.manager.service.TrendInsightService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -36,6 +40,8 @@ public class ExchangeController implements ExchangeApi {
     private final CurrencyUsageRepository currencyUsageRepository;
     private final UsageAnalyticsMapper usageAnalyticsMapper;
     private final ExchangeRateTrendResponseMapper exchangeRateTrendResponseMapper;
+    private final TrendInsightService trendInsightService;
+    private final TrendInsightResponseMapper trendInsightResponseMapper;
 
     @Override
     public ResponseEntity<ExchangeRateResponse> getExchangeRate(String from, String to, LocalDate date) {
@@ -63,6 +69,14 @@ public class ExchangeController implements ExchangeApi {
             String from, String to, LocalDate startDate, LocalDate endDate) {
         List<RateTrendPoint> points = exchangeRateService.getTrend(from, to, startDate, endDate);
         ExchangeRateTrendResponse body = exchangeRateTrendResponseMapper.toResponse(from, to, points);
+        return ResponseEntity.ok(body);
+    }
+
+    @Override
+    public ResponseEntity<TrendInsightResponse> getExchangeRateTrendInsight(
+            String from, String to, LocalDate startDate, LocalDate endDate) {
+        TrendInsightResult result = trendInsightService.generateInsight(from, to, startDate, endDate);
+        TrendInsightResponse body = trendInsightResponseMapper.toResponse(result);
         return ResponseEntity.ok(body);
     }
 
