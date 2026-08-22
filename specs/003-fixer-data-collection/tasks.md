@@ -197,7 +197,7 @@ schedule alone (US1) plus its failure handling (US2) fully satisfies the core fe
       delegates to `RateCollectionService.collect()` (same `@SchedulerLock` name as the
       scheduler, so a manual call can never race a scheduled run), maps `FixerApiException` to
       a `502` `ProblemDetail` (depends on T018, T020)
-- [ ] T021a [US3] Handle the lock-already-held case in `ExchangeController` — `@SchedulerLock`
+- [X] T021a [US3] Handle the lock-already-held case in `ExchangeController` — `@SchedulerLock`
       skips the method body and returns `null` when the lock is unavailable (e.g., a scheduled
       run is in progress); detect this (`null` result) and map it to a `409 Conflict`
       `ProblemDetail` instead of an empty/broken `200`, per spec.md's "manual trigger during an

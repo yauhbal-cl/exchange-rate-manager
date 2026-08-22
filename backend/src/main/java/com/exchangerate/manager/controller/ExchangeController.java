@@ -29,6 +29,11 @@ public class ExchangeController implements ExchangeApi {
             throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, e.getMessage());
         }
 
+        if (result == null) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "A collection run is already in progress; try again shortly.");
+        }
+
         com.exchangerate.manager.api.model.RefreshResult body = new com.exchangerate.manager.api.model.RefreshResult(
                 result.getCurrenciesCollected(), result.getRateDate());
         return ResponseEntity.ok(body);
