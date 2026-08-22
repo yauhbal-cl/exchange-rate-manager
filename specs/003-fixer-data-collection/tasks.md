@@ -70,7 +70,7 @@ optionally, US3) build on
       `backend/src/main/java/com/exchangerate/manager/config/SchedulerLockConfig.java` —
       `@EnableSchedulerLock(defaultLockAtMostFor = "PT10M")` plus a `LockProvider` bean
       (`JdbcTemplateLockProvider` over the existing `DataSource`) per research.md §4
-- [ ] T007 Add native upsert method to `ExchangeRateRepository` in
+- [X] T007 Add native upsert method to `ExchangeRateRepository` in
       `backend/src/main/java/com/exchangerate/manager/repository/ExchangeRateRepository.java`
       — `@Modifying @Query(nativeQuery = true)` `INSERT ... ON CONFLICT (currency_code,
       rate_date) DO UPDATE SET rate_to_usd = EXCLUDED.rate_to_usd` (data-model.md)
