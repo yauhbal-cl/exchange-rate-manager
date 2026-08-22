@@ -88,7 +88,7 @@ Existing single-module Spring Boot backend, extended in place — see plan.md Pr
 ### Implementation for User Story 2
 
 - [X] T016 [US2] Add ranked projection query (order by `queryCount DESC, currencyCode ASC`, optional row limit) to `backend/src/main/java/com/exchangerate/manager/repository/CurrencyUsageRepository.java`
-- [ ] T017 [US2] Extend `getUsageAnalytics` in `backend/src/main/java/com/exchangerate/manager/controller/ExchangeController.java` (or a small validation step in a service, per Constitution Principle VI) to accept `limit`, validate it's positive when supplied (else 400 via `@Positive`/existing validation pattern, FR-010), and pass through to the T016 query
+- [X] T017 [US2] Extend `getUsageAnalytics` in `backend/src/main/java/com/exchangerate/manager/controller/ExchangeController.java` (or a small validation step in a service, per Constitution Principle VI) to accept `limit`, validate it's positive when supplied (else 400 via `@Positive`/existing validation pattern, FR-010), and pass through to the T016 query
 
 **Checkpoint**: US1 and US2 both independently functional.
 
@@ -108,7 +108,7 @@ Existing single-module Spring Boot backend, extended in place — see plan.md Pr
 ### Implementation for User Story 3
 
 - [X] T020 [US3] Extend the T016 query in `backend/src/main/java/com/exchangerate/manager/repository/CurrencyUsageRepository.java` with an optional recency filter (`lastQueriedAt >= now() - recentDays days`, excluding null `lastQueriedAt`), composable with the existing ranking/limit logic
-- [ ] T021 [US3] Extend `getUsageAnalytics` in `backend/src/main/java/com/exchangerate/manager/controller/ExchangeController.java` to accept `recentDays`, validate it's positive when supplied (400 on failure, FR-010), and pass through to the T020 query
+- [X] T021 [US3] Extend `getUsageAnalytics` in `backend/src/main/java/com/exchangerate/manager/controller/ExchangeController.java` to accept `recentDays`, validate it's positive when supplied (400 on failure, FR-010), and pass through to the T020 query
 
 **Checkpoint**: All three user stories independently functional and composable.
 

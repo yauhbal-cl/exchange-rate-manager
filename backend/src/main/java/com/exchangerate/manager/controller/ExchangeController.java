@@ -65,8 +65,9 @@ public class ExchangeController implements ExchangeApi {
     }
 
     @Override
-    public ResponseEntity<UsageAnalyticsResponse> getUsageAnalytics() {
-        UsageAnalyticsResponse body = usageAnalyticsMapper.toResponse(currencyUsageRepository.findAllCurrencyUsage());
+    public ResponseEntity<UsageAnalyticsResponse> getUsageAnalytics(Integer limit, Integer recentDays) {
+        UsageAnalyticsResponse body =
+                usageAnalyticsMapper.toResponse(currencyUsageRepository.findCurrencyUsage(limit, recentDays));
         return ResponseEntity.ok(body);
     }
 }
