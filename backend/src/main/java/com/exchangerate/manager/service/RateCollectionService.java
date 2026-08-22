@@ -1,5 +1,6 @@
 package com.exchangerate.manager.service;
 
+import com.exchangerate.manager.client.FixerApiException;
 import com.exchangerate.manager.client.FixerClient;
 import com.exchangerate.manager.client.FixerLatestResponse;
 import com.exchangerate.manager.repository.ExchangeRateRepository;
@@ -21,6 +22,8 @@ import java.util.Map;
 @Service
 public class RateCollectionService {
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(RateCollectionService.class);
+
     private final FixerClient fixerClient;
 
     private final ExchangeRateRepository exchangeRateRepository;
@@ -33,7 +36,13 @@ public class RateCollectionService {
     @Transactional
     @SchedulerLock(name = "fixer-rate-collection")
     public void collect() {
-        FixerLatestResponse response = fixerClient.getLatestRates();
+        FixerLatestResponse response;
+        try {
+            response = fixerClient.getLatestRates();
+        } catch (FixerApiException e) {
+            log.error("Fixer.io rate collection failed: {}", e.getMessage(), e);
+            return;
+        }
         Map<String, BigDecimal> rates = response.getRates();
         LocalDate rateDate = response.getDate();
         BigDecimal eurToUsd = rates.get("USD");

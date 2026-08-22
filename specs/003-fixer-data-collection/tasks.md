@@ -143,7 +143,7 @@ verify a response with a subset of `symbols` still persists exactly those curren
 
 ### Implementation for User Story 2
 
-- [ ] T015 [US2] In `RateCollectionService` (from T011), wrap the `FixerClient` call in a
+- [X] T015 [US2] In `RateCollectionService` (from T011), wrap the `FixerClient` call in a
       try/catch that logs at `ERROR` level and returns/rethrows without invoking any upsert
       call on failure (no partial writes; depends on T011)
 - [ ] T016 [US2] In `RateCollectionService`, iterate only over `response.rates.keySet()` (plus
