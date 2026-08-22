@@ -103,7 +103,7 @@ Existing single-module Spring Boot backend, extended in place — see plan.md Pr
 ### Tests for User Story 3
 
 - [X] T018 [P] [US3] Repository test for recency filter: currencies within window included, outside window excluded, never-queried (`lastQueriedAt == null`) excluded, composed correctly with the T016 ranking query in `backend/src/test/java/com/exchangerate/manager/repository/CurrencyUsageRepositoryTest.java`
-- [ ] T019 [P] [US3] Controller/integration test for `GET /exchange/usage?recentDays=N`: correct filtering, never-queried excluded, non-positive `recentDays` returns 400 `ProblemDetail`, combined `limit`+`recentDays` request in `backend/src/test/java/com/exchangerate/manager/controller/ExchangeControllerIT.java`
+- [X] T019 [P] [US3] Controller/integration test for `GET /exchange/usage?recentDays=N`: correct filtering, never-queried excluded, non-positive `recentDays` returns 400 `ProblemDetail`, combined `limit`+`recentDays` request in `backend/src/test/java/com/exchangerate/manager/controller/ExchangeControllerIT.java`
 
 ### Implementation for User Story 3
 

@@ -19,6 +19,7 @@ import java.math.RoundingMode;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -372,5 +373,55 @@ class ExchangeControllerIT extends AbstractIntegrationTest {
     void getUsageAnalyticsReturns400ForNonPositiveLimit() throws Exception {
         mockMvc.perform(get(USAGE_ENDPOINT).param("limit", "0"))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void getUsageAnalyticsWithRecentDaysExcludesStaleAndNeverQueriedCurrencies() throws Exception {
+        currencyUsageRepository.deleteAll();
+        exchangeRateRepository.deleteAll();
+
+        exchangeRateRepository.upsert("AAA", new BigDecimal("1.000000"), RATE_DATE);
+        exchangeRateRepository.upsert("BBB", new BigDecimal("1.000000"), RATE_DATE);
+        exchangeRateRepository.upsert("CCC", new BigDecimal("1.000000"), RATE_DATE);
+
+        jdbcTemplate.update(
+                "INSERT INTO currency_usage (currency_code, query_count, last_queried_at) VALUES (?, ?, ?)",
+                "AAA", 1, Timestamp.from(Instant.now()));
+        jdbcTemplate.update(
+                "INSERT INTO currency_usage (currency_code, query_count, last_queried_at) VALUES (?, ?, ?)",
+                "BBB", 1, Timestamp.from(Instant.now().minus(30, ChronoUnit.DAYS)));
+
+        mockMvc.perform(get(USAGE_ENDPOINT).param("recentDays", "7"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.currencies", org.hamcrest.Matchers.hasSize(1)))
+                .andExpect(jsonPath("$.currencies[0].currencyCode").value("AAA"));
+    }
+
+    @Test
+    void getUsageAnalyticsReturns400ForNonPositiveRecentDays() throws Exception {
+        mockMvc.perform(get(USAGE_ENDPOINT).param("recentDays", "0"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void getUsageAnalyticsCombinesLimitAndRecentDays() throws Exception {
+        currencyUsageRepository.deleteAll();
+        exchangeRateRepository.deleteAll();
+
+        exchangeRateRepository.upsert("AAA", new BigDecimal("1.000000"), RATE_DATE);
+        exchangeRateRepository.upsert("BBB", new BigDecimal("1.000000"), RATE_DATE);
+        exchangeRateRepository.upsert("CCC", new BigDecimal("1.000000"), RATE_DATE);
+
+        jdbcTemplate.update(
+                "INSERT INTO currency_usage (currency_code, query_count, last_queried_at) VALUES (?, ?, ?)",
+                "AAA", 3, Timestamp.from(Instant.now()));
+        jdbcTemplate.update(
+                "INSERT INTO currency_usage (currency_code, query_count, last_queried_at) VALUES (?, ?, ?)",
+                "BBB", 5, Timestamp.from(Instant.now()));
+
+        mockMvc.perform(get(USAGE_ENDPOINT).param("limit", "1").param("recentDays", "7"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.currencies", org.hamcrest.Matchers.hasSize(1)))
+                .andExpect(jsonPath("$.currencies[0].currencyCode").value("BBB"));
     }
 }
