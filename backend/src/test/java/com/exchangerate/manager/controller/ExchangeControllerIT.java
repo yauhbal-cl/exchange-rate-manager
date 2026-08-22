@@ -36,6 +36,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class ExchangeControllerIT {
 
     private static final String ENDPOINT = "/api/v1/exchange";
+    private static final String USAGE_ENDPOINT = "/api/v1/exchange/usage";
 
     // Neither EUR nor GBP appear in SpreadLookup's explicit tiers, so both fall to the DEFAULT
     // spread (2.75). Keep the math context identical to ExchangeRateService's so the
@@ -144,5 +145,72 @@ class ExchangeControllerIT {
                 .andExpect(status().isBadRequest());
 
         assertThat(currencyUsageRepository.findByCurrencyCode(FROM_CURRENCY)).isEmpty();
+    }
+
+    @Test
+    void getUsageAnalyticsReflectsMixedQueriedAndNeverQueriedCurrencies() throws Exception {
+        // Real dev DB may carry rows from other tests/manual runs; establish a clean, deterministic
+        // baseline within this test's transaction (rolled back afterwards, per the class convention).
+        currencyUsageRepository.deleteAll();
+        exchangeRateRepository.deleteAll();
+
+        // Three currencies with rate data seeded; only EUR and GBP get looked up (successfully),
+        // JPY has rate data but is never queried.
+        exchangeRateRepository.upsert(FROM_CURRENCY, FROM_RATE_TO_USD, RATE_DATE);
+        exchangeRateRepository.upsert(TO_CURRENCY, TO_RATE_TO_USD, RATE_DATE);
+        exchangeRateRepository.upsert("JPY", new BigDecimal("150.000000"), RATE_DATE);
+
+        mockMvc.perform(get(ENDPOINT)
+                        .param("from", FROM_CURRENCY)
+                        .param("to", TO_CURRENCY)
+                        .param("date", RATE_DATE.toString()))
+                .andExpect(status().isOk());
+        mockMvc.perform(get(ENDPOINT)
+                        .param("from", FROM_CURRENCY)
+                        .param("to", TO_CURRENCY)
+                        .param("date", RATE_DATE.toString()))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get(USAGE_ENDPOINT))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.currencies", org.hamcrest.Matchers.hasSize(3)))
+                .andExpect(jsonPath("$.currencies[?(@.currencyCode == '" + FROM_CURRENCY + "')].queryCount")
+                        .value(org.hamcrest.Matchers.contains(2)))
+                .andExpect(jsonPath("$.currencies[?(@.currencyCode == '" + FROM_CURRENCY + "')].lastQueriedAt")
+                        .value(org.hamcrest.Matchers.everyItem(org.hamcrest.Matchers.notNullValue())))
+                .andExpect(jsonPath("$.currencies[?(@.currencyCode == '" + TO_CURRENCY + "')].queryCount")
+                        .value(org.hamcrest.Matchers.contains(2)))
+                .andExpect(jsonPath("$.currencies[?(@.currencyCode == '" + TO_CURRENCY + "')].lastQueriedAt")
+                        .value(org.hamcrest.Matchers.everyItem(org.hamcrest.Matchers.notNullValue())))
+                .andExpect(jsonPath("$.currencies[?(@.currencyCode == 'JPY')].queryCount")
+                        .value(org.hamcrest.Matchers.contains(0)));
+    }
+
+    @Test
+    void getUsageAnalyticsIncludesNeverQueriedCurrencyWithZeroCountAndNullTimestamp() throws Exception {
+        currencyUsageRepository.deleteAll();
+        exchangeRateRepository.deleteAll();
+        exchangeRateRepository.upsert(FROM_CURRENCY, FROM_RATE_TO_USD, RATE_DATE);
+
+        assertThat(currencyUsageRepository.findByCurrencyCode(FROM_CURRENCY)).isEmpty();
+
+        mockMvc.perform(get(USAGE_ENDPOINT))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.currencies", org.hamcrest.Matchers.hasSize(1)))
+                .andExpect(jsonPath("$.currencies[0].currencyCode").value(FROM_CURRENCY))
+                .andExpect(jsonPath("$.currencies[0].queryCount").value(0))
+                .andExpect(jsonPath("$.currencies[0].lastQueriedAt").value(org.hamcrest.Matchers.nullValue()));
+    }
+
+    @Test
+    void getUsageAnalyticsReturnsEmptyResultWhenNoExchangeRatesExist() throws Exception {
+        currencyUsageRepository.deleteAll();
+        exchangeRateRepository.deleteAll();
+        assertThat(exchangeRateRepository.findAll()).isEmpty();
+
+        mockMvc.perform(get(USAGE_ENDPOINT))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.currencies").isArray())
+                .andExpect(jsonPath("$.currencies", org.hamcrest.Matchers.hasSize(0)));
     }
 }

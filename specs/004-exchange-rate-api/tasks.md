@@ -214,7 +214,7 @@ actually performed, including currencies never queried.
       generated `ExchangeApi` method: delegate to `CurrencyUsageRepository.findAllCurrencyUsage()`,
       map via `UsageAnalyticsMapper`, return 200 with `{"currencies": [...]}` (or `[]` when no
       rates have ever been stored)
-- [ ] T023 [US4] Integration tests for `GET /exchange/usage` in
+- [x] T023 [US4] Integration tests for `GET /exchange/usage` in
       `backend/src/test/java/com/exchangerate/manager/controller/ExchangeControllerIT.java`:
       mixed queried/never-queried currencies appear with correct counts/dates; a never-queried
       currency with a stored rate appears with `queryCount = 0`/`lastQueriedAt = null`; empty state
