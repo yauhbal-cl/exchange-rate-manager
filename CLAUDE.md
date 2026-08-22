@@ -50,6 +50,8 @@ context7 or the project's release-notes/changelog page before bumping any of the
 | Node.js | Node | 22 LTS (`^20.19 \|\| ^22.12 \|\| ^24`) | match Angular 21's supported range |
 | Package manager | npm | bundled with Node 22 | plain workspaces, no Nx |
 | Contract codegen | openapi-generator | latest 7.x CLI, both Maven plugin and npm CLI | shared source: `contracts/openapi.yaml` |
+| Boilerplate reduction | Lombok | 1.18.42 (min 1.18.40 for Java 21 annotation processing) | `provided` scope; annotation processor on backend compile classpath |
+| Bean mapping | MapStruct | 1.6.3 (stable; 1.7 is beta, not for use) | requires `mapstruct-processor` as an annotation processor; declare after Lombok on the annotation processor path (`lombok-mapstruct-binding` if both run in the same compile) |
 
 ## Architecture Decisions
 
@@ -95,6 +97,13 @@ Fill in once each module is scaffolded (do not guess — verify against the actu
   calculation belong in the service layer, not the controller.
 - REST error responses: consistent problem-detail shape (Spring's built-in `ProblemDetail`) for 4xx
   cases (unknown currency, no rate for requested date).
+- Exception handling: all exceptions handled via `@ControllerAdvice` (`@RestControllerAdvice`), not
+  try/catch in controllers/services. Central handler maps exception types to `ProblemDetail`.
+- Lombok: use for boilerplate (`@Getter`/`@Setter`/`@RequiredArgsConstructor`/`@Builder`, etc.) on
+  backend Java classes.
+- MapStruct: use for all DTO ↔ entity mapping; do not hand-write mapping methods. Mapper
+  interfaces live alongside the DTOs/entities they map; when a mapper also needs Lombok-generated
+  builders/setters, add `lombok-mapstruct-binding` so the two annotation processors cooperate.
 - Frontend: standalone components, signals for state, `httpResource`/`resource` for API calls where
   it fits — follow current Angular idioms, not NgModules-era patterns.
 - Frontend styling: Tailwind CSS. No hand-rolled component CSS/SCSS where a utility class covers it.

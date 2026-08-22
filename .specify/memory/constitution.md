@@ -1,14 +1,13 @@
 <!--
 Sync Impact Report
-Version change: N/A (template) → 1.0.0
-Modified principles: none (initial ratification)
-Added sections:
-  - Core Principles (I–IX)
-  - Technology Stack Requirements
-  - Development & Quality Standards
-  - Governance
+Version change: 1.1.0 → 1.2.0
+Modified principles: none
+Added sections: none (materially expanded existing bullet)
+Modified sections:
+  - Technology Stack Requirements: Backend bullet now mandates Lombok for boilerplate and
+    MapStruct for DTO/entity mapping (no hand-written mapping logic)
 Removed sections: none
-Deferred items: none (RATIFICATION_DATE set to today per repo convention; no prior date exists)
+Deferred items: none
 -->
 
 # Exchange Rate Management System Constitution
@@ -87,7 +86,8 @@ tied to a hard-coded endpoint.
 ## Technology Stack Requirements
 
 - **Backend**: Java 17 or later, Spring Boot, Maven, Hibernate/Spring Data JPA, any relational
-  database.
+  database. Lombok MUST be used for boilerplate (getters/setters/constructors/builders).
+  MapStruct MUST be used for DTO ↔ entity mapping; mapping logic MUST NOT be hand-written.
 - **Frontend**: Angular v15 or later, TypeScript throughout.
 - **AI Integration**: Spring AI (preferred) or LangChain4j, connected to any open-source LLM
   (a local model via Ollama, or an OpenAI-compatible endpoint).
@@ -101,6 +101,9 @@ constraints, and may be tracked separately from this document.
 
 - REST error responses MUST use a consistent problem-detail shape for 4xx conditions (e.g.,
   unknown currency, no rate data for a requested date) rather than ad hoc error bodies.
+- Exception handling MUST be centralized (e.g., a single `@ControllerAdvice`/
+  `@RestControllerAdvice` component mapping exception types to problem-detail responses).
+  Controllers and services MUST NOT catch exceptions locally to build ad hoc error responses.
 - When no date is supplied for a rate query, the system MUST use the most recent available
   rates; when a requested date has no data, the system MUST return an appropriate HTTP error
   rather than a fabricated or interpolated value.
@@ -126,4 +129,4 @@ Versioning policy (semantic versioning applied to governance content):
 Any complexity that appears to violate a principle (e.g., bypassing atomic counters, hard-coding
 a lookup as conditionals) MUST be justified in the relevant design/plan artifact or corrected.
 
-**Version**: 1.0.0 | **Ratified**: 2026-08-22 | **Last Amended**: 2026-08-22
+**Version**: 1.2.0 | **Ratified**: 2026-08-22 | **Last Amended**: 2026-08-22
