@@ -2,6 +2,7 @@ package com.exchangerate.manager.service;
 
 import com.exchangerate.manager.exception.AiInsightUnavailableException;
 import com.exchangerate.manager.exception.RateDataNotFoundException;
+import com.exchangerate.manager.exception.TrendRangeTooLargeException;
 import com.exchangerate.manager.repository.ExchangeRateRepository;
 
 import org.junit.jupiter.api.Test;
@@ -188,6 +189,21 @@ class TrendInsightServiceTest {
         assertThatThrownBy(() -> trendInsightService.generateInsight("EUR", "USD", startDate, endDate))
                 .isInstanceOf(RateDataNotFoundException.class);
 
+        verifyNoInteractions(chatClient);
+    }
+
+    @Test
+    void generateInsightThrowsTrendRangeTooLargeBeforeQueryingOrCallingChatClient() {
+        LocalDate startDate = LocalDate.of(2024, 1, 1);
+        LocalDate endDate = LocalDate.of(2026, 1, 1);
+
+        when(exchangeRateRepository.existsByCurrencyCode("EUR")).thenReturn(true);
+        when(exchangeRateRepository.existsByCurrencyCode("USD")).thenReturn(true);
+
+        assertThatThrownBy(() -> trendInsightService.generateInsight("EUR", "USD", startDate, endDate))
+                .isInstanceOf(TrendRangeTooLargeException.class);
+
+        verifyNoInteractions(exchangeRateService);
         verifyNoInteractions(chatClient);
     }
 }
