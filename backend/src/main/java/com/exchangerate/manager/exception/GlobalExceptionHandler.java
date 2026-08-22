@@ -3,6 +3,8 @@ package com.exchangerate.manager.exception;
 import com.exchangerate.manager.client.FixerApiException;
 import com.exchangerate.manager.service.CollectionInProgressException;
 
+import jakarta.validation.ConstraintViolationException;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -38,5 +40,10 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(RateDataNotFoundException.class)
     public ProblemDetail handleRateDataNotFound(RateDataNotFoundException e) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, e.getMessage());
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ProblemDetail handleConstraintViolation(ConstraintViolationException e) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, e.getMessage());
     }
 }
