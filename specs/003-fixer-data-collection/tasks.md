@@ -182,7 +182,7 @@ schedule alone (US1) plus its failure handling (US2) fully satisfies the core fe
 
 ### Implementation for User Story 3 (OPTIONAL)
 
-- [ ] T018 [US3] Regenerate the server interface from `contracts/openapi.yaml`
+- [X] T018 [US3] Regenerate the server interface from `contracts/openapi.yaml`
       (`cd backend && ./mvnw generate-sources`) to produce the `refreshExchangeRates`
       interface method for `POST /exchange/refresh`
 - [ ] T019 [P] [US3] Create `RefreshResult` DTO (`currenciesCollected`, `rateDate`) in
