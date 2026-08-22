@@ -2,6 +2,7 @@ package com.exchangerate.manager.controller;
 
 import com.exchangerate.manager.api.model.TrendInsightResponse;
 import com.exchangerate.manager.client.FixerApiException;
+import com.exchangerate.manager.exception.AiInsightUnavailableException;
 import com.exchangerate.manager.mapper.ExchangeRateResponseMapper;
 import com.exchangerate.manager.mapper.ExchangeRateTrendResponseMapper;
 import com.exchangerate.manager.mapper.TrendInsightResponseMapper;
@@ -17,6 +18,7 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -27,6 +29,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -115,6 +118,19 @@ class ExchangeControllerTest {
                 .andExpect(jsonPath("$.startDate").value(startDate.toString()))
                 .andExpect(jsonPath("$.endDate").value(endDate.toString()))
                 .andExpect(jsonPath("$.narrative").value("The EUR/USD rate held broadly steady over the period."));
+    }
+
+    @Test
+    void getExchangeRateTrendInsightReturns503WhenAiUnavailable() throws Exception {
+        when(trendInsightService.generateInsight(anyString(), anyString(), any(), any()))
+                .thenThrow(new AiInsightUnavailableException("AI insight generation is currently unavailable"));
+
+        mockMvc.perform(get("/api/v1/exchange/trend/insight")
+                        .param("from", "EUR")
+                        .param("to", "USD"))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.detail").value("AI insight generation is currently unavailable"));
     }
 
     /**
