@@ -212,7 +212,7 @@ recovery/testing convenience on top of US1+US2
 
 **Purpose**: Final validation across whichever stories were implemented
 
-- [ ] T022 Run `./mvnw verify` from `backend/` — confirm all new and existing tests pass
+- [X] T022 Run `./mvnw verify` from `backend/` — confirm all new and existing tests pass
 - [ ] T023 Execute quickstart.md's full validation sequence end-to-end (scheduled path via
       manual trigger, failure handling, concurrent-run rejection, and — if US3 was implemented —
       the manual refresh endpoint and usage-counter-untouched checks)
