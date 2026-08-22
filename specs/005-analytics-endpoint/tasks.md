@@ -118,7 +118,7 @@ Existing single-module Spring Boot backend, extended in place — see plan.md Pr
 
 **Purpose**: Regenerate the frontend client and validate the full feature end-to-end
 
-- [ ] T022 [P] Regenerate frontend typed client via `cd frontend && npm run generate:api` so `frontend/src/app/api-client/` reflects `getExchangeRateTrend` and the extended `getUsageAnalytics` signature (no hand-editing generated output)
+- [X] T022 [P] Regenerate frontend typed client via `cd frontend && npm run generate:api` so `frontend/src/app/api-client/` reflects `getExchangeRateTrend` and the extended `getUsageAnalytics` signature (no hand-editing generated output)
 - [ ] T023 Run `cd backend && ./mvnw verify` to confirm all new and existing tests pass (Testcontainers-backed)
 - [ ] T024 Execute all `quickstart.md` validation steps against a running instance (default/explicit trend windows, invalid range, unknown currency, ranked usage, recency filter, parameter rejection, usage-counter side-effect check) and confirm expected responses
 
