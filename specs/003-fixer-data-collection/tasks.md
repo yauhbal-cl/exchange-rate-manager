@@ -54,7 +54,7 @@ optionally, US3) build on
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T003 [P] Create `FixerLatestResponse` DTO (`success`, `base`, `date`, `rates` map,
+- [X] T003 [P] Create `FixerLatestResponse` DTO (`success`, `base`, `date`, `rates` map,
       nullable `error`) in `backend/src/main/java/com/exchangerate/manager/client/FixerLatestResponse.java`
       per data-model.md
 - [ ] T004 [P] Create `FixerApiException` (wraps network failure, non-2xx, or a
