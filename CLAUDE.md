@@ -45,6 +45,7 @@ context7 or the project's release-notes/changelog page before bumping any of the
 | AI integration | Spring AI | 2.0.1 | `spring-ai-starter-model-ollama` |
 | Local LLM | Ollama | latest | model: `llama3.2` (`ollama pull llama3.2`) |
 | Frontend framework | Angular | 21 | zoneless by default, Vitest instead of Karma |
+| CSS framework | Tailwind CSS | 4.x | CSS-first config (`@theme` in global stylesheet), PostCSS via `@tailwindcss/postcss` — no `tailwind.config.js`, no separate `autoprefixer`/`postcss-nesting` plugins |
 | Language (frontend) | TypeScript | 5.9+ | required by Angular 21 |
 | Node.js | Node | 22 LTS (`^20.19 \|\| ^22.12 \|\| ^24`) | match Angular 21's supported range |
 | Package manager | npm | bundled with Node 22 | plain workspaces, no Nx |

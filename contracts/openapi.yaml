@@ -1,0 +1,42 @@
+openapi: 3.0.3
+info:
+  title: Exchange Rate Management System API
+  version: 0.1.0
+  description: >
+    Exchange Rate Management System REST API. Provides exchange rate data,
+    historical tracking, and AI-powered trend insights.
+servers:
+  - url: /api/v1
+paths:
+  /status:
+    get:
+      operationId: getStatus
+      summary: Report service and database health
+      tags: [Status]
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceStatus'
+        '503':
+          description: Service is unhealthy (e.g. database unreachable)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceStatus'
+components:
+  schemas:
+    ServiceStatus:
+      type: object
+      required: [status, databaseConnected, timestamp]
+      properties:
+        status:
+          type: string
+          enum: [UP, DOWN]
+        databaseConnected:
+          type: boolean
+        timestamp:
+          type: string
+          format: date-time

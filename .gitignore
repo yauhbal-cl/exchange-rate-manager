@@ -22,3 +22,34 @@
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
 replay_pid*
+
+# Maven
+backend/target/
+backend/.classpath
+backend/.project
+backend/.settings/
+
+# Node.js / npm / Angular
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+frontend/.angular/
+frontend/coverage/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Misc
+*.tmp
+*.pid

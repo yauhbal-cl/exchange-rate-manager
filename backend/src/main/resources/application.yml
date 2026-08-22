@@ -1,0 +1,40 @@
+spring:
+  application:
+    name: Exchange Rate Manager
+  datasource:
+    url: jdbc:postgresql://localhost:5432/${POSTGRES_DB:exchange_rate_db}
+    username: ${POSTGRES_USER:exchange_user}
+    password: ${POSTGRES_PASSWORD:exchange_password}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      initialization-fail-timeout: 0
+      connection-timeout: 5000
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+  health:
+    db:
+      enabled: true
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
