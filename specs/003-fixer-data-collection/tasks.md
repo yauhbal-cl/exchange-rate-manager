@@ -95,7 +95,7 @@ currency exists for the current date (quickstart.md "Validate: scheduled collect
 - [X] T008 [P] [US1] `FixerClientTest` (happy path: request URL/params, response
       deserialization) using `MockRestServiceServer` in
       `backend/src/test/java/com/exchangerate/manager/client/FixerClientTest.java`
-- [ ] T009 [P] [US1] `RateCollectionServiceTest` happy-path case (EUR cross-rate math correct
+- [X] T009 [P] [US1] `RateCollectionServiceTest` happy-path case (EUR cross-rate math correct
       for several currencies, `USD` forced to `1.000000`) in
       `backend/src/test/java/com/exchangerate/manager/service/RateCollectionServiceTest.java`
 - [ ] T010 [P] [US1] Add upsert test cases to the existing
