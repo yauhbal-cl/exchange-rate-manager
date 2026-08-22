@@ -1,7 +1,6 @@
 package com.exchangerate.manager.service;
 
 import com.exchangerate.manager.entity.ExchangeRate;
-import com.exchangerate.manager.exception.InvalidDateRangeException;
 import com.exchangerate.manager.exception.RateDataNotFoundException;
 import com.exchangerate.manager.exception.SameCurrencyException;
 import com.exchangerate.manager.exception.UnknownCurrencyException;
@@ -94,14 +93,9 @@ public class ExchangeRateService {
             throw new UnknownCurrencyException("Unknown currency code: " + to);
         }
 
-        LocalDate today = LocalDate.now();
-        LocalDate effectiveStartDate = startDate != null ? startDate : today.minusDays(29);
-        LocalDate effectiveEndDate = endDate != null ? endDate : today;
-
-        if (effectiveStartDate.isAfter(effectiveEndDate)) {
-            throw new InvalidDateRangeException(
-                    "startDate " + effectiveStartDate + " must not be after endDate " + effectiveEndDate);
-        }
+        DateRangeResolver.DateRange dateRange = DateRangeResolver.resolve(startDate, endDate);
+        LocalDate effectiveStartDate = dateRange.startDate();
+        LocalDate effectiveEndDate = dateRange.endDate();
 
         BigDecimal fromSpread = spreadLookup.spreadFor(from);
         BigDecimal toSpread = spreadLookup.spreadFor(to);
