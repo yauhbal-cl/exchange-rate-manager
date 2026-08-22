@@ -43,3 +43,7 @@ springdoc:
   swagger-ui:
     path: /swagger-ui.html
     enabled: true
+
+fixer:
+  api-key: ${FIXER_API_KEY}
+  base-url: ${FIXER_BASE_URL:https://data.fixer.io/api}

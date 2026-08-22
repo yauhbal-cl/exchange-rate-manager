@@ -39,7 +39,7 @@ untouched by this feature (the regenerated typed client is only needed once the 
 
 **Purpose**: Configuration this feature needs before any client/service code is written
 
-- [ ] T001 Add `fixer.api-key` (from `${FIXER_API_KEY}` env var, no default) and
+- [X] T001 Add `fixer.api-key` (from `${FIXER_API_KEY}` env var, no default) and
       `fixer.base-url` (default `https://data.fixer.io/api`) properties to
       `backend/src/main/resources/application.yml`
 - [ ] T002 [P] Document the `FIXER_API_KEY` environment variable requirement (how to obtain a
