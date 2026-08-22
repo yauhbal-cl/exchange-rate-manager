@@ -9,6 +9,10 @@ import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.annotations.SourceType;
+import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -25,6 +29,7 @@ public class ExchangeRate {
 
     @NotNull
     @Pattern(regexp = "^[A-Z]{3}$")
+    @JdbcTypeCode(SqlTypes.CHAR)
     @Column(name = "currency_code", nullable = false, length = 3)
     private String currencyCode;
 
@@ -37,8 +42,10 @@ public class ExchangeRate {
     @Column(name = "rate_date", nullable = false)
     private LocalDate rateDate;
 
-    // Populated by the DB column default (now()); not set from Java on insert.
-    @Column(name = "created_at", nullable = false, updatable = false)
+    // DB-generated (column DEFAULT now()); excluded from the INSERT and refetched after, so a
+    // null Java-side value never collides with the NOT NULL constraint.
+    @CreationTimestamp(source = SourceType.DB)
+    @Column(name = "created_at", nullable = false, updatable = false, insertable = false)
     private Instant createdAt;
 
     public ExchangeRate() {

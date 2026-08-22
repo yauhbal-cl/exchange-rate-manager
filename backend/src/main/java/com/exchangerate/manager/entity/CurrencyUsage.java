@@ -9,6 +9,10 @@ import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.PositiveOrZero;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.annotations.SourceType;
+import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
 
@@ -23,6 +27,7 @@ public class CurrencyUsage {
 
     @NotNull
     @Pattern(regexp = "^[A-Z]{3}$")
+    @JdbcTypeCode(SqlTypes.CHAR)
     @Column(name = "currency_code", nullable = false, unique = true, length = 3)
     private String currencyCode;
 
@@ -31,8 +36,10 @@ public class CurrencyUsage {
     @Column(name = "query_count", nullable = false)
     private Long queryCount;
 
-    @NotNull
-    @Column(name = "last_queried_at", nullable = false)
+    // DB-generated on insert (column DEFAULT now()); the atomic increment-and-touch update used
+    // by the rate-API feature is out of scope here, so this feature only needs the insert default.
+    @CreationTimestamp(source = SourceType.DB)
+    @Column(name = "last_queried_at", nullable = false, insertable = false)
     private Instant lastQueriedAt;
 
     public CurrencyUsage() {
