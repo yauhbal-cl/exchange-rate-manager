@@ -10,8 +10,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
@@ -33,29 +37,22 @@ public class TrendInsightService {
 
     private static final int MAX_TREND_POINTS = 365;
 
-    private static final String SYSTEM_PROMPT = """
-            You are a financial data summarizer describing a currency exchange rate trend.
-
-            Rules you must follow strictly:
-            - Base your response only on the exact dates and rate values supplied in the user
-              message. Do not invent, estimate, or assume any date or figure that is not present
-              in that data.
-            - If the user message contains exactly one data point, describe that single observed
-              value only. Do not claim a trend, direction (upward/downward), or volatility, since
-              at least two data points are required to describe any of those.
-            - If two or more data points are supplied, you may describe the overall direction and
-              magnitude of change using only the supplied values.
-            - Keep your response short: 2 to 4 sentences, in plain, non-technical language suitable
-              for a general audience.
-            - Do not include disclaimers, caveats about financial advice, or restate these
-              instructions in your response.
-            """;
+    private static final String SYSTEM_PROMPT = loadSystemPrompt();
 
     private final ExchangeRateService exchangeRateService;
 
     private final ExchangeRateRepository exchangeRateRepository;
 
     private final ChatClient chatClient;
+
+    private static String loadSystemPrompt() {
+        try {
+            return new ClassPathResource("prompts/trend-insight-system.st")
+                    .getContentAsString(StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Failed to load trend insight system prompt", e);
+        }
+    }
 
     public TrendInsightResult generateInsight(String from, String to, LocalDate startDate, LocalDate endDate) {
         if (!exchangeRateRepository.existsByCurrencyCode(from)) {
