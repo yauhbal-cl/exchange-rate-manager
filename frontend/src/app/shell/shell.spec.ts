@@ -13,7 +13,7 @@ describe('Shell', () => {
         provideRouter([
           { path: 'rate-lookup', component: StubView },
           { path: 'usage-analytics', component: StubView },
-          { path: 'ai-insight', component: StubView },
+          { path: 'historical-rates', component: StubView },
         ]),
       ],
     });
@@ -34,5 +34,16 @@ describe('Shell', () => {
 
     expect(active).toHaveLength(1);
     expect(active[0].getAttribute('href')).toBe('/usage-analytics');
+  });
+
+  it('omits the superseded standalone AI insight navigation entry', () => {
+    const fixture = TestBed.createComponent(Shell);
+    fixture.detectChanges();
+
+    const hrefs = Array.from<HTMLAnchorElement>(fixture.nativeElement.querySelectorAll('a')).map(
+      (anchor) => anchor.getAttribute('href'),
+    );
+
+    expect(hrefs).toEqual(['/rate-lookup', '/usage-analytics', '/historical-rates']);
   });
 });

@@ -12,10 +12,6 @@ export const routes: Routes = [
       import('./features/usage-analytics/usage-analytics').then((m) => m.UsageAnalytics),
   },
   {
-    path: 'ai-insight',
-    loadComponent: () => import('./features/ai-insight/ai-insight').then((m) => m.AiInsight),
-  },
-  {
     path: 'historical-rates',
     loadComponent: () =>
       import('./features/historical-rates/historical-rates').then((m) => m.HistoricalRates),

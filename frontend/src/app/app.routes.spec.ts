@@ -9,6 +9,10 @@ describe('app.routes', () => {
     expect(emptyRoute?.redirectTo).toBe('rate-lookup');
   });
 
+  it('does not expose the superseded standalone AI insight route', () => {
+    expect(routes.some((route) => route.path === 'ai-insight')).toBe(false);
+  });
+
   it('resolves the wildcard path to the not-found view', async () => {
     const wildcardRoute = routes.find((route) => route.path === '**');
 
