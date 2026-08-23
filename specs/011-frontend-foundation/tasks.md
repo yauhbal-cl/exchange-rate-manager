@@ -212,7 +212,7 @@ hand-written `HttpClient` calls exist anywhere in application code outside `api-
       and confirm the shell/nav stay visible and responsive throughout while each view's own data
       section shows a clear error/unavailable message — validates FR-014/SC-005.
 
-- [ ] T019 [P] Manually validate SC-006: using keyboard only (Tab/Shift+Tab/Enter), reach and
+- [X] T019 [P] Manually validate SC-006: using keyboard only (Tab/Shift+Tab/Enter), reach and
       activate all three nav entries without a mouse; using a screen reader (or browser
       accessibility inspector), confirm the currently active entry exposes `aria-current="page"`.
 
