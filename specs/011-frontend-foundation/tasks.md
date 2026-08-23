@@ -76,7 +76,7 @@ still visible.
       `frontend/src/app/not-found/not-found.ts` (class `NotFound`, inline template, minimal
       Tailwind-utility-styled "page not found" message) — wildcard route target (FR-005)
 
-- [ ] T004 [P] [US1] Create rate-lookup standalone component in
+- [X] T004 [P] [US1] Create rate-lookup standalone component in
       `frontend/src/app/features/rate-lookup/rate-lookup.ts` (class `RateLookup`, inline
       template). Inject `ExchangeRateLookupService`, use `rxResource` (from
       `@angular/core/rxjs-interop`) with a fixed default pair (`from: 'USD'`, `to: 'EUR'`) calling
