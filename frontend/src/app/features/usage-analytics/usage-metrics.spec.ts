@@ -1,4 +1,4 @@
-import { BREAKDOWN_ROW_LIMIT, computeUsageSummary } from './usage-metrics';
+import { BREAKDOWN_ROW_LIMIT, buildBreakdownView, computeUsageSummary } from './usage-metrics';
 import type { CurrencyUsageEntry } from '../../api-client';
 
 function entry(currencyCode: string, queryCount: number): CurrencyUsageEntry {
@@ -81,5 +81,250 @@ describe('computeUsageSummary', () => {
     computeUsageSummary(entries);
 
     expect(entries).toEqual(snapshot);
+  });
+});
+
+describe('buildBreakdownView', () => {
+  it('returns no rows and zero counts for an empty entry array (data-model.md §2.2, FR-013)', () => {
+    expect(buildBreakdownView([])).toEqual({
+      rows: [],
+      displayedCount: 0,
+      queriedTotal: 0,
+      neverQueriedCount: 0,
+    });
+  });
+
+  it('excludes queryCount === 0 entries from rows entirely (FR-006, US2 scenario 4)', () => {
+    const entries = [entry('USD', 12), entry('GBP', 0), entry('EUR', 5), entry('JPY', 0)];
+
+    const view = buildBreakdownView(entries);
+
+    expect(view.rows.map((row) => row.currencyCode)).toEqual(['USD', 'EUR']);
+  });
+
+  it('renders no rows at all when no currency has ever been queried, while the footnote still counts them (FR-006, FR-009a, US2 scenario 6)', () => {
+    const entries = [entry('USD', 0), entry('EUR', 0), entry('GBP', 0)];
+
+    expect(buildBreakdownView(entries)).toEqual({
+      rows: [],
+      displayedCount: 0,
+      queriedTotal: 0,
+      neverQueriedCount: 3,
+    });
+  });
+
+  it('orders rows by queryCount descending (FR-006, US2 scenario 1)', () => {
+    const entries = [entry('EUR', 5), entry('USD', 12), entry('CHF', 1), entry('GBP', 9)];
+
+    const view = buildBreakdownView(entries);
+
+    expect(view.rows.map((row) => row.currencyCode)).toEqual(['USD', 'GBP', 'EUR', 'CHF']);
+  });
+
+  it('breaks queryCount ties on alphabetically ascending currencyCode (FR-006, data-model.md §2.2)', () => {
+    const entries = [entry('USD', 7), entry('CHF', 7), entry('EUR', 7), entry('AUD', 3)];
+
+    const view = buildBreakdownView(entries);
+
+    expect(view.rows.map((row) => row.currencyCode)).toEqual(['CHF', 'EUR', 'USD', 'AUD']);
+  });
+
+  it('caps rows at BREAKDOWN_ROW_LIMIT, keeping the highest-ranked entries (FR-009, US2 scenario 3)', () => {
+    const entries = [
+      entry('AUD', 12),
+      entry('BGN', 11),
+      entry('CAD', 10),
+      entry('CHF', 9),
+      entry('CNY', 8),
+      entry('CZK', 7),
+      entry('DKK', 6),
+      entry('EUR', 5),
+      entry('GBP', 4),
+      entry('HKD', 3),
+      entry('HUF', 2),
+      entry('IDR', 1),
+    ];
+    expect(entries.length).toBeGreaterThan(BREAKDOWN_ROW_LIMIT);
+
+    const view = buildBreakdownView(entries);
+
+    expect(view.rows).toHaveLength(BREAKDOWN_ROW_LIMIT);
+    expect(view.rows.map((row) => row.currencyCode)).toEqual([
+      'AUD',
+      'BGN',
+      'CAD',
+      'CHF',
+      'CNY',
+      'CZK',
+      'DKK',
+      'EUR',
+      'GBP',
+      'HKD',
+    ]);
+  });
+
+  it('gives the top row a proportionPercent of 100 and scales the rest against it (FR-008, US2 scenario 2)', () => {
+    const entries = [entry('EUR', 25), entry('USD', 100), entry('GBP', 50)];
+
+    const view = buildBreakdownView(entries);
+
+    expect(view.rows).toEqual([
+      { currencyCode: 'USD', queryCount: 100, proportionPercent: 100 },
+      { currencyCode: 'GBP', queryCount: 50, proportionPercent: 50 },
+      { currencyCode: 'EUR', queryCount: 25, proportionPercent: 25 },
+    ]);
+  });
+
+  it('measures proportionPercent against the highest displayed count after the cap is applied (FR-008, FR-009)', () => {
+    // 11 queried currencies: 'KRW' (count 1) ranks 11th and is dropped by the cap, so it can
+    // neither appear as a row nor shift the proportions of the rows that survive.
+    const entries = [
+      entry('AUD', 100),
+      entry('BGN', 90),
+      entry('CAD', 80),
+      entry('CHF', 70),
+      entry('CNY', 60),
+      entry('CZK', 50),
+      entry('DKK', 40),
+      entry('EUR', 30),
+      entry('GBP', 20),
+      entry('HKD', 10),
+      entry('KRW', 1),
+    ];
+
+    const view = buildBreakdownView(entries);
+
+    expect(view.rows[0]).toEqual({ currencyCode: 'AUD', queryCount: 100, proportionPercent: 100 });
+    expect(view.rows.at(-1)).toEqual({
+      currencyCode: 'HKD',
+      queryCount: 10,
+      proportionPercent: 10,
+    });
+  });
+
+  it('gives every row a proportionPercent of 100 when all displayed counts are tied (FR-008, spec edge case "all counts equal")', () => {
+    const entries = [entry('USD', 4), entry('EUR', 4), entry('GBP', 4)];
+
+    const view = buildBreakdownView(entries);
+
+    expect(view.rows.map((row) => row.proportionPercent)).toEqual([100, 100, 100]);
+  });
+
+  it('gives a lone row a proportionPercent of 100 (FR-008, data-model.md §2.2)', () => {
+    const view = buildBreakdownView([entry('USD', 3), entry('EUR', 0)]);
+
+    expect(view.rows).toEqual([{ currencyCode: 'USD', queryCount: 3, proportionPercent: 100 }]);
+  });
+
+  it('rounds proportionPercent to 2 decimal places (FR-008, data-model.md §2.2)', () => {
+    const entries = [entry('USD', 7), entry('EUR', 3), entry('GBP', 1)];
+
+    const view = buildBreakdownView(entries);
+
+    expect(view.rows.map((row) => row.proportionPercent)).toEqual([100, 42.86, 14.29]);
+  });
+
+  it('reports queriedTotal over all queried currencies while displayedCount tracks the capped rows (FR-009, US2 scenario 3)', () => {
+    const entries = [
+      entry('AUD', 12),
+      entry('BGN', 11),
+      entry('CAD', 10),
+      entry('CHF', 9),
+      entry('CNY', 8),
+      entry('CZK', 7),
+      entry('DKK', 6),
+      entry('EUR', 5),
+      entry('GBP', 4),
+      entry('HKD', 3),
+      entry('HUF', 2),
+      entry('IDR', 1),
+      entry('ILS', 0),
+    ];
+
+    const view = buildBreakdownView(entries);
+
+    expect(view.queriedTotal).toBe(12);
+    expect(view.displayedCount).toBe(BREAKDOWN_ROW_LIMIT);
+    expect(view.displayedCount).toBe(view.rows.length);
+    expect(view.queriedTotal).toBeGreaterThan(view.displayedCount);
+  });
+
+  it('sets displayedCount equal to queriedTotal when every queried currency fits under the cap (FR-009)', () => {
+    const entries = [entry('USD', 12), entry('EUR', 5), entry('GBP', 0)];
+
+    const view = buildBreakdownView(entries);
+
+    expect(view.displayedCount).toBe(2);
+    expect(view.queriedTotal).toBe(2);
+  });
+
+  it('counts neverQueriedCount across all entries, including those the cap drops (FR-009a, US2 scenario 4)', () => {
+    const entries = [
+      entry('AUD', 12),
+      entry('BGN', 11),
+      entry('CAD', 10),
+      entry('CHF', 9),
+      entry('CNY', 8),
+      entry('CZK', 7),
+      entry('DKK', 6),
+      entry('EUR', 5),
+      entry('GBP', 4),
+      entry('HKD', 3),
+      entry('HUF', 2),
+      entry('IDR', 0),
+      entry('ILS', 0),
+      entry('INR', 0),
+    ];
+
+    const view = buildBreakdownView(entries);
+
+    expect(view.rows).toHaveLength(BREAKDOWN_ROW_LIMIT);
+    expect(view.neverQueriedCount).toBe(3);
+  });
+
+  it('reports neverQueriedCount === 0 when every known currency has been queried at least once (FR-009a, US2 scenario 5)', () => {
+    const entries = [entry('USD', 12), entry('EUR', 5), entry('GBP', 1)];
+
+    expect(buildBreakdownView(entries).neverQueriedCount).toBe(0);
+  });
+
+  it('gives every row a queryCount of at least 1 (INV-3, FR-009)', () => {
+    const entries = [
+      entry('USD', 12),
+      entry('EUR', 0),
+      entry('GBP', 1),
+      entry('JPY', 0),
+      entry('CHF', 4),
+    ];
+
+    const view = buildBreakdownView(entries);
+
+    expect(view.rows.length).toBeGreaterThan(0);
+    for (const row of view.rows) {
+      expect(row.queryCount).toBeGreaterThanOrEqual(1);
+    }
+  });
+
+  it('keeps neverQueriedCount + queriedTotal equal to the entry count, matching the KPI queriedCurrencyCount (INV-4, data-model.md §2.2)', () => {
+    const entries = [
+      entry('AUD', 12),
+      entry('BGN', 11),
+      entry('CAD', 10),
+      entry('CHF', 9),
+      entry('CNY', 8),
+      entry('CZK', 7),
+      entry('DKK', 6),
+      entry('EUR', 5),
+      entry('GBP', 4),
+      entry('HKD', 3),
+      entry('HUF', 2),
+      entry('IDR', 0),
+      entry('ILS', 0),
+    ];
+
+    const view = buildBreakdownView(entries);
+
+    expect(view.neverQueriedCount + view.queriedTotal).toBe(entries.length);
+    expect(view.queriedTotal).toBe(computeUsageSummary(entries).queriedCurrencyCount);
   });
 });

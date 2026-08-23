@@ -101,7 +101,7 @@ and the footnote's never-queried figure matches the payload.
 
 ### Tests for User Story 2 ⚠️
 
-- [ ] T016 [P] [US2] Add `buildBreakdownView` specs to `frontend/src/app/features/usage-analytics/usage-metrics.spec.ts`: zero-count exclusion, `queryCount` DESC then `currencyCode` ASC ordering, the 10-row cap, `proportionPercent` against the highest **displayed** count (top row = 100, all-tied = all 100, single row = 100, 2-dp rounding), `queriedTotal` vs `displayedCount`, `neverQueriedCount` counted over all entries, and INV-3 (`queryCount ≥ 1` on every row) / INV-4 (`neverQueriedCount + queriedCurrencyCount === entries.length`) (data-model.md §2.2, US2 scenarios 1–6).
+- [X] T016 [P] [US2] Add `buildBreakdownView` specs to `frontend/src/app/features/usage-analytics/usage-metrics.spec.ts`: zero-count exclusion, `queryCount` DESC then `currencyCode` ASC ordering, the 10-row cap, `proportionPercent` against the highest **displayed** count (top row = 100, all-tied = all 100, single row = 100, 2-dp rounding), `queriedTotal` vs `displayedCount`, `neverQueriedCount` counted over all entries, and INV-3 (`queryCount ≥ 1` on every row) / INV-4 (`neverQueriedCount + queriedCurrencyCount === entries.length`) (data-model.md §2.2, US2 scenarios 1–6).
 
 ### Implementation for User Story 2
 
