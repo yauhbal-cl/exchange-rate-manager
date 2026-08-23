@@ -56,3 +56,19 @@ export const BREAKDOWN_ROW_LIMIT = 10;
 
 /** Display-only cap on recent-activity entries (data-model.md §2.3, FR-011). */
 export const RECENT_ENTRY_LIMIT = 8;
+
+/**
+ * The single shared count formatter (data-model.md §4, research.md §5). Constructed once at
+ * module level rather than per call so repeated row rendering reuses one instance. No options:
+ * the viewer's default locale, integer path — thousands separators only.
+ */
+const COUNT_FORMATTER = new Intl.NumberFormat();
+
+/**
+ * Formats a query count for display (FR-019, data-model.md §4): locale thousands separators,
+ * never rounded, abbreviated, or truncated. View models keep counts raw; formatting is applied
+ * at render time only.
+ */
+export function formatCount(value: number): string {
+  return COUNT_FORMATTER.format(value);
+}
