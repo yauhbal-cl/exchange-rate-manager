@@ -85,7 +85,7 @@ still visible.
       and on success the `ExchangeRateResponse` fields (`fromCurrency`, `toCurrency`, `rate`,
       `rateDate`) — this view's own error/unavailable state per FR-014, independent of the shell
 
-- [ ] T005 [P] [US1] Create usage-analytics standalone component in
+- [X] T005 [P] [US1] Create usage-analytics standalone component in
       `frontend/src/app/features/usage-analytics/usage-analytics.ts` (class `UsageAnalytics`,
       inline template). Inject `ExchangeRateUsageAnalyticsService`, use `rxResource` calling
       `getUsageAnalytics()` with no arguments. Render loading/error/data states off the resource's
