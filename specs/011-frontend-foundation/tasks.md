@@ -152,7 +152,7 @@ The mechanism (`environment.ts`/`environment.production.ts` + `BASE_PATH` DI tok
 the app, and confirm outgoing API calls target the new address while `git diff --stat` shows only
 that one file changed.
 
-- [ ] T012 [US2] Execute quickstart.md Scenario 2 end-to-end: stop the app; edit
+- [X] T012 [US2] Execute quickstart.md Scenario 2 end-to-end: stop the app; edit
       `frontend/src/environments/environment.ts`'s `apiBaseUrl` to a different backend address
       (e.g. a placeholder host); run `git diff --stat` and confirm only `environment.ts` appears;
       run `cd frontend && npm start` and confirm (via browser dev tools Network tab) the
