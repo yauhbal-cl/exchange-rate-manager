@@ -1,4 +1,4 @@
-import { Component, computed, input, output } from '@angular/core';
+import { Component, computed, input } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import type { TrendInsightResponse } from '../../api-client';
 
@@ -39,17 +39,14 @@ export function categorizeAiInsightError(error: unknown): AiInsightError | null 
         <span class="ai-badge">AI</span>
       </div>
 
-      <button
-        type="button"
-        class="generate-button"
-        [disabled]="!canGenerate() || isLoading()"
-        (click)="generate.emit()"
-      >
-        Generate insight
-      </button>
-
       @if (isLoading()) {
-        <div class="message loading">Generating insight…</div>
+        <div class="message loading" role="status" aria-live="polite">
+          <span class="spinner" aria-hidden="true"></span>
+          <span>
+            <strong>Generating insight</strong>
+            <small>Reviewing the selected historical series…</small>
+          </span>
+        </div>
       } @else if (error(); as err) {
         <div class="message error" [attr.data-category]="err.category">{{ err.message }}</div>
       } @else if (value(); as insight) {
@@ -59,7 +56,7 @@ export function categorizeAiInsightError(error: unknown): AiInsightError | null 
         </div>
       } @else {
         <div class="message empty">
-          Generate an AI interpretation of the visible historical series.
+          Select a valid currency pair and date range to generate an AI interpretation.
         </div>
       }
       <p class="note">
@@ -73,8 +70,6 @@ export class AiInsightsPanel {
   readonly value = input<TrendInsightResponse | undefined>(undefined);
   readonly isLoading = input<boolean>(false);
   readonly rawError = input<unknown>(undefined, { alias: 'error' });
-  readonly canGenerate = input<boolean>(false);
-  readonly generate = output<void>();
 
   protected readonly error = computed<AiInsightError | null>(() =>
     categorizeAiInsightError(this.rawError()),

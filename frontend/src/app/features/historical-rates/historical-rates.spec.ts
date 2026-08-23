@@ -10,12 +10,6 @@ import {
 } from '../../api-client';
 import { PERIOD_PRESETS, resolveRange, subtractMonths, todayIso } from './period-presets';
 
-function generateInsightButton(fixture: { nativeElement: HTMLElement }): HTMLButtonElement {
-  return Array.from(fixture.nativeElement.querySelectorAll('button')).find((button) =>
-    button.textContent?.includes('Generate insight'),
-  ) as HTMLButtonElement;
-}
-
 function selectCurrency(
   fixture: { nativeElement: HTMLElement; detectChanges(): void },
   name: string,
@@ -71,7 +65,7 @@ describe('HistoricalRates', () => {
 
   beforeEach(() => {
     getExchangeRateTrend = vi.fn();
-    getExchangeRateTrendInsight = vi.fn();
+    getExchangeRateTrendInsight = vi.fn().mockReturnValue(of(insightResponse()));
     TestBed.configureTestingModule({
       providers: [
         { provide: ExchangeRateAnalyticsService, useValue: { getExchangeRateTrend } },
@@ -89,12 +83,7 @@ describe('HistoricalRates', () => {
 
     const range = resolveRange({ kind: 'preset', id: '1M' }, todayIso());
     expect(getExchangeRateTrend).toHaveBeenCalledTimes(1);
-    expect(getExchangeRateTrend).toHaveBeenCalledWith(
-      'USD',
-      'EUR',
-      range.startDate,
-      range.endDate,
-    );
+    expect(getExchangeRateTrend).toHaveBeenCalledWith('USD', 'EUR', range.startDate, range.endDate);
 
     const html: string = fixture.nativeElement.innerHTML;
     const metricsIndex = html.indexOf('Latest rate');
@@ -118,16 +107,14 @@ describe('HistoricalRates', () => {
   });
 
   it('fires exactly one new request and updates metrics/chart together when the pair changes (Acceptance Scenario 3, SC-001)', async () => {
-    getExchangeRateTrend
-      .mockReturnValueOnce(of(trendResponse()))
-      .mockReturnValueOnce(
-        of(
-          trendResponse({
-            fromCurrency: 'GBP',
-            points: [{ rateDate: '2026-08-23', rate: '1.2000000000' }],
-          }),
-        ),
-      );
+    getExchangeRateTrend.mockReturnValueOnce(of(trendResponse())).mockReturnValueOnce(
+      of(
+        trendResponse({
+          fromCurrency: 'GBP',
+          points: [{ rateDate: '2026-08-23', rate: '1.2000000000' }],
+        }),
+      ),
+    );
 
     const fixture = TestBed.createComponent(HistoricalRates);
     fixture.detectChanges();
@@ -211,9 +198,8 @@ describe('HistoricalRates', () => {
     const startInput: HTMLInputElement = fixture.nativeElement.querySelector(
       'input[name="range-start"]',
     );
-    const endInput: HTMLInputElement = fixture.nativeElement.querySelector(
-      'input[name="range-end"]',
-    );
+    const endInput: HTMLInputElement =
+      fixture.nativeElement.querySelector('input[name="range-end"]');
     startInput.value = '2026-06-01';
     startInput.dispatchEvent(new Event('change'));
     fixture.detectChanges();
@@ -221,12 +207,7 @@ describe('HistoricalRates', () => {
     endInput.dispatchEvent(new Event('change'));
     await flush(fixture);
 
-    expect(getExchangeRateTrend).toHaveBeenLastCalledWith(
-      'USD',
-      'EUR',
-      '2026-06-01',
-      '2026-07-01',
-    );
+    expect(getExchangeRateTrend).toHaveBeenLastCalledWith('USD', 'EUR', '2026-06-01', '2026-07-01');
   });
 
   it('shows a validation message and fires no request for a custom range spanning more than 6 months (FR-006, SC-004)', async () => {
@@ -240,9 +221,8 @@ describe('HistoricalRates', () => {
     const startInput: HTMLInputElement = fixture.nativeElement.querySelector(
       'input[name="range-start"]',
     );
-    const endInput: HTMLInputElement = fixture.nativeElement.querySelector(
-      'input[name="range-end"]',
-    );
+    const endInput: HTMLInputElement =
+      fixture.nativeElement.querySelector('input[name="range-end"]');
     const endDate = '2026-08-01';
     const tooFarStart = subtractMonths(subtractMonths(endDate, 6), 1);
     endInput.value = endDate;
@@ -269,9 +249,8 @@ describe('HistoricalRates', () => {
     const startInput: HTMLInputElement = fixture.nativeElement.querySelector(
       'input[name="range-start"]',
     );
-    const endInput: HTMLInputElement = fixture.nativeElement.querySelector(
-      'input[name="range-end"]',
-    );
+    const endInput: HTMLInputElement =
+      fixture.nativeElement.querySelector('input[name="range-end"]');
     endInput.value = '2026-07-01';
     endInput.dispatchEvent(new Event('change'));
     fixture.detectChanges();
@@ -303,12 +282,7 @@ describe('HistoricalRates', () => {
 
     const range = resolveRange({ kind: 'preset', id: '1M' }, todayIso());
     expect(getExchangeRateTrend).toHaveBeenCalledTimes(1);
-    expect(getExchangeRateTrend).toHaveBeenCalledWith(
-      'EUR',
-      'USD',
-      range.startDate,
-      range.endDate,
-    );
+    expect(getExchangeRateTrend).toHaveBeenCalledWith('EUR', 'USD', range.startDate, range.endDate);
   });
 
   it('renders table rows most-recent-first matching the chart points exactly, with daily % change (FR-009, SC-003)', async () => {
@@ -348,29 +322,14 @@ describe('HistoricalRates', () => {
     expect(fixture.nativeElement.querySelector('[data-testid="table-no-data"]')).not.toBeNull();
   });
 
-  it('shows no narrative until Generate insight is clicked (FR-011)', async () => {
+  it('loads and shows an insight automatically for the initial pair and date range', async () => {
     getExchangeRateTrend.mockReturnValue(of(trendResponse()));
-
-    const fixture = TestBed.createComponent(HistoricalRates);
-    fixture.detectChanges();
-    await flush(fixture);
-
-    expect(getExchangeRateTrendInsight).not.toHaveBeenCalled();
-    expect(fixture.nativeElement.textContent).not.toContain('The rate rose steadily');
-  });
-
-  it('fires exactly one insight request and shows a narrative grounded in the displayed range when clicked with data (FR-012, Acceptance Scenario 1)', async () => {
-    getExchangeRateTrend.mockReturnValue(of(trendResponse()));
-    getExchangeRateTrendInsight.mockReturnValue(of(insightResponse()));
 
     const fixture = TestBed.createComponent(HistoricalRates);
     fixture.detectChanges();
     await flush(fixture);
 
     const range = resolveRange({ kind: 'preset', id: '1M' }, todayIso());
-    generateInsightButton(fixture).click();
-    await flush(fixture);
-
     expect(getExchangeRateTrendInsight).toHaveBeenCalledTimes(1);
     expect(getExchangeRateTrendInsight).toHaveBeenCalledWith(
       'USD',
@@ -379,51 +338,69 @@ describe('HistoricalRates', () => {
       range.endDate,
     );
     expect(fixture.nativeElement.textContent).toContain('The rate rose steadily over the period.');
+    expect(fixture.nativeElement.textContent).not.toContain('Generate insight');
   });
 
-  it('disables Generate insight while the trend is loading (FR-013)', async () => {
-    const trend$ = new Subject<ExchangeRateTrendResponse>();
-    getExchangeRateTrend.mockReturnValue(trend$);
+  it('shows an animated, accessible loading state while an insight is being generated', () => {
+    getExchangeRateTrend.mockReturnValue(of(trendResponse()));
+    getExchangeRateTrendInsight.mockReturnValue(new Subject<TrendInsightResponse>());
 
     const fixture = TestBed.createComponent(HistoricalRates);
     fixture.detectChanges();
 
-    expect(generateInsightButton(fixture).disabled).toBe(true);
-
-    trend$.next(trendResponse());
-    trend$.complete();
-    await flush(fixture);
-
-    expect(generateInsightButton(fixture).disabled).toBe(false);
+    const loading: HTMLElement = fixture.nativeElement.querySelector('.message.loading');
+    expect(loading).not.toBeNull();
+    expect(loading.getAttribute('role')).toBe('status');
+    expect(loading.querySelector('.spinner')).not.toBeNull();
+    expect(loading.textContent).toContain('Generating insight');
   });
 
-  it('disables Generate insight when there is no underlying data (FR-013, Acceptance Scenario 3)', async () => {
-    getExchangeRateTrend.mockReturnValue(of(trendResponse({ points: [] })));
+  it('refreshes insight only when the currencies or date range change', async () => {
+    getExchangeRateTrend.mockReturnValue(of(trendResponse()));
 
     const fixture = TestBed.createComponent(HistoricalRates);
     fixture.detectChanges();
     await flush(fixture);
 
-    expect(generateInsightButton(fixture).disabled).toBe(true);
+    expect(getExchangeRateTrendInsight).toHaveBeenCalledTimes(1);
+    fixture.detectChanges();
+    await flush(fixture);
+    expect(getExchangeRateTrendInsight).toHaveBeenCalledTimes(1);
+
+    const preset: HTMLButtonElement = fixture.nativeElement.querySelector(
+      'button[data-preset="3M"]',
+    );
+    preset.click();
+    await flush(fixture);
+    expect(getExchangeRateTrendInsight).toHaveBeenCalledTimes(2);
+
+    selectCurrency(fixture, 'base-currency', 'GBP');
+    await flush(fixture);
+    expect(getExchangeRateTrendInsight).toHaveBeenCalledTimes(3);
+    expect(getExchangeRateTrendInsight).toHaveBeenLastCalledWith(
+      'GBP',
+      'EUR',
+      expect.any(String),
+      expect.any(String),
+    );
   });
 
-  it('shows a "no data" message for a 404 insight error (FR-013, Acceptance Scenario 2, SC-005)', async () => {
+  it('shows a "no data" message for an automatic insight request that returns 404', async () => {
     getExchangeRateTrend.mockReturnValue(of(trendResponse()));
     getExchangeRateTrendInsight.mockReturnValue(
-      throwError(() => new HttpErrorResponse({ status: 404, error: { detail: 'No data for range.' } })),
+      throwError(
+        () => new HttpErrorResponse({ status: 404, error: { detail: 'No data for range.' } }),
+      ),
     );
 
     const fixture = TestBed.createComponent(HistoricalRates);
     fixture.detectChanges();
     await flush(fixture);
 
-    generateInsightButton(fixture).click();
-    await flush(fixture);
-
     expect(fixture.nativeElement.textContent).toContain('No data for range.');
   });
 
-  it('shows an "unavailable" message for a non-404 insight error, e.g. a 503 (FR-013, Acceptance Scenario 2, SC-005)', async () => {
+  it('shows an "unavailable" message for an automatic insight request that returns 503', async () => {
     getExchangeRateTrend.mockReturnValue(of(trendResponse()));
     getExchangeRateTrendInsight.mockReturnValue(
       throwError(() => new HttpErrorResponse({ status: 503 })),
@@ -433,31 +410,33 @@ describe('HistoricalRates', () => {
     fixture.detectChanges();
     await flush(fixture);
 
-    generateInsightButton(fixture).click();
-    await flush(fixture);
-
     expect(fixture.nativeElement.textContent).toContain('interpretation unavailable');
   });
 
-  it('clears a shown narrative when the pair, period, or swap changes (FR-014, Acceptance Scenario 4, SC-006)', async () => {
+  it('clears the previous narrative and shows loading when a filter change starts a refresh', async () => {
     getExchangeRateTrend.mockReturnValue(of(trendResponse()));
-    getExchangeRateTrendInsight.mockReturnValue(of(insightResponse()));
+    const refreshedInsight$ = new Subject<TrendInsightResponse>();
+    getExchangeRateTrendInsight
+      .mockReturnValueOnce(of(insightResponse()))
+      .mockReturnValueOnce(refreshedInsight$);
 
     const fixture = TestBed.createComponent(HistoricalRates);
     fixture.detectChanges();
     await flush(fixture);
 
-    generateInsightButton(fixture).click();
-    await flush(fixture);
     expect(fixture.nativeElement.textContent).toContain('The rate rose steadily over the period.');
 
     const button: HTMLButtonElement = fixture.nativeElement.querySelector(
       'button[data-preset="3M"]',
     );
     button.click();
-    await flush(fixture);
+    await Promise.resolve();
+    fixture.detectChanges();
 
-    expect(fixture.nativeElement.textContent).not.toContain('The rate rose steadily over the period.');
+    expect(fixture.nativeElement.textContent).not.toContain(
+      'The rate rose steadily over the period.',
+    );
+    expect(fixture.nativeElement.querySelector('.spinner')).not.toBeNull();
   });
 
   it('renders the chart, then the AI Insights panel, then the table, full width in every insight state (FR-002, FR-003, SC-003)', async () => {
@@ -479,21 +458,16 @@ describe('HistoricalRates', () => {
 
     assertStackOrder();
 
-    getExchangeRateTrendInsight.mockReturnValue(of(insightResponse()));
-    generateInsightButton(fixture).click();
-    await flush(fixture);
     expect(fixture.nativeElement.textContent).toContain('The rate rose steadily over the period.');
     assertStackOrder();
 
+    getExchangeRateTrendInsight.mockReturnValue(
+      throwError(() => new HttpErrorResponse({ status: 503 })),
+    );
     const button: HTMLButtonElement = fixture.nativeElement.querySelector(
       'button[data-preset="3M"]',
     );
     button.click();
-    await flush(fixture);
-    getExchangeRateTrendInsight.mockReturnValue(
-      throwError(() => new HttpErrorResponse({ status: 503 })),
-    );
-    generateInsightButton(fixture).click();
     await flush(fixture);
     expect(fixture.nativeElement.textContent).toContain('interpretation unavailable');
     assertStackOrder();

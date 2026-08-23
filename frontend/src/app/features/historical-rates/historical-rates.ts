@@ -1,4 +1,4 @@
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { ExchangeRateAIInsightService, ExchangeRateAnalyticsService } from '../../api-client';
 import { CurrencyCombobox } from '../rate-lookup/currency-combobox';
@@ -172,8 +172,6 @@ interface TrendRequest {
           [value]="aiInsightValue()"
           [isLoading]="aiInsight.isLoading()"
           [error]="aiInsight.error()"
-          [canGenerate]="canGenerateInsight()"
-          (generate)="generateInsight()"
         />
       </section>
 
@@ -275,10 +273,8 @@ export class HistoricalRates {
   protected readonly formattedHighDate = computed(() => this.formatDate(this.periodHigh()?.date));
   protected readonly formattedLowDate = computed(() => this.formatDate(this.periodLow()?.date));
 
-  protected readonly aiRequest = signal<TrendRequest | undefined>(undefined);
-
   protected readonly aiInsight = rxResource({
-    params: () => this.aiRequest(),
+    params: () => this.pairAndRange(),
     stream: ({ params }) =>
       this.exchangeRateAIInsightService.getExchangeRateTrendInsight(
         params.from,
@@ -288,17 +284,9 @@ export class HistoricalRates {
       ),
   });
 
-  protected readonly canGenerateInsight = computed(
-    () => this.points().length > 0 && !this.trend.isLoading(),
-  );
-
   protected readonly aiInsightValue = computed(() =>
     this.aiInsight.hasValue() ? this.aiInsight.value() : undefined,
   );
-
-  protected generateInsight(): void {
-    this.aiRequest.set(this.pairAndRange());
-  }
 
   private formatDate(value: string | undefined): string {
     if (!value) return '—';
@@ -308,12 +296,5 @@ export class HistoricalRates {
       year: 'numeric',
       timeZone: 'UTC',
     }).format(new Date(`${value}T00:00:00Z`));
-  }
-
-  constructor() {
-    effect(() => {
-      this.pairAndRange();
-      this.aiRequest.set(undefined);
-    });
   }
 }
