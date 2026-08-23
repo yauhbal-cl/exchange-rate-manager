@@ -183,7 +183,7 @@ correctness the first two stories established.
 - [X] T014 Run `cd backend && ./mvnw verify` — full build, all existing and new tests pass,
       confirming FR-012/FR-013 (unchanged API contracts and historical storage) and SC-006
       (existing regression tests unaffected)
-- [ ] T015 Execute quickstart.md steps 2–4 manually (fail-fast config break/restore, live
+- [X] T015 Execute quickstart.md steps 2–4 manually (fail-fast config break/restore, live
       EUR/PLN vs USD/PLN curl comparison, ingestion-rejection confirmation) to validate end-to-end
       behavior beyond the automated test suite
 
