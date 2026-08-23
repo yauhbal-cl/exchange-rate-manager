@@ -64,3 +64,18 @@ springdoc:
 fixer:
   api-key: ${FIXER_API_KEY}
   base-url: ${FIXER_BASE_URL:https://data.fixer.io/api}
+
+exchange-rates:
+  base-currency: EUR
+  default-spread-percent: 2.75
+  spreads:
+    EUR: 0.00
+    JPY: 3.25
+    HKD: 3.25
+    KRW: 3.25
+    MYR: 4.50
+    INR: 4.50
+    MXN: 4.50
+    RUB: 6.00
+    CNY: 6.00
+    ZAR: 6.00
