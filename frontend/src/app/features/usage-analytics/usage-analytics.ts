@@ -8,7 +8,17 @@ import { ExchangeRateUsageAnalyticsService, type CurrencyUsageEntry } from '../.
   styleUrl: './usage-analytics.css',
   template: `
     <main class="usage-page">
-      <!-- Page header: T012. KPI row: T013. Breakdown / recent-activity panels: T021 / T029. -->
+      <!--
+        FR-001: title + one-line subtitle, first in DOM order so they sit above every data section
+        (ui-contract §Layout order 1). Deliberately outside the data area's state chain — the
+        header is identical in all four states — and carries no controls (FR-026).
+      -->
+      <header class="page-header">
+        <h1>Usage analytics</h1>
+        <p>An overview of query activity across every currency the system tracks.</p>
+      </header>
+
+      <!-- KPI row: T013. Breakdown / recent-activity panels: T021 / T029. -->
       <div class="data-area">
         @if (isLoading()) {
           <!--
