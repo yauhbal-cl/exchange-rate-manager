@@ -76,6 +76,18 @@ export function formatCount(value: number): string {
 }
 
 /**
+ * The single FR-006 ordering, shared by every derivation that ranks currencies: `queryCount`
+ * DESC, then `currencyCode` ASC as the tie-break (data-model.md §2.1, §2.2).
+ *
+ * Codepoint comparison, not `localeCompare`: currency codes are ASCII A–Z, and the ordering must
+ * not shift with the viewer's locale (SC-006). Codes are unique across the response
+ * (data-model.md §1), so the two-level comparison is already total.
+ */
+function compareByUsageRank(a: CurrencyUsageEntry, b: CurrencyUsageEntry): number {
+  return b.queryCount - a.queryCount || (a.currencyCode < b.currencyCode ? -1 : 1);
+}
+
+/**
  * Derives the three KPI card values (data-model.md §2.1, FR-003 … FR-005a).
  *
  * `entries` is the complete, unlimited response set: the sum (FR-003) and the queried-currency
@@ -99,15 +111,50 @@ export function computeUsageSummary(entries: readonly CurrencyUsageEntry[]): Usa
     }
   }
 
-  // Codepoint comparison, not `localeCompare`: currency codes are ASCII A–Z, and the ordering
-  // must not shift with the viewer's locale (SC-006).
-  const [top] = queried.sort(
-    (a, b) => b.queryCount - a.queryCount || (a.currencyCode < b.currencyCode ? -1 : 1),
-  );
+  const [top] = queried.sort(compareByUsageRank);
 
   return {
     totalQueries,
     queriedCurrencyCount: queried.length,
     mostQueried: top ? { currencyCode: top.currencyCode, queryCount: top.queryCount } : null,
+  };
+}
+
+/**
+ * Derives the breakdown panel: the ranked, capped rows plus the counts its footnote needs
+ * (data-model.md §2.2, FR-006 … FR-009a).
+ *
+ * Order of operations is exactly the one §2.2 prescribes:
+ * 1. **Filter** — entries with `queryCount === 0` are excluded from the rows entirely, so every
+ *    row has `queryCount >= 1` and no bar can be zero-length (FR-006, INV-3, US2 scenario 4).
+ * 2. **Order** — `queryCount` DESC, `currencyCode` ASC on ties, via the shared FR-006 comparator,
+ *    so the ranking matches `mostQueried` and is stable across reloads (FR-006, SC-006).
+ * 3. **Cap** — the first `BREAKDOWN_ROW_LIMIT` rows (FR-009). Display-only: the dropped entries
+ *    still count towards `queriedTotal`, which drives the "top 10 of N" indication.
+ *
+ * `proportionPercent` is measured against the highest count **among displayed rows**, resolved
+ * after the cap, so the top row is always exactly 100 and a dropped entry can never shift the
+ * surviving bars (FR-008). Rounded to 2 dp; all-tied counts give every bar 100.
+ *
+ * `neverQueriedCount` is counted across every entry, not just the displayed rows, so the footnote
+ * stays correct when the cap drops entries and when no currency has been queried at all
+ * (FR-009a, INV-4). `neverQueriedCount + queriedTotal` therefore always equals `entries.length`.
+ *
+ * Pure: the input is treated as immutable and sorted on a copy (data-model.md §1, INV-6).
+ */
+export function buildBreakdownView(entries: readonly CurrencyUsageEntry[]): BreakdownView {
+  const queried = entries.filter((entry) => entry.queryCount > 0).sort(compareByUsageRank);
+  const displayed = queried.slice(0, BREAKDOWN_ROW_LIMIT);
+  const highestDisplayedCount = displayed[0]?.queryCount ?? 0;
+
+  return {
+    rows: displayed.map((entry) => ({
+      currencyCode: entry.currencyCode,
+      queryCount: entry.queryCount,
+      proportionPercent: Math.round((entry.queryCount / highestDisplayedCount) * 10000) / 100,
+    })),
+    displayedCount: displayed.length,
+    queriedTotal: queried.length,
+    neverQueriedCount: entries.length - queried.length,
   };
 }
