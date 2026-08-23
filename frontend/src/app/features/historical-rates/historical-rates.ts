@@ -1,6 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
-import { ExchangeRateAnalyticsService } from '../../api-client';
+import { ExchangeRateAIInsightService, ExchangeRateAnalyticsService } from '../../api-client';
 import { CurrencyCombobox } from '../rate-lookup/currency-combobox';
 import type { Currency } from '../rate-lookup/currencies';
 import { HistoricalRatesTable } from './historical-rates-table';
@@ -165,6 +165,7 @@ interface TrendRequest {
 })
 export class HistoricalRates {
   private readonly exchangeRateAnalyticsService = inject(ExchangeRateAnalyticsService);
+  private readonly exchangeRateAIInsightService = inject(ExchangeRateAIInsightService);
 
   protected readonly today = todayIso();
 
@@ -236,4 +237,17 @@ export class HistoricalRates {
   protected readonly periodHigh = computed(() => computePeriodHigh(this.points()));
   protected readonly periodLow = computed(() => computePeriodLow(this.points()));
   protected readonly dailyChanges = computed(() => computeDailyChanges(this.points()));
+
+  protected readonly aiRequest = signal<TrendRequest | undefined>(undefined);
+
+  protected readonly aiInsight = rxResource({
+    params: () => this.aiRequest(),
+    stream: ({ params }) =>
+      this.exchangeRateAIInsightService.getExchangeRateTrendInsight(
+        params.from,
+        params.to,
+        params.startDate,
+        params.endDate,
+      ),
+  });
 }
