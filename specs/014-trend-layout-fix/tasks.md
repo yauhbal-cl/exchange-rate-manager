@@ -95,7 +95,7 @@ wide viewport sizes, across idle/loading/result/error states (spec.md User Story
 
 ### Tests for User Story 2
 
-- [ ] T004 [P] [US2] In `frontend/src/app/features/historical-rates/historical-rates.spec.ts`, add
+- [X] T004 [P] [US2] In `frontend/src/app/features/historical-rates/historical-rates.spec.ts`, add
   a test (or extend the existing FR-010 order test) asserting via `innerHTML.indexOf(...)` that
   `app-rate-trend-chart` renders before `app-ai-insights-panel`, which renders before the raw data
   table markup, in that order — verify this holds for the idle state, the loaded-insight state
@@ -104,7 +104,7 @@ wide viewport sizes, across idle/loading/result/error states (spec.md User Story
 
 ### Implementation for User Story 2
 
-- [ ] T005 [US2] In `frontend/src/app/features/historical-rates/historical-rates.ts`'s template
+- [X] T005 [US2] In `frontend/src/app/features/historical-rates/historical-rates.ts`'s template
   (depends on T003's edit to the same block), move `<app-ai-insights-panel>` out of the removed
   grid's `lg:col-span-1` cell into its own full-width block (`<div class="mt-6">`) placed
   immediately after the chart's block from T003 and immediately before the existing

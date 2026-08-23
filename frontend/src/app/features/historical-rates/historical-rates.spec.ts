@@ -459,4 +459,43 @@ describe('HistoricalRates', () => {
 
     expect(fixture.nativeElement.textContent).not.toContain('The rate rose steadily over the period.');
   });
+
+  it('renders the chart, then the AI Insights panel, then the table, full width in every insight state (FR-002, FR-003, SC-003)', async () => {
+    getExchangeRateTrend.mockReturnValue(of(trendResponse()));
+
+    const fixture = TestBed.createComponent(HistoricalRates);
+    fixture.detectChanges();
+    await flush(fixture);
+
+    function assertStackOrder(): void {
+      const html: string = fixture.nativeElement.innerHTML;
+      const chartIndex = html.indexOf('app-rate-trend-chart');
+      const insightsIndex = html.indexOf('app-ai-insights-panel');
+      const tableIndex = html.indexOf('app-historical-rates-table');
+      expect(chartIndex).toBeGreaterThan(-1);
+      expect(insightsIndex).toBeGreaterThan(chartIndex);
+      expect(tableIndex).toBeGreaterThan(insightsIndex);
+    }
+
+    assertStackOrder();
+
+    getExchangeRateTrendInsight.mockReturnValue(of(insightResponse()));
+    generateInsightButton(fixture).click();
+    await flush(fixture);
+    expect(fixture.nativeElement.textContent).toContain('The rate rose steadily over the period.');
+    assertStackOrder();
+
+    const button: HTMLButtonElement = fixture.nativeElement.querySelector(
+      'button[data-preset="3M"]',
+    );
+    button.click();
+    await flush(fixture);
+    getExchangeRateTrendInsight.mockReturnValue(
+      throwError(() => new HttpErrorResponse({ status: 503 })),
+    );
+    generateInsightButton(fixture).click();
+    await flush(fixture);
+    expect(fixture.nativeElement.textContent).toContain('interpretation unavailable');
+    assertStackOrder();
+  });
 });
