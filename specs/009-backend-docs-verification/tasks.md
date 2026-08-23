@@ -103,7 +103,7 @@ example request/response and documented error case match the live backend's actu
       `contracts/openapi.yaml` (research.md R4).
 - [X] T009 [US2] Audit `/exchange/refresh` and `/exchange/usage` in `contracts/openapi.yaml` against
       `ExchangeController.java` the same way; fix any drift in `contracts/openapi.yaml`.
-- [ ] T010 [US2] Audit `/exchange/trend` and `/exchange/trend/insight` in `contracts/openapi.yaml`
+- [x] T010 [US2] Audit `/exchange/trend` and `/exchange/trend/insight` in `contracts/openapi.yaml`
       against `ExchangeController.java`, including the AI-unavailable degrade error path
       (Constitution Principle VIII); fix any drift in `contracts/openapi.yaml`.
 - [ ] T011 [US2] Run `cd backend && ./mvnw generate-sources` after T008-T010 and confirm the
