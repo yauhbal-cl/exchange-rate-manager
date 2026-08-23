@@ -1,0 +1,153 @@
+/* Design tokens (--surface, --border, --muted, --accent, --accent-soft) are declared once on the
+   page component's :host in usage-analytics.css and inherit down into this child component, so
+   they are only ever read here — never redeclared. The fallbacks keep the panel presentable when
+   it is rendered outside the page (component specs mount it on its own). */
+:host {
+  display: block;
+  min-width: 0;
+  padding: 20px 22px 18px;
+  border: 1px solid var(--border, #e4e7ec);
+  border-radius: 16px;
+  background: var(--surface, #ffffff);
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+  color: var(--text, #18202a);
+  font-variant-numeric: tabular-nums;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.breakdown-panel {
+  display: flex;
+  min-width: 0;
+  height: 100%;
+  flex-direction: column;
+}
+.panel-header {
+  margin-bottom: 14px;
+}
+h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 750;
+}
+.panel-header p {
+  margin: 4px 0 0;
+  color: var(--muted, #667085);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+/* The three row columns are declared once on the list, not per row, so every bar track is exactly
+   the same width — that is what makes the bar lengths comparable across rows (FR-008). The label
+   column has a floor so short codes still line the bars up; both outer tracks may shrink to 0 so a
+   very large count wraps instead of pushing the row wider than the panel (FR-019, SC-005). */
+.breakdown-list {
+  display: grid;
+  grid-template-columns: minmax(44px, auto) minmax(0, 1fr) minmax(0, auto);
+  align-items: center;
+  column-gap: 14px;
+}
+.breakdown-row {
+  display: grid;
+  /* Fallback first for engines without subgrid; where subgrid is supported it wins and the row
+     borrows the list's tracks instead of sizing its own. */
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  grid-template-columns: subgrid;
+  grid-column: 1 / -1;
+  align-items: center;
+  column-gap: 14px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--border, #e4e7ec);
+}
+.breakdown-row:last-child {
+  border-bottom: 0;
+}
+.row-code {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+/* FR-007/FR-022: the count is real text next to the bar, never inside it, and it wraps rather
+   than truncating or ellipsising. */
+.row-count {
+  min-width: 0;
+  justify-self: end;
+  color: #475467;
+  font-size: 13px;
+  font-weight: 650;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+/* Purely decorative track (the element carries aria-hidden="true"); it clips the fill so the
+   minimum-width floor below can never spill past the track's rounded end. */
+.row-bar {
+  min-width: 0;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 99px;
+  background: var(--accent-soft, #f1f2ff);
+}
+/* The fill's width comes in as an inline percentage from the component ([style.width.%]). That
+   percentage is data and stays exactly as computed — min-width is a rendering floor only, so a
+   tiny-but-nonzero count is still visible without altering the value it represents. */
+.row-bar-fill {
+  display: block;
+  height: 100%;
+  min-width: 6px;
+  border-radius: inherit;
+  background: var(--accent, #5b61d6);
+}
+
+/* FR-009: "showing the top N of M" — supporting copy about the rows above it. */
+.breakdown-note {
+  margin: 12px 0 0;
+  color: var(--muted, #667085);
+  font-size: 12px;
+  line-height: 1.45;
+}
+/* FR-009a: the never-queried footnote is an aside about currencies that are deliberately absent
+   from the rows, so it sits below a hairline rule and reads a step quieter than everything else in
+   the panel — smaller, lighter, lower contrast — without being hidden. */
+[data-testid='never-queried-footnote'] {
+  margin: 10px 0 0;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border, #e4e7ec);
+  color: #98a2b3;
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
+/* FR-013/FR-018: with no rows the panel keeps a real body height instead of collapsing to its
+   header, so the two-column layout does not jump between the empty and populated cases. */
+[data-testid='breakdown-empty'] {
+  display: flex;
+  min-height: 148px;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  border: 1px dashed var(--border, #e4e7ec);
+  border-radius: 12px;
+  background: var(--surface-subtle, #f9fafb);
+  color: var(--muted, #667085);
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+@media (max-width: 640px) {
+  :host {
+    padding: 18px 16px 16px;
+  }
+  .breakdown-list,
+  .breakdown-row {
+    column-gap: 10px;
+  }
+  [data-testid='breakdown-empty'] {
+    min-height: 120px;
+  }
+}
