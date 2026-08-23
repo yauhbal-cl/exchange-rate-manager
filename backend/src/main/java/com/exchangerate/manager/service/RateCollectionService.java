@@ -1,7 +1,9 @@
 package com.exchangerate.manager.service;
 
+import com.exchangerate.manager.client.FixerApiException;
 import com.exchangerate.manager.client.FixerClient;
 import com.exchangerate.manager.client.FixerLatestResponse;
+import com.exchangerate.manager.config.ExchangeRateProperties;
 import com.exchangerate.manager.repository.ExchangeRateRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -34,11 +36,32 @@ public class RateCollectionService {
 
     private final ExchangeRateRepository exchangeRateRepository;
 
+    private final ExchangeRateProperties exchangeRateProperties;
+
     @Transactional
     @SchedulerLock(name = "fixer-rate-collection")
     public RefreshResult collect() {
         FixerLatestResponse response = fixerClient.getLatestRates();
+
+        String expectedBaseCurrency = exchangeRateProperties.baseCurrency();
+        String actualBaseCurrency = response.getBase();
+        if (actualBaseCurrency == null
+                || actualBaseCurrency.isBlank()
+                || !actualBaseCurrency.equals(expectedBaseCurrency)) {
+            throw new FixerApiException(
+                    "Fixer.io /latest call returned unexpected base currency: expected '"
+                            + expectedBaseCurrency + "' but got '" + actualBaseCurrency + "'");
+        }
+
         Map<String, BigDecimal> rates = response.getRates();
+        BigDecimal baseCurrencySelfRate = rates == null ? null : rates.get(expectedBaseCurrency);
+        if (baseCurrencySelfRate == null || baseCurrencySelfRate.compareTo(BigDecimal.ONE) != 0) {
+            throw new FixerApiException(
+                    "Fixer.io /latest call sanity check failed: expected rates['"
+                            + expectedBaseCurrency + "'] to equal 1 but got '"
+                            + baseCurrencySelfRate + "'");
+        }
+
         LocalDate rateDate = response.getDate();
         BigDecimal eurToUsd = rates.get("USD");
 
