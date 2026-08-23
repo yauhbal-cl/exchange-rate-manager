@@ -123,7 +123,7 @@ The AI trend insight feature (Spring AI + Ollama) is configured via the same
 
 ## Development
 
-- Backend tests: `cd backend && ./mvnw test`
+- Backend tests: `cd backend && ./mvnw verify` — runs unit tests (Surefire) and Testcontainers-backed integration tests (Failsafe) in one pass, reporting a single BUILD SUCCESS/BUILD FAILURE result.
 - Frontend tests: `cd frontend && npm test`
 - Linting: Frontend uses Prettier (scaffold defaults)
 

@@ -128,7 +128,7 @@ signal when required infra is missing.
 
 ### Implementation for User Story 3
 
-- [ ] T013 [US3] In `README.md` "Development" section, change "Backend tests: `cd backend && ./mvnw
+- [X] T013 [US3] In `README.md` "Development" section, change "Backend tests: `cd backend && ./mvnw
       test`" to "`cd backend && ./mvnw verify`", adding one sentence noting it runs unit tests
       (Surefire) and Testcontainers-backed integration tests (Failsafe) in one pass with a single
       `BUILD SUCCESS`/`BUILD FAILURE` result (research.md R3; resolves the README/CLAUDE.md
