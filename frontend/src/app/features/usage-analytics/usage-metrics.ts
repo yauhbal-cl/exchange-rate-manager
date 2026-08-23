@@ -7,6 +7,7 @@
  */
 
 import type { CurrencyUsageEntry } from '../../api-client';
+import { absoluteLocal, isParsableInstant, relativePhrase } from './relative-time';
 
 /**
  * Backs the three KPI cards (data-model.md §2.1, FR-003 … FR-005a). Computed from the
@@ -157,4 +158,61 @@ export function buildBreakdownView(entries: readonly CurrencyUsageEntry[]): Brea
     queriedTotal: queried.length,
     neverQueriedCount: entries.length - queried.length,
   };
+}
+
+/** A source entry already known to carry a non-null, parsable `lastQueriedAt` (data-model.md §2.3). */
+type TimestampedEntry = CurrencyUsageEntry & { lastQueriedAt: string };
+
+/**
+ * The §2.3 ordering: `lastQueriedAt` DESC, then `currencyCode` ASC for identical instants.
+ *
+ * Compares the represented **instant** (`Date.parse`), not the raw string — `09:30+02:00` and
+ * `07:30Z` are the same moment, and a lexical comparison would rank equivalent instants written
+ * with different UTC offsets wrongly. Codepoint tie-break, matching {@link compareByUsageRank}:
+ * codes are ASCII and unique, so the ordering is total and locale-independent (SC-006).
+ */
+function compareByRecency(a: TimestampedEntry, b: TimestampedEntry): number {
+  return (
+    Date.parse(b.lastQueriedAt) - Date.parse(a.lastQueriedAt) ||
+    (a.currencyCode < b.currencyCode ? -1 : 1)
+  );
+}
+
+/**
+ * Derives the recent-activity panel (data-model.md §2.3, FR-010 … FR-012a, FR-025).
+ *
+ * Order of operations is exactly the one §2.3 prescribes:
+ * 1. **Filter** — entries with a `null` `lastQueriedAt` are excluded (FR-011), as are instants the
+ *    time layer cannot parse ({@link isParsableInstant}): an unphraseable timestamp is treated as
+ *    absent rather than rendered broken. This is the spec's "query count but no recorded
+ *    last-queried time" edge case — such a currency still appears in the breakdown panel (§2.2).
+ * 2. **Order** — most recent first, ties broken on alphabetically ascending `currencyCode`, so the
+ *    panel is stable across reloads (SC-006).
+ * 3. **Cap** — the first `RECENT_ENTRY_LIMIT` entries (FR-011). Display-only.
+ *
+ * `now` is the load-time instant captured once by the caller and threaded through, so every phrase
+ * is fixed at load and never ticks forward (data-model.md §3, SC-006). `relativePhrase` (FR-012)
+ * and `absoluteLocal` (FR-012a) are presentation only; `lastQueriedAt` is carried through
+ * **verbatim** from the API for the machine-readable `datetime` attribute (FR-025).
+ *
+ * Pure: the input is treated as immutable and sorted on a copy (data-model.md §1, INV-6) — the
+ * `filter` above already produces the copy that `sort` then reorders.
+ */
+export function buildRecentActivity(
+  entries: readonly CurrencyUsageEntry[],
+  now: Date,
+): RecentActivityEntry[] {
+  return entries
+    .filter(
+      (entry): entry is TimestampedEntry =>
+        entry.lastQueriedAt !== null && isParsableInstant(entry.lastQueriedAt),
+    )
+    .sort(compareByRecency)
+    .slice(0, RECENT_ENTRY_LIMIT)
+    .map((entry) => ({
+      currencyCode: entry.currencyCode,
+      lastQueriedAt: entry.lastQueriedAt,
+      relativePhrase: relativePhrase(entry.lastQueriedAt, now),
+      absoluteLocal: absoluteLocal(entry.lastQueriedAt),
+    }));
 }
