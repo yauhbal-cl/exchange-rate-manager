@@ -160,7 +160,7 @@ that one file changed.
       `http://localhost:8080` — validates FR-007/FR-008/SC-002. Run after Phase 3, since it needs
       a view that actually issues an API call to observe in the Network tab.
 
-- [ ] T013 [P] [US2] Confirm `frontend/src/environments/environment.ts` still has a non-empty
+- [X] T013 [P] [US2] Confirm `frontend/src/environments/environment.ts` still has a non-empty
       local-dev default `apiBaseUrl` (`http://localhost:8080`) and
       `frontend/src/environments/environment.production.ts` still has `/api` (FR-009); confirm
       `README.md`'s "Environment Configuration" section still accurately describes both files as
