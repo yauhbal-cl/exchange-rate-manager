@@ -52,6 +52,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class ExchangeControllerTest {
 
     private static final String REFRESH_ENDPOINT = "/api/v1/exchange/refresh";
+    private static final String EXCHANGE_ENDPOINT = "/api/v1/exchange";
 
     @Autowired
     private MockMvc mockMvc;
@@ -165,6 +166,24 @@ class ExchangeControllerTest {
                 .andExpect(jsonPath("$.detail").value(
                         "Requested range 2024-01-01 to 2026-06-01 spans 883 days, which exceeds the maximum of 365"
                                 + " daily points supported for AI trend insight generation"));
+    }
+
+    @Test
+    void getExchangeRateReturns400WithProblemDetailWhenFromMissing() throws Exception {
+        mockMvc.perform(get(EXCHANGE_ENDPOINT).param("to", "USD"))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.detail", org.hamcrest.Matchers.containsString("from")));
+    }
+
+    @Test
+    void getExchangeRateReturns400WithProblemDetailWhenToMissing() throws Exception {
+        mockMvc.perform(get(EXCHANGE_ENDPOINT).param("from", "EUR"))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.detail", org.hamcrest.Matchers.containsString("to")));
     }
 
     /**
