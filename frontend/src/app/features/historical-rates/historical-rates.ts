@@ -45,6 +45,14 @@ interface TrendRequest {
           label="Base"
           [(value)]="baseCurrency"
         />
+        <button
+          type="button"
+          aria-label="Swap currencies"
+          class="rounded border border-gray-300 px-3 py-2 text-gray-700 hover:bg-gray-50"
+          (click)="swap()"
+        >
+          ⇄
+        </button>
         <app-currency-combobox
           id="quote-currency"
           name="quote-currency"
