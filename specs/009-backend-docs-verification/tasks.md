@@ -96,7 +96,7 @@ example request/response and documented error case match the live backend's actu
 
 ### Implementation for User Story 2
 
-- [ ] T008 [US2] Audit `/status` and `/exchange` in `contracts/openapi.yaml` against
+- [X] T008 [US2] Audit `/status` and `/exchange` in `contracts/openapi.yaml` against
       `backend/src/main/java/com/exchangerate/manager/controller/StatusController.java` and
       `ExchangeController.java` for request parameters, success response fields, and every error
       condition raised through the central `@RestControllerAdvice`; fix any drift directly in
