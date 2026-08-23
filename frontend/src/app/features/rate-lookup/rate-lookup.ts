@@ -24,75 +24,155 @@ function todayIso(): string {
 @Component({
   selector: 'app-rate-lookup',
   imports: [CurrencyCombobox],
+  styleUrl: './rate-lookup.css',
   template: `
-    <div class="mx-auto max-w-2xl px-4 py-8">
-      <h2 class="text-2xl font-semibold text-gray-900">Rate Lookup</h2>
-
-      <div class="mt-4 flex flex-wrap gap-4">
-        <app-currency-combobox
-          id="from-currency"
-          name="from"
-          label="From"
-          [(value)]="fromCurrency"
-        />
-
-        <app-currency-combobox id="to-currency" name="to" label="To" [(value)]="toCurrency" />
-
-        <label class="flex flex-col gap-1">
-          <span class="text-sm font-medium text-gray-700">Date (optional)</span>
-          <input
-            type="date"
-            name="date"
-            class="rounded border border-gray-300 px-3 py-2"
-            [attr.max]="today"
-            [value]="date()"
-            (change)="date.set($any($event.target).value)"
-          />
-        </label>
-      </div>
-
-      @if (validationError()) {
-        <p class="mt-2 text-amber-700">{{ validationError() }}</p>
-      }
-
-      <div class="mt-4">
-        <button
-          type="submit"
-          class="rounded bg-blue-600 px-4 py-2 text-white disabled:opacity-50"
-          [disabled]="validationError() !== null || rate.isLoading()"
-          (click)="onSubmit()"
-        >
-          Look up rate
-        </button>
-      </div>
-
-      @if (rate.isLoading()) {
-        <p class="mt-4 text-gray-600">Loading exchange rate…</p>
-      } @else if (lookupError(); as error) {
-        <p class="mt-4 text-red-600" [attr.data-category]="error.category">{{ error.message }}</p>
-      } @else if (rate.value(); as value) {
-        <div class="mt-4 space-y-2">
-          <p><span class="font-medium text-gray-700">From:</span> {{ value.fromCurrency }}</p>
-          <p><span class="font-medium text-gray-700">To:</span> {{ value.toCurrency }}</p>
-          <p><span class="font-medium text-gray-700">Rate:</span> {{ value.rate }}</p>
-          <p><span class="font-medium text-gray-700">Date:</span> {{ value.rateDate }}</p>
+    <main class="calculator-page">
+      <header class="page-header">
+        <div>
+          <h1>Rate calculator</h1>
           <p>
-            <span class="font-medium text-gray-700">From-currency usage count:</span>
-            {{ value.fromCurrencyUsageCount }}
-          </p>
-          <p>
-            <span class="font-medium text-gray-700">To-currency usage count:</span>
-            {{ value.toCurrencyUsageCount }}
+            Look up the exchange rate for a currency pair using the latest available data or a
+            specific historical date.
           </p>
         </div>
-      }
-    </div>
+        <div class="as-of">Rates available through {{ formattedToday }}</div>
+      </header>
+
+      <section class="calculator-grid">
+        <div class="card lookup-card">
+          <div class="section-header">
+            <span class="section-icon" aria-hidden="true">↗</span>
+            <div>
+              <h2>Exchange rate lookup</h2>
+              <p>Choose a source and target currency</p>
+            </div>
+          </div>
+
+          <form (submit)="$event.preventDefault(); onSubmit()">
+            <div class="currency-row">
+              <app-currency-combobox
+                id="from-currency"
+                name="from"
+                label="From currency"
+                [(value)]="fromCurrency"
+              />
+
+              <button
+                type="button"
+                class="swap-button"
+                aria-label="Swap currencies"
+                [disabled]="!fromCurrency() || !toCurrency()"
+                (click)="swapCurrencies()"
+              >
+                ⇄
+              </button>
+
+              <app-currency-combobox
+                id="to-currency"
+                name="to"
+                label="To currency"
+                [(value)]="toCurrency"
+              />
+            </div>
+
+            <label class="date-field">
+              <span>Date <small>Optional</small></span>
+              <input
+                type="date"
+                name="date"
+                [attr.max]="today"
+                [value]="date()"
+                (change)="date.set($any($event.target).value)"
+              />
+              <small>Leave blank to use the latest available rate.</small>
+            </label>
+
+            @if (validationError()) {
+              <p class="validation-message">{{ validationError() }}</p>
+            }
+
+            <button
+              type="submit"
+              class="submit-button"
+              [disabled]="validationError() !== null || rate.isLoading()"
+            >
+              @if (rate.isLoading()) {
+                <span class="spinner" aria-hidden="true"></span> Looking up rate…
+              } @else {
+                Look up rate <span aria-hidden="true">→</span>
+              }
+            </button>
+          </form>
+        </div>
+
+        <div class="card result-card" aria-live="polite">
+          <div class="result-header">
+            <div>
+              <h2>Exchange rate</h2>
+              <p>Your lookup result</p>
+            </div>
+          </div>
+
+          @if (rate.isLoading()) {
+            <div class="result-state loading-state">
+              <span class="large-spinner" aria-hidden="true"></span>
+              <strong>Finding exchange rate</strong>
+              <p>Checking the selected pair and date…</p>
+            </div>
+          } @else if (lookupError(); as error) {
+            <div class="result-state error-state" [attr.data-category]="error.category">
+              <span class="state-icon" aria-hidden="true">!</span>
+              <strong>Rate unavailable</strong>
+              <p>{{ error.message }}</p>
+            </div>
+          } @else if (rate.value(); as value) {
+            <div class="result-content">
+              <div class="rate-hero">
+                <div class="pair-label">
+                  <span>{{ value.fromCurrency }}</span>
+                  <span class="pair-arrow" aria-hidden="true">→</span>
+                  <span>{{ value.toCurrency }}</span>
+                </div>
+                <span class="rate-caption">Exchange rate</span>
+                <div class="rate-value">{{ value.rate }}</div>
+              </div>
+
+              <div class="observation-date">
+                <span class="calendar-icon" aria-hidden="true"></span>
+                <div>
+                  <span>Rate observation date</span>
+                  <strong>{{ value.rateDate }}</strong>
+                  <p>This is the market date on which this stored exchange rate was recorded.</p>
+                </div>
+              </div>
+            </div>
+          } @else {
+            <div class="result-state empty-state">
+              <span class="empty-icon" aria-hidden="true">⇄</span>
+              <strong>Your rate will appear here</strong>
+              <p>Select two currencies and submit the form to see their exchange rate.</p>
+            </div>
+          }
+        </div>
+      </section>
+
+      <p class="footer-note">
+        Exchange rates reflect stored market data and may differ from rates offered by financial
+        institutions.
+      </p>
+    </main>
   `,
 })
 export class RateLookup {
   private readonly exchangeRateLookupService = inject(ExchangeRateLookupService);
 
   protected readonly today = todayIso();
+  protected readonly formattedToday = new Intl.DateTimeFormat('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(new Date(`${this.today}T00:00:00Z`));
 
   protected readonly fromCurrency = signal('');
   protected readonly toCurrency = signal('');
@@ -144,5 +224,11 @@ export class RateLookup {
       to: this.toCurrency(),
       date: this.date() || undefined,
     });
+  }
+
+  protected swapCurrencies(): void {
+    const from = this.fromCurrency();
+    this.fromCurrency.set(this.toCurrency());
+    this.toCurrency.set(from);
   }
 }
