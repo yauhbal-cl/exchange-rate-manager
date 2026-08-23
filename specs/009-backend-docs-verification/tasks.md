@@ -45,7 +45,7 @@ stories assert or verify a Java 21 build.
 
 - [X] T002 Update `<java.version>` in `backend/pom.xml` from `17` to `21` to match the documented
       tech stack in `CLAUDE.md` and root `README.md` (research.md R1).
-- [ ] T003 Run `cd backend && ./mvnw clean verify` once and confirm `BUILD SUCCESS` under Java 21,
+- [X] T003 Run `cd backend && ./mvnw clean verify` once and confirm `BUILD SUCCESS` under Java 21,
       so no downstream doc task asserts a Java 21 build that doesn't actually pass.
 
 **Checkpoint**: Backend build target is verifiably Java 21. User story work can begin.
