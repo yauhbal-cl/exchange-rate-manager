@@ -2,7 +2,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { ExchangeRateLookupService } from '../../api-client';
-import { CURRENCY_CODES } from './currencies';
+import { CurrencyCombobox } from './currency-combobox';
 
 interface RateLookupRequest {
   from: string;
@@ -23,40 +23,20 @@ function todayIso(): string {
 
 @Component({
   selector: 'app-rate-lookup',
+  imports: [CurrencyCombobox],
   template: `
     <div class="mx-auto max-w-2xl px-4 py-8">
       <h2 class="text-2xl font-semibold text-gray-900">Rate Lookup</h2>
 
       <div class="mt-4 flex flex-wrap gap-4">
-        <label class="flex flex-col gap-1">
-          <span class="text-sm font-medium text-gray-700">From</span>
-          <select
-            name="from"
-            class="rounded border border-gray-300 px-3 py-2"
-            [value]="fromCurrency()"
-            (change)="fromCurrency.set($any($event.target).value)"
-          >
-            <option value=""></option>
-            @for (code of currencyCodes; track code) {
-              <option [value]="code">{{ code }}</option>
-            }
-          </select>
-        </label>
+        <app-currency-combobox
+          id="from-currency"
+          name="from"
+          label="From"
+          [(value)]="fromCurrency"
+        />
 
-        <label class="flex flex-col gap-1">
-          <span class="text-sm font-medium text-gray-700">To</span>
-          <select
-            name="to"
-            class="rounded border border-gray-300 px-3 py-2"
-            [value]="toCurrency()"
-            (change)="toCurrency.set($any($event.target).value)"
-          >
-            <option value=""></option>
-            @for (code of currencyCodes; track code) {
-              <option [value]="code">{{ code }}</option>
-            }
-          </select>
-        </label>
+        <app-currency-combobox id="to-currency" name="to" label="To" [(value)]="toCurrency" />
 
         <label class="flex flex-col gap-1">
           <span class="text-sm font-medium text-gray-700">Date (optional)</span>
@@ -96,8 +76,14 @@ function todayIso(): string {
           <p><span class="font-medium text-gray-700">To:</span> {{ value.toCurrency }}</p>
           <p><span class="font-medium text-gray-700">Rate:</span> {{ value.rate }}</p>
           <p><span class="font-medium text-gray-700">Date:</span> {{ value.rateDate }}</p>
-          <p><span class="font-medium text-gray-700">From-currency usage count:</span> {{ value.fromCurrencyUsageCount }}</p>
-          <p><span class="font-medium text-gray-700">To-currency usage count:</span> {{ value.toCurrencyUsageCount }}</p>
+          <p>
+            <span class="font-medium text-gray-700">From-currency usage count:</span>
+            {{ value.fromCurrencyUsageCount }}
+          </p>
+          <p>
+            <span class="font-medium text-gray-700">To-currency usage count:</span>
+            {{ value.toCurrencyUsageCount }}
+          </p>
         </div>
       }
     </div>
@@ -106,7 +92,6 @@ function todayIso(): string {
 export class RateLookup {
   private readonly exchangeRateLookupService = inject(ExchangeRateLookupService);
 
-  protected readonly currencyCodes = CURRENCY_CODES;
   protected readonly today = todayIso();
 
   protected readonly fromCurrency = signal('');

@@ -20,8 +20,8 @@ can rely on:
 
 | Element | Selector contract | Behavior |
 |---|---|---|
-| Source currency select | `select[name="from"]` (or equivalent test id) | options from `CURRENCY_CODES`; empty/placeholder option first |
-| Target currency select | `select[name="to"]` | same option list |
+| Source currency combobox | `input[name="from"]` (text input inside `app-currency-combobox`) | options from `CURRENCIES` (all Fixer.io-supported currencies), filtered client-side by code/name as the user types; the dropdown listbox lazy-renders in pages (30 at a time), never all options at once |
+| Target currency combobox | `input[name="to"]` | same behavior |
 | Date input | `input[type="date"][name="date"]` | optional; browser-native date picker; `max` attribute bound to today so future dates cannot be picked via the UI control itself |
 | Submit control | `button[type="submit"]` | disabled when `validationError() !== null` or `rate.isLoading()` |
 | Validation message | rendered only when `validationError() !== null`, before any submit occurs | text matches the failing rule (empty selection / identical currencies / future date) |

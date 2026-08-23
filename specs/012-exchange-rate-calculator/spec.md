@@ -68,7 +68,7 @@ User gets clear, inline feedback when input is invalid or the backend rejects/ca
 
 ### Functional Requirements
 
-- **FR-001**: View MUST provide dropdown selects for source currency and target currency (populated from a fixed, frontend-maintained currency list), and an optional date input.
+- **FR-001**: View MUST provide currency comboboxes (typeahead-filterable, lazily-rendered option list) for source currency and target currency, populated from a fixed, frontend-maintained list of all Fixer.io-supported currencies, and an optional date input.
 - **FR-002**: View MUST validate, before submission, that both currencies are selected and are not identical to each other.
 - **FR-003**: View MUST validate, before submission, that an entered date is not in the future.
 - **FR-004**: View MUST block submission and show an inline message when client-side validation fails, without contacting the backend.
@@ -98,7 +98,7 @@ User gets clear, inline feedback when input is invalid or the backend rejects/ca
 ## Assumptions
 
 - Currency codes are selected as uppercase 3-letter ISO codes, matching the existing `/exchange` API's `^[A-Z]{3}$` pattern.
-- The currency dropdown options come from a fixed, frontend-maintained list (no backend "list currencies" endpoint exists in the current contract; adding one is out of scope for this view).
+- The currency combobox options come from a fixed, frontend-maintained list of all Fixer.io-supported currency codes (no backend "list currencies" endpoint exists in the current contract; adding one is out of scope for this view). The list is rendered lazily in pages rather than all at once.
 - This view only performs a single-point-in-time lookup (the existing `/exchange` endpoint); historical trend charting is out of scope (covered by the separate analytics view).
 - "Retry" means re-submitting the same, still-visible form inputs — no separate retry history or backoff behavior is required.
 - Usage counts returned by the API are shown as read-only informational figures, not something the user can act on from this view.

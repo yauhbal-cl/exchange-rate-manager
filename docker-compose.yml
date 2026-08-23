@@ -11,7 +11,11 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-exchange_user}"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -h localhost -p 5432 -U ${POSTGRES_USER:-exchange_user} -d ${POSTGRES_DB:-exchange_rate_db}"
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
