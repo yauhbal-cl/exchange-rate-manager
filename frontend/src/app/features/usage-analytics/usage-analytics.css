@@ -56,6 +56,12 @@
   gap: 18px;
 }
 
+.panel-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  gap: 18px;
+}
+
 /* FR-002: the three KPI cards on one row. The <h2> eyebrow is a grid child too, so it spans the
    full track set instead of stealing a column. */
 .kpi-row {
