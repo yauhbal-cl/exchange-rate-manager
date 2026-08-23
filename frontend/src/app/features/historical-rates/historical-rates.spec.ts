@@ -395,7 +395,7 @@ describe('HistoricalRates', () => {
     expect(generateInsightButton(fixture).disabled).toBe(true);
   });
 
-  it('shows a "no data" message for a 404 insight error and "unavailable" for other failures (FR-013, Acceptance Scenario 2, SC-005)', async () => {
+  it('shows a "no data" message for a 404 insight error (FR-013, Acceptance Scenario 2, SC-005)', async () => {
     getExchangeRateTrend.mockReturnValue(of(trendResponse()));
     getExchangeRateTrendInsight.mockReturnValue(
       throwError(() => new HttpErrorResponse({ status: 404, error: { detail: 'No data for range.' } })),
@@ -409,10 +409,18 @@ describe('HistoricalRates', () => {
     await flush(fixture);
 
     expect(fixture.nativeElement.textContent).toContain('No data for range.');
+  });
 
+  it('shows an "unavailable" message for a non-404 insight error, e.g. a 503 (FR-013, Acceptance Scenario 2, SC-005)', async () => {
+    getExchangeRateTrend.mockReturnValue(of(trendResponse()));
     getExchangeRateTrendInsight.mockReturnValue(
       throwError(() => new HttpErrorResponse({ status: 503 })),
     );
+
+    const fixture = TestBed.createComponent(HistoricalRates);
+    fixture.detectChanges();
+    await flush(fixture);
+
     generateInsightButton(fixture).click();
     await flush(fixture);
 
