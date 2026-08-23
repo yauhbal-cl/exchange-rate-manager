@@ -76,7 +76,7 @@ undocumented step.
 - [X] T006 [US1] Diff every `${VAR:default}` placeholder in
       `backend/src/main/resources/application.yml` against `README.md`'s Environment Configuration
       section in both directions; fix any gap beyond the two already identified in T005 (FR-002).
-- [ ] T007 [US1] Run quickstart.md Scenario 1 end-to-end starting from `docker compose down -v`
+- [X] T007 [US1] Run quickstart.md Scenario 1 end-to-end starting from `docker compose down -v`
       (simulating a clean checkout): bring up infra, start the backend with `FIXER_API_KEY` set, hit
       `/api/v1/status`, and confirm the whole sequence needs no step beyond what `README.md` now
       says and completes within 15 minutes (SC-001).
