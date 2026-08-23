@@ -72,7 +72,7 @@ still visible.
 
 ### Implementation for User Story 1
 
-- [ ] T003 [P] [US1] Create not-found standalone component in
+- [X] T003 [P] [US1] Create not-found standalone component in
       `frontend/src/app/not-found/not-found.ts` (class `NotFound`, inline template, minimal
       Tailwind-utility-styled "page not found" message) — wildcard route target (FR-005)
 
