@@ -1,0 +1,134 @@
+<main
+  class="usage-page mx-auto max-w-[var(--app-page-max-width)] px-8 pt-9 pb-14 max-[900px]:px-6 max-[900px]:pt-8 max-[900px]:pb-12 max-[640px]:px-4 max-[640px]:pt-6 max-[640px]:pb-10"
+>
+  <header class="page-header mb-6">
+    <h1 class="mb-2 text-[32px] leading-[1.15] font-[750] tracking-[-0.03em]">Usage analytics</h1>
+    <p class="m-0 max-w-[650px] text-[15px] leading-[1.55] text-[var(--app-muted)]">
+      An overview of query activity across every currency the system tracks.
+    </p>
+  </header>
+  <div class="data-area flex flex-col gap-[18px]">
+    @if (isLoading()) {
+      <div
+        class="card usage-state usage-state-loading flex min-h-80 flex-col items-center justify-center rounded-2xl border border-[#dedffc] bg-[linear-gradient(180deg,#fafaff_0%,var(--app-surface)_62%)] px-[30px] py-12 text-center shadow-[var(--app-card-shadow)] max-[640px]:min-h-[260px] max-[640px]:px-[18px] max-[640px]:py-9"
+        data-testid="usage-loading"
+        role="status"
+      >
+        <span
+          class="usage-spinner size-[34px] animate-spin rounded-full border-2 border-[var(--app-border)] border-t-[var(--app-accent)]"
+          aria-hidden="true"
+        ></span
+        ><strong class="mt-3.5 text-[15px] font-[750] text-[#344054]"
+          >Loading usage analytics</strong
+        >
+        <p class="mt-[7px] mb-0 max-w-[340px] text-[12.5px] leading-normal text-[var(--app-muted)]">
+          Gathering query activity across all currencies…
+        </p>
+      </div>
+    } @else if (hasError()) {
+      <div
+        class="card usage-state usage-state-error flex min-h-80 flex-col items-center justify-center rounded-2xl border border-[#fecdca] bg-[linear-gradient(180deg,#fffbfa_0%,var(--app-surface)_62%)] px-[30px] py-12 text-center shadow-[var(--app-card-shadow)] max-[640px]:min-h-[260px] max-[640px]:px-[18px] max-[640px]:py-9"
+        data-testid="usage-error"
+        role="alert"
+      >
+        <span
+          class="usage-state-icon grid size-11 place-items-center rounded-[13px] bg-[#fef3f2] text-[21px] font-[750] text-[#b42318]"
+          aria-hidden="true"
+          >!</span
+        ><strong class="mt-3.5 text-[15px] font-[750] text-[#b42318]"
+          >Usage analytics unavailable</strong
+        >
+        <p class="mt-[7px] mb-0 max-w-[340px] text-[12.5px] leading-normal text-[var(--app-muted)]">
+          We couldn't load query activity right now. Please try again later.
+        </p>
+      </div>
+    } @else {
+      <section
+        class="card kpi-row grid grid-cols-3 gap-[18px] rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface)] p-[22px] shadow-[var(--app-card-shadow)] max-[640px]:grid-cols-1 max-[640px]:p-[18px]"
+        data-testid="kpi-row"
+        aria-labelledby="kpi-row-heading"
+      >
+        <h2
+          class="kpi-row-heading col-span-full m-0 text-xs font-bold tracking-[0.08em] text-[var(--app-muted)] uppercase"
+          id="kpi-row-heading"
+        >
+          Summary
+        </h2>
+        <div
+          class="kpi-card min-w-0 rounded-[13px] border border-[var(--app-border)] bg-[var(--app-surface-subtle)] px-[22px] py-5"
+          data-testid="kpi-total-queries"
+        >
+          <p class="kpi-label mt-0 mb-2.5 text-xs font-[650] text-[var(--app-muted)]">
+            Total queries
+          </p>
+          <p
+            class="kpi-value m-0 text-[28px] leading-[1.14] font-[750] tracking-[-0.025em] wrap-anywhere tabular-nums"
+          >
+            {{ formatCount(summary().totalQueries) }}
+          </p>
+          <p
+            class="kpi-hint mt-2 mb-0 text-xs leading-[1.45] text-[var(--app-muted)] wrap-anywhere"
+          >
+            Every recorded lookup, across all known currencies
+          </p>
+        </div>
+        <div
+          class="kpi-card min-w-0 rounded-[13px] border border-[var(--app-border)] bg-[var(--app-surface-subtle)] px-[22px] py-5"
+          data-testid="kpi-queried-currencies"
+        >
+          <p class="kpi-label mt-0 mb-2.5 text-xs font-[650] text-[var(--app-muted)]">
+            Currencies queried
+          </p>
+          <p
+            class="kpi-value m-0 text-[28px] leading-[1.14] font-[750] tracking-[-0.025em] wrap-anywhere tabular-nums"
+          >
+            {{ formatCount(summary().queriedCurrencyCount) }}
+          </p>
+          <p
+            class="kpi-hint mt-2 mb-0 text-xs leading-[1.45] text-[var(--app-muted)] wrap-anywhere"
+          >
+            Distinct currencies looked up at least once
+          </p>
+        </div>
+        <div
+          class="kpi-card min-w-0 rounded-[13px] border border-[var(--app-border)] bg-[var(--app-surface-subtle)] px-[22px] py-5"
+          data-testid="kpi-most-queried"
+        >
+          <p class="kpi-label mt-0 mb-2.5 text-xs font-[650] text-[var(--app-muted)]">
+            Most queried currency
+          </p>
+          @if (summary().mostQueried; as top) {
+            <p
+              class="kpi-value m-0 text-[28px] leading-[1.14] font-[750] tracking-[-0.025em] wrap-anywhere tabular-nums"
+            >
+              {{ top.currencyCode }}
+            </p>
+            <p
+              class="kpi-hint mt-2 mb-0 text-xs leading-[1.45] text-[var(--app-muted)] wrap-anywhere"
+            >
+              Query count: {{ formatCount(top.queryCount) }}
+            </p>
+          } @else {
+            <p
+              class="kpi-value kpi-value-empty m-0 text-base leading-[1.4] font-[650] text-[var(--app-muted)] wrap-anywhere"
+            >
+              No currency queried yet
+            </p>
+            <p
+              class="kpi-hint mt-2 mb-0 text-xs leading-[1.45] text-[var(--app-muted)] wrap-anywhere"
+            >
+              A currency appears here after its first lookup
+            </p>
+          }
+        </div>
+      </section>
+      <div
+        class="panel-grid grid grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] gap-[18px] max-[900px]:grid-cols-1"
+      >
+        <app-usage-breakdown-panel [view]="breakdown()" /><app-recent-activity-panel
+          [entries]="recentActivity()"
+        />
+      </div>
+    }
+  </div>
+</main>

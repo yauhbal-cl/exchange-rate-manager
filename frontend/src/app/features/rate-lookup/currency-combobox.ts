@@ -1,4 +1,14 @@
-import { Component, computed, input, model, signal } from '@angular/core';
+import {
+  Component,
+  computed,
+  forwardRef,
+  input,
+  model,
+  OnChanges,
+  SimpleChanges,
+  signal,
+} from '@angular/core';
+import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { CURRENCIES, type Currency } from './currencies';
 
 const PAGE_SIZE = 30;
@@ -6,10 +16,19 @@ const SCROLL_LOAD_THRESHOLD_PX = 48;
 
 @Component({
   selector: 'app-currency-combobox',
-  styleUrl: './currency-combobox.css',
+  providers: [
+    {
+      provide: NG_VALUE_ACCESSOR,
+      useExisting: forwardRef(() => CurrencyCombobox),
+      multi: true,
+    },
+  ],
+  host: { class: 'block min-w-0' },
   template: `
     <div class="relative flex flex-col gap-1">
-      <label [for]="inputId()" class="text-sm font-medium text-gray-700">{{ label() }}</label>
+      <label [for]="inputId()" class="mb-0.5 text-xs font-[650] text-[#475467]">{{
+        label()
+      }}</label>
       <input
         [id]="inputId()"
         [name]="name()"
@@ -17,13 +36,16 @@ const SCROLL_LOAD_THRESHOLD_PX = 48;
         role="combobox"
         autocomplete="off"
         aria-autocomplete="list"
-        class="rounded border border-gray-300 px-3 py-2"
+        class="h-[42px] w-full rounded-[10px] border border-[#d0d5dd] px-3 py-2 text-[#18202a] outline-none focus:border-[#a5a9ee] focus:shadow-[0_0_0_3px_rgba(91,97,214,0.11)]"
         [class.rounded-b-none]="open()"
         [attr.aria-expanded]="open()"
         [attr.aria-controls]="listboxId()"
         [attr.aria-activedescendant]="activeOptionId()"
+        [attr.aria-invalid]="ariaInvalid() ? 'true' : null"
+        [attr.aria-describedby]="ariaDescribedBy() || null"
         [placeholder]="placeholder()"
         [value]="displayValue()"
+        [disabled]="disabled()"
         (focus)="onFocus()"
         (input)="onInput($event)"
         (keydown)="onKeydown($event)"
@@ -33,7 +55,7 @@ const SCROLL_LOAD_THRESHOLD_PX = 48;
         <ul
           [id]="listboxId()"
           role="listbox"
-          class="absolute top-full z-10 max-h-60 w-full min-w-64 overflow-y-auto rounded-b border border-t-0 border-gray-300 bg-white shadow-lg"
+          class="absolute top-full z-10 max-h-60 w-full min-w-64 overflow-y-auto rounded-b-[10px] border border-t-0 border-[#d0d5dd] bg-white shadow-lg"
           (scroll)="onScroll($event)"
         >
           @for (currency of visible(); track currency.code; let i = $index) {
@@ -57,17 +79,25 @@ const SCROLL_LOAD_THRESHOLD_PX = 48;
     </div>
   `,
 })
-export class CurrencyCombobox {
+export class CurrencyCombobox implements ControlValueAccessor, OnChanges {
   readonly id = input.required<string>();
   readonly name = input<string>('');
   readonly label = input<string>('');
   readonly placeholder = input<string>('Search currency…');
+  readonly ariaInvalid = input<boolean>(false);
+  readonly ariaDescribedBy = input<string>('');
   readonly value = model<string>('');
 
   protected readonly query = signal('');
   protected readonly open = signal(false);
   protected readonly activeIndex = signal(-1);
   protected readonly visibleCount = signal(PAGE_SIZE);
+  protected readonly disabled = signal(false);
+
+  private onChange: (value: string) => void = () => undefined;
+  private onTouched: () => void = () => undefined;
+  private legacyBindingUsed = false;
+  private formsApiUsed = false;
 
   protected readonly inputId = computed(() => `${this.id()}-input`);
   protected readonly listboxId = computed(() => `${this.id()}-listbox`);
@@ -106,6 +136,9 @@ export class CurrencyCombobox {
   }
 
   protected onFocus(): void {
+    if (this.disabled()) {
+      return;
+    }
     this.query.set('');
     this.visibleCount.set(PAGE_SIZE);
     this.activeIndex.set(-1);
@@ -169,6 +202,48 @@ export class CurrencyCombobox {
   protected onBlur(): void {
     this.open.set(false);
     this.query.set('');
+    this.onTouched();
+  }
+
+  writeValue(value: string | null): void {
+    this.formsApiUsed = true;
+    this.assertSingleBindingApi();
+    this.value.set(value ?? '');
+    this.query.set('');
+  }
+
+  registerOnChange(fn: (value: string) => void): void {
+    this.formsApiUsed = true;
+    this.assertSingleBindingApi();
+    this.onChange = fn;
+  }
+
+  registerOnTouched(fn: () => void): void {
+    this.formsApiUsed = true;
+    this.assertSingleBindingApi();
+    this.onTouched = fn;
+  }
+
+  setDisabledState(isDisabled: boolean): void {
+    this.disabled.set(isDisabled);
+    if (isDisabled) {
+      this.open.set(false);
+    }
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['value']) {
+      this.legacyBindingUsed = true;
+      this.assertSingleBindingApi();
+    }
+  }
+
+  private assertSingleBindingApi(): void {
+    if (this.legacyBindingUsed && this.formsApiUsed) {
+      throw new Error(
+        'CurrencyCombobox cannot use value binding and Angular Forms on the same instance.',
+      );
+    }
   }
 
   private loadMore(): void {
@@ -177,6 +252,7 @@ export class CurrencyCombobox {
 
   private select(currency: Currency): void {
     this.value.set(currency.code);
+    this.onChange(currency.code);
     this.query.set('');
     this.activeIndex.set(-1);
     this.open.set(false);

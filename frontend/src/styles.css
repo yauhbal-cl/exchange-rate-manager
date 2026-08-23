@@ -1,1 +1,19 @@
-@import "tailwindcss";
+@import 'tailwindcss';
+
+:root {
+  --app-page-bg: #f6f7f9;
+  --app-surface: #ffffff;
+  --app-surface-subtle: #f9fafb;
+  --app-text: #18202a;
+  --app-muted: #667085;
+  --app-border: #e4e7ec;
+  --app-accent: #5b61d6;
+  --app-accent-soft: #f1f2ff;
+  --app-positive: #18794e;
+  --app-negative: #b42318;
+  --app-page-max-width: 1440px;
+  --app-card-radius: 16px;
+  --app-card-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+  --app-state-error-border: #fecdca;
+  --app-state-error-bg: #fffbfa;
+}

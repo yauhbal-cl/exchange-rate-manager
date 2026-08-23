@@ -5,6 +5,5 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
   selector: 'app-shell',
   imports: [RouterLink, RouterLinkActive, RouterOutlet],
   templateUrl: './shell.html',
-  styleUrl: './shell.css',
 })
 export class Shell {}
