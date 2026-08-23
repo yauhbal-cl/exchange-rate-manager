@@ -74,7 +74,7 @@ on a tie). Reload repeatedly — identical every time.
 
 > Write these first and confirm they fail before implementing
 
-- [ ] T010 [P] [US1] Create `frontend/src/app/features/usage-analytics/usage-metrics.spec.ts` with `computeUsageSummary` specs: total over **all** entries (including entries a 10-row cap would drop), `queriedCurrencyCount` excluding `queryCount === 0`, `mostQueried` highest-count selection, alphabetical tie-break, `mostQueried === null` when nothing was ever queried, and the empty-array case (data-model.md §2.1, US1 scenarios 1–4).
+- [X] T010 [P] [US1] Create `frontend/src/app/features/usage-analytics/usage-metrics.spec.ts` with `computeUsageSummary` specs: total over **all** entries (including entries a 10-row cap would drop), `queriedCurrencyCount` excluding `queryCount === 0`, `mostQueried` highest-count selection, alphabetical tie-break, `mostQueried === null` when nothing was ever queried, and the empty-array case (data-model.md §2.1, US1 scenarios 1–4).
 
 ### Implementation for User Story 1
 
