@@ -164,6 +164,13 @@ export class HistoricalRates {
       : null,
   );
 
+  protected swap(): void {
+    const base = this.baseCurrency();
+    const quote = this.quoteCurrency();
+    this.baseCurrency.set(quote);
+    this.quoteCurrency.set(base);
+  }
+
   protected readonly presets = PERIOD_PRESETS;
   protected readonly period = signal<PeriodSelection>({ kind: 'preset', id: '1M' });
 
