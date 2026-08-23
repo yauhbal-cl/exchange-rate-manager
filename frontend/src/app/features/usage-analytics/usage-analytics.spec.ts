@@ -109,6 +109,39 @@ const EXPECTED_UNCAPPED_ROWS: readonly { code: string; count: number }[] = [
   { code: 'CAD', count: 75 },
 ];
 
+/**
+ * POPULATED_ENTRIES ranked by recency (last-queried DESC), capped at the eight entries the recent-
+ * activity panel displays — spelled out rather than re-derived, so a regression in the component's
+ * ordering can't be mirrored by the expectation. Note this is a different order from
+ * EXPECTED_TOP_TEN_CODES: the fixture's counts and timestamps deliberately disagree, so a panel
+ * accidentally fed the count ranking fails here.
+ */
+const EXPECTED_RECENT_CODES: readonly string[] = [
+  'USD', // 2026-08-23T09:00Z
+  'EUR', // 2026-08-23T07:30Z
+  'JPY', // 2026-08-23T06:00Z
+  'GBP', // 2026-08-22T10:00Z
+  'CHF', // 2026-08-22T08:00Z
+  'AUD', // 2026-08-21T12:00Z
+  'CAD', // 2026-08-21T08:00Z
+  'CNY', // 2026-08-20T08:00Z
+];
+
+/** Queried, but older than the eight above, so the FR-011 cap keeps them out of the panel. */
+const EXPECTED_STALE_CODES: readonly string[] = ['SEK', 'NZD', 'MXN', 'NOK', 'PLN'];
+
+/**
+ * The FR-011 edge case the two panels must disagree on: SEK has been queried 640 times but carries
+ * no recorded last-queried time, so it is a real breakdown row yet has no place in a list ordered
+ * by recency. NOK is the ordinary never-queried case, absent from both.
+ */
+const NULL_TIMESTAMP_ENTRIES: readonly CurrencyUsageEntry[] = [
+  { currencyCode: 'USD', queryCount: 4210, lastQueriedAt: '2026-08-23T09:00:00Z' },
+  { currencyCode: 'SEK', queryCount: 640, lastQueriedAt: null },
+  { currencyCode: 'NOK', queryCount: 0, lastQueriedAt: null },
+  { currencyCode: 'EUR', queryCount: 3120, lastQueriedAt: '2026-08-23T07:30:00Z' },
+];
+
 /** Every known currency present but never looked up (US1 scenario 4, data-model.md §5). */
 const NOTHING_QUERIED_ENTRIES: readonly CurrencyUsageEntry[] = ['USD', 'EUR', 'GBP', 'JPY'].map(
   (currencyCode) => ({ currencyCode, queryCount: 0, lastQueriedAt: null }),
@@ -156,6 +189,17 @@ function neverQueriedFootnote(fixture: { nativeElement: HTMLElement }): string {
   const footnote = fixture.nativeElement.querySelector('[data-testid="never-queried-footnote"]');
   expect(footnote, 'expected the never-queried footnote to be rendered').not.toBeNull();
   return normalize(footnote?.textContent);
+}
+
+/** The recent-activity entries in DOM order — newest first according to FR-010. */
+function recentEntries(fixture: { nativeElement: HTMLElement }): HTMLElement[] {
+  return Array.from(
+    fixture.nativeElement.querySelectorAll<HTMLElement>('[data-testid="recent-entry"]'),
+  );
+}
+
+function recentCodes(fixture: { nativeElement: HTMLElement }): string[] {
+  return recentEntries(fixture).map((entry) => entry.getAttribute('data-code') ?? '');
 }
 
 async function renderWith(
@@ -377,5 +421,58 @@ describe('UsageAnalytics', () => {
     const footnote = neverQueriedFootnote(fixture);
     expect(footnote).toContain(displayCount(NOTHING_QUERIED_ENTRIES.length));
     expect(footnote).toMatch(/never been queried/i);
+  });
+
+  it('renders only the eight newest recent entries in descending timestamp order (FR-010, FR-011)', async () => {
+    const fixture = await renderWith(getUsageAnalytics, POPULATED_ENTRIES);
+
+    expect(recentEntries(fixture)).toHaveLength(EXPECTED_RECENT_CODES.length);
+    expect(recentCodes(fixture)).toEqual([...EXPECTED_RECENT_CODES]);
+    for (const staleCode of EXPECTED_STALE_CODES) {
+      expect(recentCodes(fixture)).not.toContain(staleCode);
+    }
+  });
+
+  it('keeps each recent instant verbatim and exposes its absolute local date-time (FR-012a, FR-025)', async () => {
+    const fixture = await renderWith(getUsageAnalytics, POPULATED_ENTRIES);
+    const sourceByCode = new Map(
+      POPULATED_ENTRIES.map((entry) => [entry.currencyCode, entry] as const),
+    );
+    const absoluteFormat = new Intl.DateTimeFormat(undefined, {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    });
+
+    recentEntries(fixture).forEach((entry) => {
+      const code = entry.getAttribute('data-code') ?? '';
+      const source = sourceByCode.get(code);
+      const time = entry.querySelector('time');
+
+      expect(source?.lastQueriedAt).not.toBeNull();
+      expect(time, `expected ${code} to render a time element`).not.toBeNull();
+      expect(time?.getAttribute('datetime')).toBe(source?.lastQueriedAt);
+      expect(time?.getAttribute('title')).toBe(
+        absoluteFormat.format(new Date(source?.lastQueriedAt as string)),
+      );
+      expect(normalize(time?.textContent)).not.toBe('');
+    });
+  });
+
+  it('excludes null timestamps even when queried while retaining the breakdown row (FR-011)', async () => {
+    const fixture = await renderWith(getUsageAnalytics, NULL_TIMESTAMP_ENTRIES);
+
+    expect(recentCodes(fixture)).toEqual(['USD', 'EUR']);
+    expect(recentCodes(fixture)).not.toContain('SEK');
+    expect(recentCodes(fixture)).not.toContain('NOK');
+    expect(rowCodes(fixture)).toContain('SEK');
+  });
+
+  it('shows an explicit recent-activity message instead of an empty list (FR-013)', async () => {
+    const fixture = await renderWith(getUsageAnalytics, NOTHING_QUERIED_ENTRIES);
+    const empty = fixture.nativeElement.querySelector('[data-testid="recent-empty"]');
+
+    expect(recentEntries(fixture)).toHaveLength(0);
+    expect(empty).not.toBeNull();
+    expect(normalize(empty?.textContent)).toMatch(/no currency has been queried yet/i);
   });
 });
