@@ -526,3 +526,39 @@ describe('buildRecentActivity', () => {
     expect(entries).toEqual(snapshot);
   });
 });
+
+describe('usage derivation determinism (SC-006, INV-6)', () => {
+  it('produces identical complete views repeatedly without mutating the resource input', () => {
+    const now = new Date('2026-08-23T12:00:00Z');
+    const entries: CurrencyUsageEntry[] = [
+      { currencyCode: 'USD', queryCount: 12, lastQueriedAt: '2026-08-23T11:00:00Z' },
+      { currencyCode: 'AUD', queryCount: 3, lastQueriedAt: null },
+      { currencyCode: 'EUR', queryCount: 12, lastQueriedAt: '2026-08-23T11:00:00Z' },
+      { currencyCode: 'CHF', queryCount: 12, lastQueriedAt: '2026-08-23T11:00:00Z' },
+      { currencyCode: 'GBP', queryCount: 0, lastQueriedAt: null },
+    ];
+    const inputSnapshot = entries.map((item) => ({ ...item }));
+    const derive = () => ({
+      summary: computeUsageSummary(entries),
+      breakdown: buildBreakdownView(entries),
+      recentActivity: buildRecentActivity(entries, now),
+    });
+
+    const first = derive();
+    const second = derive();
+
+    expect(second).toEqual(first);
+    expect(second.summary.mostQueried).toEqual({ currencyCode: 'CHF', queryCount: 12 });
+    expect(second.breakdown.rows.map((row) => row.currencyCode)).toEqual([
+      'CHF',
+      'EUR',
+      'USD',
+      'AUD',
+    ]);
+    expect(second.recentActivity.map((item) => item.currencyCode)).toEqual(['CHF', 'EUR', 'USD']);
+    expect(second.recentActivity.map((item) => item.relativePhrase)).toEqual(
+      first.recentActivity.map((item) => item.relativePhrase),
+    );
+    expect(entries).toEqual(inputSnapshot);
+  });
+});
