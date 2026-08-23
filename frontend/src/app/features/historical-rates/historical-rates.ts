@@ -4,6 +4,12 @@ import { ExchangeRateAnalyticsService } from '../../api-client';
 import { CurrencyCombobox } from '../rate-lookup/currency-combobox';
 import type { Currency } from '../rate-lookup/currencies';
 import { resolveRange, todayIso, type PeriodSelection } from './period-presets';
+import {
+  computeLatest,
+  computePeriodChange,
+  computePeriodHigh,
+  computePeriodLow,
+} from './trend-metrics';
 
 interface TrendRequest {
   from: string;
@@ -40,6 +46,43 @@ interface TrendRequest {
 
       @if (pairError()) {
         <p class="mt-2 text-amber-700">{{ pairError() }}</p>
+      }
+
+      @if (points().length > 0) {
+        <div class="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <div>
+            <p class="text-sm text-gray-500">Latest rate</p>
+            <p class="text-xl font-semibold text-gray-900">{{ latest()?.display }}</p>
+          </div>
+          <div>
+            <p class="text-sm text-gray-500">Period change</p>
+            @if (periodChange(); as change) {
+              <p
+                class="text-xl font-semibold"
+                [class.text-green-700]="!change.value.isNegative()"
+                [class.text-red-700]="change.value.isNegative()"
+              >
+                {{ change.percent }}
+              </p>
+            } @else {
+              <p class="text-xl font-semibold text-gray-400">—</p>
+            }
+          </div>
+          <div>
+            <p class="text-sm text-gray-500">Period high</p>
+            <p class="text-xl font-semibold text-gray-900">{{ periodHigh()?.display }}</p>
+            <p class="text-xs text-gray-500">{{ periodHigh()?.date }}</p>
+          </div>
+          <div>
+            <p class="text-sm text-gray-500">Period low</p>
+            <p class="text-xl font-semibold text-gray-900">{{ periodLow()?.display }}</p>
+            <p class="text-xs text-gray-500">{{ periodLow()?.date }}</p>
+          </div>
+        </div>
+      } @else {
+        <p class="mt-6 text-gray-500" data-testid="metrics-no-data">
+          No historical rate data for this pair and period.
+        </p>
       }
     </div>
   `,
@@ -78,4 +121,10 @@ export class HistoricalRates {
         params.endDate,
       ),
   });
+
+  protected readonly points = computed(() => this.trend.value()?.points ?? []);
+  protected readonly latest = computed(() => computeLatest(this.points()));
+  protected readonly periodChange = computed(() => computePeriodChange(this.points()));
+  protected readonly periodHigh = computed(() => computePeriodHigh(this.points()));
+  protected readonly periodLow = computed(() => computePeriodLow(this.points()));
 }
