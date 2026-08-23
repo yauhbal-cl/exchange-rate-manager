@@ -34,7 +34,7 @@
       </div>
       <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
         <div
-          class="currency-row grid grid-cols-[minmax(0,1fr)_42px_minmax(0,1fr)] items-end gap-2.5 max-[640px]:grid-cols-[1fr_42px] [&>div:last-child]:max-[640px]:col-span-full"
+          class="currency-row grid grid-cols-[minmax(0,1fr)_42px_minmax(0,1fr)] items-start gap-2.5 max-[640px]:grid-cols-[1fr_42px] [&>div:last-child]:max-[640px]:col-span-full"
         >
           <div>
             <app-currency-combobox
@@ -53,7 +53,7 @@
           </div>
           <button
             type="button"
-            class="swap-button size-[42px] cursor-pointer rounded-[10px] border border-[#d0d5dd] bg-white text-lg text-[#475467] hover:not-disabled:bg-[#fafafa] disabled:cursor-not-allowed disabled:opacity-45 max-[640px]:col-start-2 max-[640px]:row-start-1"
+            class="swap-button mt-[22px] size-[42px] cursor-pointer rounded-[10px] border border-[#d0d5dd] bg-white text-lg text-[#475467] hover:not-disabled:bg-[#fafafa] disabled:cursor-not-allowed disabled:opacity-45 max-[640px]:col-start-2 max-[640px]:row-start-1"
             aria-label="Swap currencies"
             [disabled]="form.disabled || !form.controls.from.value || !form.controls.to.value"
             (click)="swapCurrencies()"

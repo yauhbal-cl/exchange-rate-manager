@@ -173,6 +173,18 @@ describe('RateLookup', () => {
     );
   });
 
+  it('top-aligns currency fields so a field error does not move the other input', () => {
+    const fixture = TestBed.createComponent(RateLookup);
+    fixture.detectChanges();
+
+    const currencyRow: HTMLElement = fixture.nativeElement.querySelector('.currency-row');
+    const swapButton: HTMLElement = fixture.nativeElement.querySelector('.swap-button');
+
+    expect(currencyRow.classList).toContain('items-start');
+    expect(currencyRow.classList).not.toContain('items-end');
+    expect(swapButton.classList).toContain('mt-[22px]');
+  });
+
   it('shows a validation message and blocks submit when the date is after today', () => {
     const fixture = TestBed.createComponent(RateLookup);
     fixture.detectChanges();
