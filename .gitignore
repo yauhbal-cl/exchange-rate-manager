@@ -37,6 +37,7 @@ frontend/.angular/
 frontend/coverage/
 
 # Environment
+.env*
 .env
 .env.local
 .env.*.local
