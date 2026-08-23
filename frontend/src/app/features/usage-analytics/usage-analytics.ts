@@ -11,9 +11,30 @@ import { ExchangeRateUsageAnalyticsService, type CurrencyUsageEntry } from '../.
       <!-- Page header: T012. KPI row: T013. Breakdown / recent-activity panels: T021 / T029. -->
       <div class="data-area">
         @if (isLoading()) {
-          <!-- Loading indication (FR-015): T007 -->
+          <!--
+            FR-015: the sole content of the data area while the request is in flight — no KPI
+            markup, no zeros, no empty states, so there is never a flash of fabricated values.
+          -->
+          <div
+            class="card usage-state usage-state-loading"
+            data-testid="usage-loading"
+            role="status"
+          >
+            <span class="usage-spinner" aria-hidden="true"></span>
+            <strong>Loading usage analytics</strong>
+            <p>Gathering query activity across all currencies…</p>
+          </div>
         } @else if (hasError()) {
-          <!-- Single error message replacing all data sections (FR-014, FR-015a): T007 -->
+          <!--
+            FR-014 / FR-015a: one message replacing all three data sections. An HTTP failure and
+            the 10 s timeout land here identically — the copy deliberately does not distinguish
+            them — and no value is shown, not even a zero.
+          -->
+          <div class="card usage-state usage-state-error" data-testid="usage-error" role="alert">
+            <span class="usage-state-icon" aria-hidden="true">!</span>
+            <strong>Usage analytics unavailable</strong>
+            <p>We couldn't load query activity right now. Please try again later.</p>
+          </div>
         } @else if (isEmpty()) {
           <!-- Zero known currencies: KPI zeros + panel empty states (FR-013): T013 / T021 / T029 -->
         } @else if (isPopulated()) {
