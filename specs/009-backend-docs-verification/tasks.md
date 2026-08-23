@@ -106,7 +106,7 @@ example request/response and documented error case match the live backend's actu
 - [x] T010 [US2] Audit `/exchange/trend` and `/exchange/trend/insight` in `contracts/openapi.yaml`
       against `ExchangeController.java`, including the AI-unavailable degrade error path
       (Constitution Principle VIII); fix any drift in `contracts/openapi.yaml`.
-- [ ] T011 [US2] Run `cd backend && ./mvnw generate-sources` after T008-T010 and confirm the
+- [X] T011 [US2] Run `cd backend && ./mvnw generate-sources` after T008-T010 and confirm the
       controllers still compile against the regenerated server interfaces with zero hand edits to
       generated code (FR-004 sanity check).
 - [ ] T012 [US2] Run quickstart.md Scenario 2 against the running backend: for each of the 6
