@@ -154,7 +154,7 @@ signal when required infra is missing.
 **Purpose**: Close the one remaining functional requirement that cuts across all three stories
 (FR-008) and do a final combined sign-off.
 
-- [ ] T017 Review `README.md` and `CLAUDE.md` backend-relevant sections for any capability described
+- [X] T017 Review `README.md` and `CLAUDE.md` backend-relevant sections for any capability described
       as future/planned that is actually already implemented, or vice versa — in particular
       `README.md`'s Architecture line "AI: Ollama + Spring AI (for later features)", which is stale
       now that the AI trend insight feature (specs/006-ai-trend-insight) is done; correct the wording

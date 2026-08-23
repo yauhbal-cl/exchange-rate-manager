@@ -77,7 +77,7 @@ The shared OpenAPI contract (`contracts/openapi.yaml`) is the single source of t
 - **Frontend**: Angular standalone components, zoneless change detection, Tailwind CSS for styling
 - **Contract**: OpenAPI 3.0.3 + TypeScript/Java codegen ensures type safety across boundaries
 - **Database**: PostgreSQL 17 (via Docker Compose)
-- **AI**: Ollama + Spring AI (for later features)
+- **AI**: Ollama + Spring AI power the `/exchange/trend/insight` endpoint, which generates a data-grounded narrative commentary on a requested trend period
 
 ## Environment Configuration
 
