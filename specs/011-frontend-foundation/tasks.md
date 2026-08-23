@@ -128,7 +128,7 @@ still visible.
 
 ### Tests for User Story 1 (per quickstart.md "Automated checks")
 
-- [ ] T010 [P] [US1] Add Vitest test `frontend/src/app/shell/shell.spec.ts` verifying that when the
+- [X] T010 [P] [US1] Add Vitest test `frontend/src/app/shell/shell.spec.ts` verifying that when the
       router's active URL matches a nav entry's `routerLink`, that entry's rendered anchor carries
       `aria-current="page"` (via `routerLinkActive`'s `ariaCurrentWhenActive`) and the other two
       entries do not. Depends on T007.
