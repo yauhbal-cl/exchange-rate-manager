@@ -105,6 +105,18 @@ describe('HistoricalRates', () => {
     expect(fixture.nativeElement.textContent).toContain('0.9500000000');
   });
 
+  it('renders the chart in its own full-width block, not a side-by-side split column (FR-001, FR-004)', async () => {
+    getExchangeRateTrend.mockReturnValue(of(trendResponse()));
+
+    const fixture = TestBed.createComponent(HistoricalRates);
+    fixture.detectChanges();
+    await flush(fixture);
+
+    const html: string = fixture.nativeElement.innerHTML;
+    expect(html).not.toContain('lg:grid-cols-3');
+    expect(html).not.toContain('lg:col-span-2');
+  });
+
   it('fires exactly one new request and updates metrics/chart together when the pair changes (Acceptance Scenario 3, SC-001)', async () => {
     getExchangeRateTrend
       .mockReturnValueOnce(of(trendResponse()))
