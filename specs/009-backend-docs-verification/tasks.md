@@ -73,7 +73,7 @@ undocumented step.
       instance) and `AI_INSIGHT_TIMEOUT_SECONDS` (default `30`, read-timeout for AI insight calls)
       — both currently read from `backend/src/main/resources/application.yml` but undocumented
       (research.md R5).
-- [ ] T006 [US1] Diff every `${VAR:default}` placeholder in
+- [X] T006 [US1] Diff every `${VAR:default}` placeholder in
       `backend/src/main/resources/application.yml` against `README.md`'s Environment Configuration
       section in both directions; fix any gap beyond the two already identified in T005 (FR-002).
 - [ ] T007 [US1] Run quickstart.md Scenario 1 end-to-end starting from `docker compose down -v`
