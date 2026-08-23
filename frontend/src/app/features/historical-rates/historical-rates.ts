@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { ExchangeRateAIInsightService, ExchangeRateAnalyticsService } from '../../api-client';
 import { CurrencyCombobox } from '../rate-lookup/currency-combobox';
@@ -250,4 +250,11 @@ export class HistoricalRates {
         params.endDate,
       ),
   });
+
+  constructor() {
+    effect(() => {
+      this.pairAndRange();
+      this.aiRequest.set(undefined);
+    });
+  }
 }
