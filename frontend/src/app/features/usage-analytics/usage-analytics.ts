@@ -2,12 +2,18 @@ import { Component, computed, inject } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { timeout } from 'rxjs';
 import { ExchangeRateUsageAnalyticsService, type CurrencyUsageEntry } from '../../api-client';
+import { RecentActivityPanel } from './recent-activity-panel';
 import { UsageBreakdownPanel } from './usage-breakdown-panel';
-import { buildBreakdownView, computeUsageSummary, formatCount } from './usage-metrics';
+import {
+  buildBreakdownView,
+  buildRecentActivity,
+  computeUsageSummary,
+  formatCount,
+} from './usage-metrics';
 
 @Component({
   selector: 'app-usage-analytics',
-  imports: [UsageBreakdownPanel],
+  imports: [UsageBreakdownPanel, RecentActivityPanel],
   styleUrl: './usage-analytics.css',
   template: `
     <main class="usage-page">
@@ -106,7 +112,14 @@ import { buildBreakdownView, computeUsageSummary, formatCount } from './usage-me
             -->
             <app-usage-breakdown-panel [view]="breakdown()" />
 
-            <!-- Recent activity panel (right, narrower column): T029. -->
+            <!--
+              ui-contract behavioral rule 10 / FR-012: the elapsed-time phrases are computed against
+              a now captured once at construction and never advanced — so they don't tick while the
+              page is open and a re-render reproduces the same wording. Second in DOM order, which
+              is also the ≤900 px stack order (KPI → breakdown → recent activity), reached without
+              any CSS order override. Renders in the empty state too, showing its own empty state.
+            -->
+            <app-recent-activity-panel [entries]="recentActivity()" />
           </div>
         }
       </div>
@@ -175,6 +188,16 @@ export class UsageAnalytics {
    * the full set (INV-2).
    */
   protected readonly breakdown = computed(() => buildBreakdownView(this.entries()));
+
+  /**
+   * The recent-activity panel's view model (data-model.md §2.3), from the same `entries()` signal
+   * again, plus the construction-time `now`. Passing that stored field — never a fresh `new Date()`
+   * — is what makes the elapsed-time phrases stable for the life of the page: this computed only
+   * re-runs when `entries()` changes, and even then it measures against the same instant (FR-012,
+   * ui-contract behavioral rule 10). Filtering out never-queried currencies and the row cap both
+   * live inside `buildRecentActivity` (FR-011).
+   */
+  protected readonly recentActivity = computed(() => buildRecentActivity(this.entries(), this.now));
 
   /** The shared locale count formatter, applied at render time only (FR-019, data-model.md §4). */
   protected readonly formatCount = formatCount;
