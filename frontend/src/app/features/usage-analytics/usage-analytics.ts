@@ -2,10 +2,12 @@ import { Component, computed, inject } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { timeout } from 'rxjs';
 import { ExchangeRateUsageAnalyticsService, type CurrencyUsageEntry } from '../../api-client';
-import { computeUsageSummary, formatCount } from './usage-metrics';
+import { UsageBreakdownPanel } from './usage-breakdown-panel';
+import { buildBreakdownView, computeUsageSummary, formatCount } from './usage-metrics';
 
 @Component({
   selector: 'app-usage-analytics',
+  imports: [UsageBreakdownPanel],
   styleUrl: './usage-analytics.css',
   template: `
     <main class="usage-page">
@@ -19,7 +21,7 @@ import { computeUsageSummary, formatCount } from './usage-metrics';
         <p>An overview of query activity across every currency the system tracks.</p>
       </header>
 
-      <!-- KPI row: T013. Breakdown / recent-activity panels: T021 / T029. -->
+      <!-- KPI row: T013. Breakdown panel: T021. Recent-activity panel: T029. -->
       <div class="data-area">
         @if (isLoading()) {
           <!--
@@ -50,8 +52,9 @@ import { computeUsageSummary, formatCount } from './usage-metrics';
           <!--
             Resolved: empty and populated share this branch because the KPI row renders in both
             (data-model.md §5 — the empty page reads 0 / 0 / explicit none, which is real data, not
-            a fabricated value). Only the panels differ between the two, so the isEmpty() /
-            isPopulated() split lives inside, below the row.
+            a fabricated value). The panels render here too: per data-model.md §5 the empty page
+            shows *both panels' own* empty states, which is what their view models produce from an
+            empty entry set — so neither is gated on isPopulated().
 
             FR-002 / FR-024: a real <section> labelled by a visible eyebrow-style <h2> rather than
             an sr-only one (research.md §7), so heading navigation and the visual hierarchy agree.
@@ -89,11 +92,22 @@ import { computeUsageSummary, formatCount } from './usage-metrics';
             </div>
           </section>
 
-          @if (isEmpty()) {
-            <!-- No usage records at all: both panels' empty states (FR-013): T021 / T029 -->
-          } @else if (isPopulated()) {
-            <!-- Breakdown + recent activity, in the two-column grid: T021 / T029 -->
-          }
+          <!--
+            ui-contract §Layout order 3: breakdown on the left (visibly wider), recent activity on
+            the right, collapsing to one column at ≤900 px. This wrapper only fixes DOM order —
+            the grid CSS itself is T031.
+          -->
+          <div class="panel-grid">
+            <!--
+              FR-005a / ui-contract behavioral rule 1: fed from the same entries() signal as the
+              KPI row above — one response per page load, so the panel and the cards can never
+              disagree. When entries() is empty the view model is empty too, and the panel renders
+              its own empty state with the never-queried footnote intact (data-model.md §5).
+            -->
+            <app-usage-breakdown-panel [view]="breakdown()" />
+
+            <!-- Recent activity panel (right, narrower column): T029. -->
+          </div>
         }
       </div>
     </main>
@@ -139,6 +153,10 @@ export class UsageAnalytics {
     () => !this.isLoading() && !this.hasError() && this.usage.hasValue(),
   );
 
+  // Empty and populated share one template branch: the KPI row and both panels render in each,
+  // differing only in the values their view models produce (data-model.md §5). These two stay as
+  // the named, testable form of that distinction rather than as template gates.
+
   protected readonly isEmpty = computed(() => this.isResolved() && this.entries().length === 0);
 
   protected readonly isPopulated = computed(() => this.isResolved() && this.entries().length > 0);
@@ -148,6 +166,15 @@ export class UsageAnalytics {
    * cap is applied before this point, so the cards describe the whole system (FR-005a, INV-2).
    */
   protected readonly summary = computed(() => computeUsageSummary(this.entries()));
+
+  /**
+   * The breakdown panel's view model (data-model.md §2.2), derived from the *same* `entries()`
+   * signal as `summary()` — one response drives both, which is what makes the KPI row and the
+   * panel structurally incapable of disagreeing (FR-005a, ui-contract behavioral rule 1). The
+   * 10-row cap lives inside `buildBreakdownView`, after the KPIs have already been computed over
+   * the full set (INV-2).
+   */
+  protected readonly breakdown = computed(() => buildBreakdownView(this.entries()));
 
   /** The shared locale count formatter, applied at render time only (FR-019, data-model.md §4). */
   protected readonly formatCount = formatCount;
