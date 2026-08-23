@@ -51,6 +51,7 @@ h2 {
    never ends on a stray rule (FR-018). */
 [data-testid='recent-entry'] {
   display: grid;
+  min-width: 0;
   grid-template-columns: minmax(0, auto) minmax(0, 1fr);
   align-items: baseline;
   column-gap: 12px;

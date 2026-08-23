@@ -51,6 +51,7 @@ h2 {
 }
 .breakdown-row {
   display: grid;
+  min-width: 0;
   /* Fallback first for engines without subgrid; where subgrid is supported it wins and the row
      borrows the list's tracks instead of sizing its own. */
   grid-template-columns: 44px minmax(0, 1fr) auto;
