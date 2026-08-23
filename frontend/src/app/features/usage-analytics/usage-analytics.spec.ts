@@ -60,6 +60,55 @@ const POPULATED_ENTRIES: readonly CurrencyUsageEntry[] = [
   { currencyCode: 'BRL', queryCount: 0, lastQueriedAt: null },
 ];
 
+/**
+ * The FR-006 ranking of POPULATED_ENTRIES, capped at the 10 rows the panel displays — spelled out
+ * rather than re-derived, so a regression in the component's ordering can't be mirrored by the
+ * expectation. The three queried currencies below the cut are listed separately.
+ */
+const EXPECTED_TOP_TEN_CODES: readonly string[] = [
+  'USD', // 4210
+  'EUR', // 3120
+  'JPY', // 2050
+  'GBP', // 1875
+  'CHF', // 1440
+  'AUD', // 1310
+  'CAD', // 980
+  'CNY', // 870
+  'SEK', // 760
+  'NZD', // 640
+];
+
+/** Queried, but ranked 11th-13th, so the FR-009 cap keeps them out of the rows. */
+const EXPECTED_DROPPED_CODES: readonly string[] = ['MXN', 'NOK', 'PLN'];
+
+/**
+ * Seven queried currencies — below the FR-009 cap, so every queried entry becomes a row and the
+ * "top N of M" note stays away — with two deliberate count ties (900 and 150) that pin the
+ * `currencyCode` ASC tie-break, plus two never-queried entries. Unsorted on purpose.
+ */
+const UNCAPPED_ENTRIES: readonly CurrencyUsageEntry[] = [
+  { currencyCode: 'USD', queryCount: 900, lastQueriedAt: '2026-08-23T09:00:00Z' },
+  { currencyCode: 'GBP', queryCount: 150, lastQueriedAt: '2026-08-20T09:00:00Z' },
+  { currencyCode: 'SEK', queryCount: 0, lastQueriedAt: null },
+  { currencyCode: 'EUR', queryCount: 1500, lastQueriedAt: '2026-08-23T08:00:00Z' },
+  { currencyCode: 'CAD', queryCount: 75, lastQueriedAt: '2026-08-18T09:00:00Z' },
+  { currencyCode: 'CHF', queryCount: 900, lastQueriedAt: '2026-08-22T09:00:00Z' },
+  { currencyCode: 'NOK', queryCount: 0, lastQueriedAt: null },
+  { currencyCode: 'AUD', queryCount: 150, lastQueriedAt: '2026-08-21T09:00:00Z' },
+  { currencyCode: 'JPY', queryCount: 420, lastQueriedAt: '2026-08-22T06:00:00Z' },
+];
+
+/** UNCAPPED_ENTRIES ranked by FR-006: count DESC, then code ASC on the 900 and 150 ties. */
+const EXPECTED_UNCAPPED_ROWS: readonly { code: string; count: number }[] = [
+  { code: 'EUR', count: 1500 },
+  { code: 'CHF', count: 900 },
+  { code: 'USD', count: 900 },
+  { code: 'JPY', count: 420 },
+  { code: 'AUD', count: 150 },
+  { code: 'GBP', count: 150 },
+  { code: 'CAD', count: 75 },
+];
+
 /** Every known currency present but never looked up (US1 scenario 4, data-model.md §5). */
 const NOTHING_QUERIED_ENTRIES: readonly CurrencyUsageEntry[] = ['USD', 'EUR', 'GBP', 'JPY'].map(
   (currencyCode) => ({ currencyCode, queryCount: 0, lastQueriedAt: null }),
@@ -90,6 +139,23 @@ function kpiCard(fixture: { nativeElement: HTMLElement }, testId: string): HTMLE
 /** The headline number/word of a KPI card, without its label or hint copy. */
 function kpiValue(fixture: { nativeElement: HTMLElement }, testId: string): string {
   return normalize(kpiCard(fixture, testId).querySelector('.kpi-value')?.textContent);
+}
+
+/** The breakdown rows in DOM order — the order the operator reads them in (FR-006). */
+function breakdownRows(fixture: { nativeElement: HTMLElement }): HTMLElement[] {
+  return Array.from(
+    fixture.nativeElement.querySelectorAll<HTMLElement>('[data-testid="breakdown-row"]'),
+  );
+}
+
+function rowCodes(fixture: { nativeElement: HTMLElement }): string[] {
+  return breakdownRows(fixture).map((row) => row.getAttribute('data-code') ?? '');
+}
+
+function neverQueriedFootnote(fixture: { nativeElement: HTMLElement }): string {
+  const footnote = fixture.nativeElement.querySelector('[data-testid="never-queried-footnote"]');
+  expect(footnote, 'expected the never-queried footnote to be rendered').not.toBeNull();
+  return normalize(footnote?.textContent);
 }
 
 async function renderWith(
@@ -210,5 +276,106 @@ describe('UsageAnalytics', () => {
     const mostQueried = kpiValue(fixture, 'kpi-most-queried');
     expect(mostQueried).toBe('No currency queried yet');
     expect(normalize(kpiCard(fixture, 'kpi-most-queried').textContent)).not.toMatch(/\d/);
+  });
+
+  it('renders one breakdown row per queried currency, ranked by count then code (FR-006, US2 scenario 3)', async () => {
+    const fixture = await renderWith(getUsageAnalytics, UNCAPPED_ENTRIES);
+
+    const rows = breakdownRows(fixture);
+
+    // Below the display cap, so every queried currency is a row — and only those.
+    expect(rows).toHaveLength(EXPECTED_UNCAPPED_ROWS.length);
+    expect(rowCodes(fixture)).toEqual(EXPECTED_UNCAPPED_ROWS.map((row) => row.code));
+
+    // Each row carries its own code and count, in the same position as the ranking above.
+    rows.forEach((row, index) => {
+      const expected = EXPECTED_UNCAPPED_ROWS[index];
+      expect(normalize(row.querySelector('.row-code')?.textContent)).toBe(expected.code);
+      expect(normalize(row.querySelector('.row-count')?.textContent)).toBe(
+        displayCount(expected.count),
+      );
+    });
+
+    // FR-009: nothing was hidden, so there is no "top N of M" line to explain away.
+    expect(fixture.nativeElement.querySelector('.breakdown-note')).toBeNull();
+  });
+
+  it('gives never-queried currencies no row and no zero-length bar (FR-006, US2 scenario 4)', async () => {
+    const fixture = await renderWith(getUsageAnalytics, UNCAPPED_ENTRIES);
+
+    const neverQueried = UNCAPPED_ENTRIES.filter((entry) => entry.queryCount === 0);
+    expect(neverQueried.length).toBeGreaterThan(0); // guard: the fixture must exercise the case
+
+    const codes = rowCodes(fixture);
+    for (const entry of neverQueried) {
+      expect(codes).not.toContain(entry.currencyCode);
+    }
+
+    // Not merely absent from the codes: no row anywhere shows a zero count, and every rendered
+    // bar belongs to a row that has one (INV-3).
+    const counts = breakdownRows(fixture).map((row) =>
+      normalize(row.querySelector('.row-count')?.textContent),
+    );
+    expect(counts).not.toContain(displayCount(0));
+    expect(fixture.nativeElement.querySelectorAll('[data-testid="breakdown-bar"]')).toHaveLength(
+      codes.length,
+    );
+  });
+
+  it('states the never-queried figure for the whole payload, explicitly zero when there is none (FR-009a, US2 scenarios 4-5)', async () => {
+    const expectedNeverQueried = POPULATED_ENTRIES.filter((entry) => entry.queryCount === 0).length;
+    expect(expectedNeverQueried).toBeGreaterThan(0); // guard: the fixture must exercise the case
+
+    const fixture = await renderWith(getUsageAnalytics, POPULATED_ENTRIES);
+
+    // INV-4: counted across every entry, not just the ten displayed rows.
+    const footnote = neverQueriedFootnote(fixture);
+    expect(footnote).toContain(displayCount(expectedNeverQueried));
+    expect(footnote).toMatch(/never been queried/i);
+
+    // Scenario 5: with every known currency queried the figure is still stated, as an explicit
+    // zero rather than a blank or a dropped sentence.
+    const allQueried = POPULATED_ENTRIES.filter((entry) => entry.queryCount > 0);
+    const queriedFixture = await renderWith(getUsageAnalytics, allQueried);
+
+    const zeroFootnote = neverQueriedFootnote(queriedFixture);
+    expect(zeroFootnote).toContain(displayCount(0));
+    expect(zeroFootnote).toMatch(/never been queried/i);
+  });
+
+  it('caps the rows at ten and says it is showing the top 10 of 13 (FR-009, US2 scenario 3)', async () => {
+    const fixture = await renderWith(getUsageAnalytics, POPULATED_ENTRIES);
+
+    const queriedTotal = POPULATED_ENTRIES.filter((entry) => entry.queryCount > 0).length;
+    expect(queriedTotal).toBe(EXPECTED_TOP_TEN_CODES.length + EXPECTED_DROPPED_CODES.length);
+
+    // Only the highest-ranked ten, in rank order.
+    expect(breakdownRows(fixture)).toHaveLength(EXPECTED_TOP_TEN_CODES.length);
+    expect(rowCodes(fixture)).toEqual([...EXPECTED_TOP_TEN_CODES]);
+    for (const dropped of EXPECTED_DROPPED_CODES) {
+      expect(rowCodes(fixture)).not.toContain(dropped);
+    }
+
+    // The panel names both figures, so the operator knows the list is a subset and how big the
+    // whole set is — not just that something was hidden.
+    const note = normalize(fixture.nativeElement.querySelector('.breakdown-note')?.textContent);
+    expect(note).toContain(displayCount(EXPECTED_TOP_TEN_CODES.length));
+    expect(note).toContain(displayCount(queriedTotal));
+  });
+
+  it('shows the breakdown empty state with the footnote intact when nothing has been queried (FR-013, US2 scenario 6)', async () => {
+    const fixture = await renderWith(getUsageAnalytics, NOTHING_QUERIED_ENTRIES);
+
+    expect(fixture.nativeElement.querySelector('[data-testid="breakdown-empty"]')).not.toBeNull();
+
+    // No rows, and therefore no zero-length bars, rather than an empty list.
+    expect(breakdownRows(fixture)).toHaveLength(0);
+    expect(fixture.nativeElement.querySelectorAll('[data-testid="breakdown-bar"]')).toHaveLength(0);
+    expect(fixture.nativeElement.querySelector('.breakdown-note')).toBeNull();
+
+    // The footnote survives the empty state and still reports the real figure.
+    const footnote = neverQueriedFootnote(fixture);
+    expect(footnote).toContain(displayCount(NOTHING_QUERIED_ENTRIES.length));
+    expect(footnote).toMatch(/never been queried/i);
   });
 });

@@ -110,7 +110,7 @@ and the footnote's never-queried figure matches the payload.
 - [X] T019 [US2] Render the bar in `frontend/src/app/features/usage-analytics/usage-breakdown-panel.ts` as `[data-testid="breakdown-bar"][aria-hidden="true"]` — a track element with an inner fill bound via `[style.width.%]="row.proportionPercent"`, no `role="progressbar"`, no `aria-label`, no value conveyed by length alone (FR-008, FR-023, INV-5, research.md §6).
 - [X] T020 [P] [US2] Create `frontend/src/app/features/usage-analytics/usage-breakdown-panel.css`: panel border/padding on the shared token set, row grid (label / bar track / count), bar track + accent fill with a minimum visible fill width, and a visually subordinate footnote treatment (FR-009a, FR-018, research.md §6, §8).
 - [X] T021 [US2] Wire `UsageBreakdownPanel` into the populated branch of `frontend/src/app/features/usage-analytics/usage-analytics.ts`, passing `buildBreakdownView(entries)` computed from the same single response as the KPIs (FR-005a, ui-contract behavioral rule 1).
-- [ ] T022 [US2] Extend `frontend/src/app/features/usage-analytics/usage-analytics.spec.ts` with breakdown rendering specs: row order and count, no zero-count row, footnote figure, "top 10 of M" indication with >10 queried currencies, and the empty-state-with-footnote case (US2 scenarios 3–6).
+- [X] T022 [US2] Extend `frontend/src/app/features/usage-analytics/usage-analytics.spec.ts` with breakdown rendering specs: row order and count, no zero-count row, footnote figure, "top 10 of M" indication with >10 queried currencies, and the empty-state-with-footnote case (US2 scenarios 3–6).
 
 **Checkpoint**: User Stories 1 and 2 both work independently.
 
