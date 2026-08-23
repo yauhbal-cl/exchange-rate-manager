@@ -211,7 +211,7 @@ export class HistoricalRates {
   }
 
   protected readonly presets = PERIOD_PRESETS;
-  protected readonly period = signal<PeriodSelection>({ kind: 'preset', id: '1M' });
+  protected readonly period = signal<PeriodSelection>({ kind: 'preset', id: '7D' });
 
   protected selectPreset(id: PresetId): void {
     this.period.set({ kind: 'preset', id });

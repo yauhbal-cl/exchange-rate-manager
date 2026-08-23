@@ -74,14 +74,14 @@ describe('HistoricalRates', () => {
     });
   });
 
-  it('renders the summary metrics row before the chart for the default USD/EUR pair and 1M preset (FR-010)', async () => {
+  it('renders the summary metrics row before the chart for the default USD/EUR pair and 7D preset (FR-010)', async () => {
     getExchangeRateTrend.mockReturnValue(of(trendResponse()));
 
     const fixture = TestBed.createComponent(HistoricalRates);
     fixture.detectChanges();
     await flush(fixture);
 
-    const range = resolveRange({ kind: 'preset', id: '1M' }, todayIso());
+    const range = resolveRange({ kind: 'preset', id: '7D' }, todayIso());
     expect(getExchangeRateTrend).toHaveBeenCalledTimes(1);
     expect(getExchangeRateTrend).toHaveBeenCalledWith('USD', 'EUR', range.startDate, range.endDate);
 
@@ -280,7 +280,7 @@ describe('HistoricalRates', () => {
     swapButton.click();
     await flush(fixture);
 
-    const range = resolveRange({ kind: 'preset', id: '1M' }, todayIso());
+    const range = resolveRange({ kind: 'preset', id: '7D' }, todayIso());
     expect(getExchangeRateTrend).toHaveBeenCalledTimes(1);
     expect(getExchangeRateTrend).toHaveBeenCalledWith('EUR', 'USD', range.startDate, range.endDate);
   });
@@ -329,7 +329,7 @@ describe('HistoricalRates', () => {
     fixture.detectChanges();
     await flush(fixture);
 
-    const range = resolveRange({ kind: 'preset', id: '1M' }, todayIso());
+    const range = resolveRange({ kind: 'preset', id: '7D' }, todayIso());
     expect(getExchangeRateTrendInsight).toHaveBeenCalledTimes(1);
     expect(getExchangeRateTrendInsight).toHaveBeenCalledWith(
       'USD',

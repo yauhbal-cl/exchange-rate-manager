@@ -102,6 +102,7 @@ function buildConfig(
       scales: {
         x: {
           type: 'category',
+          offset: true,
           border: { display: false },
           grid: { display: false },
           ticks: {
@@ -115,6 +116,7 @@ function buildConfig(
         },
         y: {
           beginAtZero: false,
+          grace: '15%',
           border: { display: false },
           grid: { color: '#eef1f4' },
           ticks: { color: '#98a2b3', font: { size: 11 }, padding: 8 },
