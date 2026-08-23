@@ -1,4 +1,6 @@
-import { Component, computed, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
+import { rxResource } from '@angular/core/rxjs-interop';
+import { ExchangeRateAnalyticsService } from '../../api-client';
 import type { Currency } from '../rate-lookup/currencies';
 import { resolveRange, todayIso, type PeriodSelection } from './period-presets';
 
@@ -22,6 +24,8 @@ interface TrendRequest {
   `,
 })
 export class HistoricalRates {
+  private readonly exchangeRateAnalyticsService = inject(ExchangeRateAnalyticsService);
+
   protected readonly today = todayIso();
 
   protected readonly baseCurrency = signal<Currency['code']>('USD');
@@ -41,5 +45,16 @@ export class HistoricalRates {
     }
     const { startDate, endDate } = resolveRange(this.period(), this.today);
     return { from: this.baseCurrency(), to: this.quoteCurrency(), startDate, endDate };
+  });
+
+  protected readonly trend = rxResource({
+    params: () => this.pairAndRange(),
+    stream: ({ params }) =>
+      this.exchangeRateAnalyticsService.getExchangeRateTrend(
+        params.from,
+        params.to,
+        params.startDate,
+        params.endDate,
+      ),
   });
 }
