@@ -139,7 +139,7 @@ signal when required infra is missing.
       unchanged checkout; confirm both runs finish in under 10 minutes with the identical
       `BUILD SUCCESS`/`BUILD FAILURE` result (SC-003, FR-007), and that a failure (temporarily break
       one test to check) clearly names the failing class/phase (SC-004, FR-006).
-- [ ] T016 [US3] Run quickstart.md Scenario 4: `docker compose down`, then `./mvnw verify` again and
+- [X] T016 [US3] Run quickstart.md Scenario 4: `docker compose down`, then `./mvnw verify` again and
       confirm the Testcontainers-backed suite still passes on its own ephemeral Postgres
       (Constitution Principle X) with no unexplained failure; separately start the backend without
       Ollama running and confirm `/exchange/trend/insight` degrades to a clear, explicit error
