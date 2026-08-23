@@ -186,7 +186,7 @@ hand-written `HttpClient` calls exist anywhere in application code outside `api-
       fully rewritten, and confirm `cd frontend && npm run build` still compiles with no errors
       (no manual follow-up edits needed) — validates FR-010/FR-011/SC-003.
 
-- [ ] T015 [P] [US3] Run `git diff --stat frontend/src/app/api-client/` after the T014
+- [X] T015 [P] [US3] Run `git diff --stat frontend/src/app/api-client/` after the T014
       regeneration and confirm the changes are generator output only — no hand-authored diff
       survives inside that directory — validates FR-012.
 
