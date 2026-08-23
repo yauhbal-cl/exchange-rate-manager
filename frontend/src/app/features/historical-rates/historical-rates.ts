@@ -75,6 +75,33 @@ interface TrendRequest {
         }
       </div>
 
+      <div class="mt-3 flex flex-wrap items-end gap-4">
+        <label class="flex flex-col gap-1">
+          <span class="text-sm font-medium text-gray-700">Start</span>
+          <input
+            type="date"
+            name="range-start"
+            class="rounded border border-gray-300 px-3 py-2"
+            [value]="resolvedRange().startDate"
+            (change)="setRangeStart($any($event.target).value)"
+          />
+        </label>
+        <label class="flex flex-col gap-1">
+          <span class="text-sm font-medium text-gray-700">End</span>
+          <input
+            type="date"
+            name="range-end"
+            class="rounded border border-gray-300 px-3 py-2"
+            [value]="resolvedRange().endDate"
+            (change)="setRangeEnd($any($event.target).value)"
+          />
+        </label>
+      </div>
+
+      @if (periodError()) {
+        <p class="mt-2 text-amber-700">{{ periodError() }}</p>
+      }
+
       @if (points().length > 0) {
         <div class="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
           <div>
@@ -147,6 +174,16 @@ export class HistoricalRates {
   protected isActivePreset(id: PresetId): boolean {
     const period = this.period();
     return period.kind === 'preset' && period.id === id;
+  }
+
+  protected readonly resolvedRange = computed(() => resolveRange(this.period(), this.today));
+
+  protected setRangeStart(startDate: string): void {
+    this.period.set({ kind: 'custom', startDate, endDate: this.resolvedRange().endDate });
+  }
+
+  protected setRangeEnd(endDate: string): void {
+    this.period.set({ kind: 'custom', startDate: this.resolvedRange().startDate, endDate });
   }
 
   protected readonly periodError = computed<string | null>(() => {
