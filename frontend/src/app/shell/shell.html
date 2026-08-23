@@ -1,0 +1,36 @@
+<div class="min-h-screen bg-gray-50">
+  <header class="bg-white shadow">
+    <div class="max-w-7xl mx-auto px-4">
+      <nav class="flex gap-6">
+        <a
+          routerLink="/rate-lookup"
+          routerLinkActive="border-b-2 border-blue-600 text-blue-600"
+          ariaCurrentWhenActive="page"
+          class="px-1 py-4 text-gray-700 font-medium"
+        >
+          Rate Lookup
+        </a>
+        <a
+          routerLink="/usage-analytics"
+          routerLinkActive="border-b-2 border-blue-600 text-blue-600"
+          ariaCurrentWhenActive="page"
+          class="px-1 py-4 text-gray-700 font-medium"
+        >
+          Usage Analytics
+        </a>
+        <a
+          routerLink="/ai-insight"
+          routerLinkActive="border-b-2 border-blue-600 text-blue-600"
+          ariaCurrentWhenActive="page"
+          class="px-1 py-4 text-gray-700 font-medium"
+        >
+          AI Insight
+        </a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <router-outlet />
+  </main>
+</div>

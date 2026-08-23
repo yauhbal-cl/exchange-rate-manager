@@ -102,7 +102,7 @@ still visible.
       state per FR-014 (this endpoint also 503s when the AI backend is down; treat that the same as
       any other resource error)
 
-- [ ] T007 [P] [US1] Create app shell component: `frontend/src/app/shell/shell.ts` (class `Shell`,
+- [X] T007 [P] [US1] Create app shell component: `frontend/src/app/shell/shell.ts` (class `Shell`,
       selector `app-shell`), `frontend/src/app/shell/shell.html`, `frontend/src/app/shell/
       shell.css`. Template: a `<nav>` with three `routerLink` entries pointing at `/rate-lookup`,
       `/usage-analytics`, `/ai-insight` (labels: "Rate Lookup", "Usage Analytics", "AI Insight"),
