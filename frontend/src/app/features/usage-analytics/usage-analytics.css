@@ -186,13 +186,16 @@
   .usage-page {
     padding: 32px 24px 48px;
   }
+  .panel-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 @media (max-width: 640px) {
   .usage-page {
     padding: 24px 16px 40px;
   }
   .kpi-row {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     padding: 18px;
   }
   .usage-state {
