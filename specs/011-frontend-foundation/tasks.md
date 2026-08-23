@@ -112,7 +112,7 @@ still visible.
       `<a>`/`routerLink` anchors so they are keyboard-operable by default. Below the nav, a
       `<router-outlet />` renders the active routed view.
 
-- [ ] T008 [US1] Populate `frontend/src/app/app.routes.ts` with the route table from
+- [X] T008 [US1] Populate `frontend/src/app/app.routes.ts` with the route table from
       `contracts/routes.md`: `{ path: '', pathMatch: 'full', redirectTo: 'rate-lookup' }`, three
       lazy `{ path: '<segment>', loadComponent: () => import('./features/<view>/<view>').then(m =>
       m.<ClassName>) }` entries for rate-lookup/usage-analytics/ai-insight, and `{ path: '**',
