@@ -1,8 +1,20 @@
 import { TestBed } from '@angular/core/testing';
-import { of } from 'rxjs';
+import { HttpErrorResponse } from '@angular/common/http';
+import { Subject, of, throwError } from 'rxjs';
 import { HistoricalRates } from './historical-rates';
-import { ExchangeRateAnalyticsService, type ExchangeRateTrendResponse } from '../../api-client';
+import {
+  ExchangeRateAIInsightService,
+  ExchangeRateAnalyticsService,
+  type ExchangeRateTrendResponse,
+  type TrendInsightResponse,
+} from '../../api-client';
 import { PERIOD_PRESETS, resolveRange, subtractMonths, todayIso } from './period-presets';
+
+function generateInsightButton(fixture: { nativeElement: HTMLElement }): HTMLButtonElement {
+  return Array.from(fixture.nativeElement.querySelectorAll('button')).find((button) =>
+    button.textContent?.includes('Generate insight'),
+  ) as HTMLButtonElement;
+}
 
 function selectCurrency(
   fixture: { nativeElement: HTMLElement; detectChanges(): void },
@@ -42,13 +54,29 @@ function trendResponse(
   };
 }
 
+function insightResponse(overrides: Partial<TrendInsightResponse> = {}): TrendInsightResponse {
+  return {
+    fromCurrency: 'USD',
+    toCurrency: 'EUR',
+    startDate: '2026-07-24',
+    endDate: '2026-08-23',
+    narrative: 'The rate rose steadily over the period.',
+    ...overrides,
+  };
+}
+
 describe('HistoricalRates', () => {
   let getExchangeRateTrend: ReturnType<typeof vi.fn>;
+  let getExchangeRateTrendInsight: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     getExchangeRateTrend = vi.fn();
+    getExchangeRateTrendInsight = vi.fn();
     TestBed.configureTestingModule({
-      providers: [{ provide: ExchangeRateAnalyticsService, useValue: { getExchangeRateTrend } }],
+      providers: [
+        { provide: ExchangeRateAnalyticsService, useValue: { getExchangeRateTrend } },
+        { provide: ExchangeRateAIInsightService, useValue: { getExchangeRateTrendInsight } },
+      ],
     });
   });
 
@@ -306,5 +334,109 @@ describe('HistoricalRates', () => {
     await flush(fixture);
 
     expect(fixture.nativeElement.querySelector('[data-testid="table-no-data"]')).not.toBeNull();
+  });
+
+  it('shows no narrative until Generate insight is clicked (FR-011)', async () => {
+    getExchangeRateTrend.mockReturnValue(of(trendResponse()));
+
+    const fixture = TestBed.createComponent(HistoricalRates);
+    fixture.detectChanges();
+    await flush(fixture);
+
+    expect(getExchangeRateTrendInsight).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.textContent).not.toContain('The rate rose steadily');
+  });
+
+  it('fires exactly one insight request and shows a narrative grounded in the displayed range when clicked with data (FR-012, Acceptance Scenario 1)', async () => {
+    getExchangeRateTrend.mockReturnValue(of(trendResponse()));
+    getExchangeRateTrendInsight.mockReturnValue(of(insightResponse()));
+
+    const fixture = TestBed.createComponent(HistoricalRates);
+    fixture.detectChanges();
+    await flush(fixture);
+
+    const range = resolveRange({ kind: 'preset', id: '1M' }, todayIso());
+    generateInsightButton(fixture).click();
+    await flush(fixture);
+
+    expect(getExchangeRateTrendInsight).toHaveBeenCalledTimes(1);
+    expect(getExchangeRateTrendInsight).toHaveBeenCalledWith(
+      'USD',
+      'EUR',
+      range.startDate,
+      range.endDate,
+    );
+    expect(fixture.nativeElement.textContent).toContain('The rate rose steadily over the period.');
+  });
+
+  it('disables Generate insight while the trend is loading (FR-013)', async () => {
+    const trend$ = new Subject<ExchangeRateTrendResponse>();
+    getExchangeRateTrend.mockReturnValue(trend$);
+
+    const fixture = TestBed.createComponent(HistoricalRates);
+    fixture.detectChanges();
+
+    expect(generateInsightButton(fixture).disabled).toBe(true);
+
+    trend$.next(trendResponse());
+    trend$.complete();
+    await flush(fixture);
+
+    expect(generateInsightButton(fixture).disabled).toBe(false);
+  });
+
+  it('disables Generate insight when there is no underlying data (FR-013, Acceptance Scenario 3)', async () => {
+    getExchangeRateTrend.mockReturnValue(of(trendResponse({ points: [] })));
+
+    const fixture = TestBed.createComponent(HistoricalRates);
+    fixture.detectChanges();
+    await flush(fixture);
+
+    expect(generateInsightButton(fixture).disabled).toBe(true);
+  });
+
+  it('shows a "no data" message for a 404 insight error and "unavailable" for other failures (FR-013, Acceptance Scenario 2, SC-005)', async () => {
+    getExchangeRateTrend.mockReturnValue(of(trendResponse()));
+    getExchangeRateTrendInsight.mockReturnValue(
+      throwError(() => new HttpErrorResponse({ status: 404, error: { detail: 'No data for range.' } })),
+    );
+
+    const fixture = TestBed.createComponent(HistoricalRates);
+    fixture.detectChanges();
+    await flush(fixture);
+
+    generateInsightButton(fixture).click();
+    await flush(fixture);
+
+    expect(fixture.nativeElement.textContent).toContain('No data for range.');
+
+    getExchangeRateTrendInsight.mockReturnValue(
+      throwError(() => new HttpErrorResponse({ status: 503 })),
+    );
+    generateInsightButton(fixture).click();
+    await flush(fixture);
+
+    expect(fixture.nativeElement.textContent).toContain('interpretation unavailable');
+  });
+
+  it('clears a shown narrative when the pair, period, or swap changes (FR-014, Acceptance Scenario 4, SC-006)', async () => {
+    getExchangeRateTrend.mockReturnValue(of(trendResponse()));
+    getExchangeRateTrendInsight.mockReturnValue(of(insightResponse()));
+
+    const fixture = TestBed.createComponent(HistoricalRates);
+    fixture.detectChanges();
+    await flush(fixture);
+
+    generateInsightButton(fixture).click();
+    await flush(fixture);
+    expect(fixture.nativeElement.textContent).toContain('The rate rose steadily over the period.');
+
+    const button: HTMLButtonElement = fixture.nativeElement.querySelector(
+      'button[data-preset="3M"]',
+    );
+    button.click();
+    await flush(fixture);
+
+    expect(fixture.nativeElement.textContent).not.toContain('The rate rose steadily over the period.');
   });
 });
