@@ -119,7 +119,7 @@ still visible.
       loadComponent: () => import('./not-found/not-found').then(m => m.NotFound) }`. Depends on
       T003-T006 (component files must exist at these import paths).
 
-- [ ] T009 [US1] Rewrite `frontend/src/app/app.ts` to a thin root component whose template is just
+- [X] T009 [US1] Rewrite `frontend/src/app/app.ts` to a thin root component whose template is just
       `<app-shell />` (import `Shell` from `./shell/shell`), removing the current inline
       status-check template/`StatusService` call/`OnInit` logic. Delete the now-orphaned
       `frontend/src/app/app.html` and `frontend/src/app/app.css` (dead files — `App`'s
