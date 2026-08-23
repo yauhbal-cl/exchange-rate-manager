@@ -1,6 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { ExchangeRateAnalyticsService } from '../../api-client';
+import { CurrencyCombobox } from '../rate-lookup/currency-combobox';
 import type { Currency } from '../rate-lookup/currencies';
 import { resolveRange, todayIso, type PeriodSelection } from './period-presets';
 
@@ -13,6 +14,7 @@ interface TrendRequest {
 
 @Component({
   selector: 'app-historical-rates',
+  imports: [CurrencyCombobox],
   template: `
     <div class="mx-auto max-w-6xl px-4 py-8">
       <h2 class="text-2xl font-semibold text-gray-900">Historical Exchange Rate Trends</h2>
@@ -20,6 +22,25 @@ interface TrendRequest {
         Explore how a currency pair has moved over a chosen period, with summary metrics, a
         chart, and the raw historical rates.
       </p>
+
+      <div class="mt-4 flex flex-wrap items-end gap-4">
+        <app-currency-combobox
+          id="base-currency"
+          name="base-currency"
+          label="Base"
+          [(value)]="baseCurrency"
+        />
+        <app-currency-combobox
+          id="quote-currency"
+          name="quote-currency"
+          label="Quote"
+          [(value)]="quoteCurrency"
+        />
+      </div>
+
+      @if (pairError()) {
+        <p class="mt-2 text-amber-700">{{ pairError() }}</p>
+      }
     </div>
   `,
 })
