@@ -180,7 +180,7 @@ correctness the first two stories established.
 - [X] T013 [P] Update any developer-facing documentation referencing the old hardcoded USD-as-base
       spread behavior (e.g. `README.md`, module-level Javadoc in `SpreadLookup` or
       `RateCollectionService`) to describe the new `exchange-rates.*` config-driven behavior
-- [ ] T014 Run `cd backend && ./mvnw verify` — full build, all existing and new tests pass,
+- [X] T014 Run `cd backend && ./mvnw verify` — full build, all existing and new tests pass,
       confirming FR-012/FR-013 (unchanged API contracts and historical storage) and SC-006
       (existing regression tests unaffected)
 - [ ] T015 Execute quickstart.md steps 2–4 manually (fail-fast config break/restore, live
