@@ -56,6 +56,66 @@
   gap: 18px;
 }
 
+/* FR-002: the three KPI cards on one row. The <h2> eyebrow is a grid child too, so it spans the
+   full track set instead of stealing a column. */
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+  padding: 22px;
+}
+.kpi-row-heading {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+/* `min-width: 0` keeps a card from being widened past its 1fr track by a long value — combined
+   with the wrapping below, that is what keeps a very large count inside its own card. */
+.kpi-card {
+  min-width: 0;
+  padding: 20px 22px;
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  background: var(--surface-subtle);
+}
+.kpi-label {
+  margin: 0 0 10px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 650;
+}
+/* FR-019: no truncation and no ellipsis — a 1,234,567-style count wraps and grows the card's
+   height rather than being clipped. Tabular figures keep the three cards' digits aligned. */
+.kpi-value {
+  margin: 0;
+  font-size: 28px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.14;
+  letter-spacing: -0.025em;
+  font-weight: 750;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+/* FR-013: this slot holds a phrase, not a number, so it reads as muted supporting copy. */
+.kpi-value.kpi-value-empty {
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1.4;
+  letter-spacing: 0;
+  font-weight: 650;
+}
+.kpi-hint {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
 /* FR-018: loading and error occupy the data area alone, so the state card carries the height the
    full layout would have had — no collapse, no jump when the data resolves. */
 .usage-state {
@@ -124,6 +184,10 @@
 @media (max-width: 640px) {
   .usage-page {
     padding: 24px 16px 40px;
+  }
+  .kpi-row {
+    grid-template-columns: 1fr;
+    padding: 18px;
   }
   .usage-state {
     min-height: 260px;
