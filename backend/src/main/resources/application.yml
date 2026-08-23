@@ -61,6 +61,10 @@ springdoc:
     path: /swagger-ui.html
     enabled: true
 
+app:
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:4200}
+
 fixer:
   api-key: ${FIXER_API_KEY}
   base-url: ${FIXER_BASE_URL:https://data.fixer.io/api}
