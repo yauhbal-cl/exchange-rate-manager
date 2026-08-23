@@ -23,10 +23,12 @@ const SCROLL_LOAD_THRESHOLD_PX = 48;
       multi: true,
     },
   ],
-  styleUrl: './currency-combobox.css',
+  host: { class: 'block min-w-0' },
   template: `
     <div class="relative flex flex-col gap-1">
-      <label [for]="inputId()" class="text-sm font-medium text-gray-700">{{ label() }}</label>
+      <label [for]="inputId()" class="mb-0.5 text-xs font-[650] text-[#475467]">{{
+        label()
+      }}</label>
       <input
         [id]="inputId()"
         [name]="name()"
@@ -34,7 +36,7 @@ const SCROLL_LOAD_THRESHOLD_PX = 48;
         role="combobox"
         autocomplete="off"
         aria-autocomplete="list"
-        class="rounded border border-gray-300 px-3 py-2"
+        class="h-[42px] w-full rounded-[10px] border border-[#d0d5dd] px-3 py-2 text-[#18202a] outline-none focus:border-[#a5a9ee] focus:shadow-[0_0_0_3px_rgba(91,97,214,0.11)]"
         [class.rounded-b-none]="open()"
         [attr.aria-expanded]="open()"
         [attr.aria-controls]="listboxId()"
@@ -53,7 +55,7 @@ const SCROLL_LOAD_THRESHOLD_PX = 48;
         <ul
           [id]="listboxId()"
           role="listbox"
-          class="absolute top-full z-10 max-h-60 w-full min-w-64 overflow-y-auto rounded-b border border-t-0 border-gray-300 bg-white shadow-lg"
+          class="absolute top-full z-10 max-h-60 w-full min-w-64 overflow-y-auto rounded-b-[10px] border border-t-0 border-[#d0d5dd] bg-white shadow-lg"
           (scroll)="onScroll($event)"
         >
           @for (currency of visible(); track currency.code; let i = $index) {

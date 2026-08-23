@@ -59,7 +59,10 @@ export function categorizeLookupError(error: unknown): LookupError {
 @Component({
   selector: 'app-rate-lookup',
   imports: [ReactiveFormsModule, CurrencyCombobox, RateLookupResult],
-  styleUrl: './rate-lookup.css',
+  host: {
+    class:
+      'block min-h-[calc(100vh-57px)] bg-[var(--app-page-bg)] text-[var(--app-text)] tabular-nums',
+  },
   templateUrl: './rate-lookup.html',
 })
 export class RateLookup {

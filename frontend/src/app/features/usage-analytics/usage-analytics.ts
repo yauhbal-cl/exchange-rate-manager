@@ -14,7 +14,10 @@ import {
 @Component({
   selector: 'app-usage-analytics',
   imports: [UsageBreakdownPanel, RecentActivityPanel],
-  styleUrl: './usage-analytics.css',
+  host: {
+    class:
+      'block min-h-[calc(100vh-57px)] bg-[var(--app-page-bg)] text-[var(--app-text)] tabular-nums',
+  },
   templateUrl: './usage-analytics.html',
 })
 export class UsageAnalytics {

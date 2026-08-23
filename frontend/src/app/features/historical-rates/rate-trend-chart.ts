@@ -152,14 +152,19 @@ export function buildTrendChartConfig(
 
 @Component({
   selector: 'app-rate-trend-chart',
-  styleUrl: './rate-trend-chart.css',
+  host: { class: 'block' },
   template: `
     @if (points().length > 0) {
-      <div class="chart-container">
+      <div
+        class="chart-container relative h-[400px] min-h-[320px] w-full max-[720px]:h-[330px] max-[720px]:min-h-[300px]"
+      >
         <canvas #canvas role="img" [attr.aria-label]="accessibleLabel()"></canvas>
       </div>
     } @else {
-      <div class="chart-empty" data-testid="chart-no-data">
+      <div
+        class="chart-empty flex h-[400px] items-center justify-center text-sm text-[#667085] max-[720px]:h-[330px] max-[720px]:min-h-[300px]"
+        data-testid="chart-no-data"
+      >
         No historical rate data for this pair and period.
       </div>
     }

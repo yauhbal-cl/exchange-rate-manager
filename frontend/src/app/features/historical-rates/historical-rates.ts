@@ -66,7 +66,10 @@ export function categorizeHistoricalError(error: unknown): HistoricalError {
 @Component({
   selector: 'app-historical-rates',
   imports: [CurrencyCombobox, RateTrendChart, HistoricalRatesTable, AiInsightsPanel],
-  styleUrl: './historical-rates.css',
+  host: {
+    class:
+      'block min-h-[calc(100vh-57px)] bg-[var(--app-page-bg)] text-[var(--app-text)] tabular-nums',
+  },
   templateUrl: './historical-rates.html',
 })
 export class HistoricalRates {

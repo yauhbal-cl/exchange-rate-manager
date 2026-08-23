@@ -1,18 +1,29 @@
-<main class="history-page">
-  <header class="page-header">
+<main
+  class="history-page mx-auto max-w-[var(--app-page-max-width)] px-8 pt-9 pb-14 max-[720px]:px-4 max-[720px]:pt-6 max-[720px]:pb-10"
+>
+  <header class="page-header mb-6 flex items-start justify-between gap-6 max-[720px]:block">
     <div>
-      <h1>Historical rates</h1>
-      <p>
+      <h1 class="mb-2 text-[32px] leading-[1.15] font-[750] tracking-[-0.03em]">
+        Historical rates
+      </h1>
+      <p class="m-0 max-w-[680px] text-[15px] leading-[1.55] text-[var(--app-muted)]">
         Explore historical exchange-rate movements, compare period highs and lows, and review
         contextual AI-generated insights for the selected currency pair.
       </p>
     </div>
-    <div class="as-of">Data through {{ formattedToday }}</div>
+    <div class="as-of pt-2 text-[13px] whitespace-nowrap text-[var(--app-muted)] max-[720px]:mt-2">
+      Data through {{ formattedToday }}
+    </div>
   </header>
 
-  <section class="card filters" aria-label="Historical rate filters">
-    <div class="filter-grid">
-      <div class="currency-field">
+  <section
+    class="card filters mb-[18px] rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface)] p-[18px] shadow-[var(--app-card-shadow)]"
+    aria-label="Historical rate filters"
+  >
+    <div
+      class="filter-grid grid grid-cols-[minmax(155px,1fr)_42px_minmax(155px,1fr)_minmax(280px,1.4fr)_minmax(290px,1.45fr)] items-end gap-3 max-[1180px]:grid-cols-[1fr_42px_1fr] max-[720px]:grid-cols-[1fr_42px]"
+    >
+      <div class="currency-field max-[720px]:col-start-1">
         <app-currency-combobox
           id="base-currency"
           name="base-currency"
@@ -20,10 +31,15 @@
           [(value)]="baseCurrency"
         />
       </div>
-      <button type="button" aria-label="Swap currencies" class="swap-button" (click)="swap()">
+      <button
+        type="button"
+        aria-label="Swap currencies"
+        class="swap-button size-[42px] cursor-pointer rounded-[10px] border border-[#d0d5dd] bg-white text-lg text-[#475467] hover:bg-[#fafafa] max-[720px]:col-start-2 max-[720px]:row-start-1"
+        (click)="swap()"
+      >
         ⇄
       </button>
-      <div class="currency-field">
+      <div class="currency-field max-[720px]:col-span-full">
         <app-currency-combobox
           id="quote-currency"
           name="quote-currency"
@@ -31,34 +47,50 @@
           [(value)]="quoteCurrency"
         />
       </div>
-      <fieldset class="date-field">
-        <legend class="field-label">Custom date range</legend>
-        <div class="date-range">
-          <label for="range-start">Start date</label
+      <fieldset
+        class="date-field m-0 min-w-0 border-0 p-0 max-[1180px]:col-span-2 max-[720px]:col-span-full"
+      >
+        <legend class="field-label mb-[7px] block text-xs font-[650] text-[#475467]">
+          Custom date range
+        </legend>
+        <div class="date-range grid grid-cols-2 gap-2">
+          <label
+            class="col-start-1 row-start-1 text-[11px] text-[var(--app-muted)]"
+            for="range-start"
+            >Start date</label
           ><input
             id="range-start"
             type="date"
             name="range-start"
             [value]="resolvedRange().startDate"
             (change)="setRangeStart($event)"
-          /><label for="range-end">End date</label
+            class="col-start-1 row-start-2 h-[42px] w-full min-w-0 rounded-[10px] border border-[#d0d5dd] bg-white px-[11px] text-[var(--app-text)] outline-none focus:border-[#a5a9ee] focus:shadow-[0_0_0_3px_rgba(91,97,214,0.11)]"
+          /><label
+            class="col-start-2 row-start-1 text-[11px] text-[var(--app-muted)]"
+            for="range-end"
+            >End date</label
           ><input
             id="range-end"
             type="date"
             name="range-end"
             [value]="resolvedRange().endDate"
             (change)="setRangeEnd($event)"
+            class="col-start-2 row-start-2 h-[42px] w-full min-w-0 rounded-[10px] border border-[#d0d5dd] bg-white px-[11px] text-[var(--app-text)] outline-none focus:border-[#a5a9ee] focus:shadow-[0_0_0_3px_rgba(91,97,214,0.11)]"
           />
         </div>
       </fieldset>
-      <div class="preset-field">
-        <span class="field-label">Date-range presets</span>
-        <div class="preset-list">
+      <div
+        class="preset-field max-[1180px]:col-start-3 max-[1180px]:col-end-4 max-[720px]:col-span-full"
+      >
+        <span class="field-label mb-[7px] block text-xs font-[650] text-[#475467]"
+          >Date-range presets</span
+        >
+        <div class="preset-list flex flex-wrap gap-[7px]">
           @for (preset of presets; track preset.id) {
             <button
               type="button"
               [attr.data-preset]="preset.id"
-              class="preset-button"
+              class="preset-button h-[42px] cursor-pointer rounded-[10px] border border-[#d0d5dd] bg-white px-[11px] text-[13px] font-[650] text-[#475467] hover:bg-[#fafafa] aria-pressed:border-[#c7c9f6] aria-pressed:bg-[var(--app-accent-soft)] aria-pressed:text-[#4449b5]"
               [class.active]="isActivePreset(preset.id)"
               [attr.aria-pressed]="isActivePreset(preset.id)"
               (click)="selectPreset(preset.id)"
@@ -70,106 +102,170 @@
       </div>
     </div>
     @if (pairError() || periodError()) {
-      <p class="validation-message">{{ pairError() ?? periodError() }}</p>
+      <p class="validation-message mt-3 mb-0 text-[13px] text-[#b54708]">
+        {{ pairError() ?? periodError() }}
+      </p>
     }
   </section>
 
   @if (requestState(); as state) {
     @switch (state.kind) {
       @case ('invalid') {
-        <section class="card request-state invalid-state" data-testid="historical-invalid">
+        <section
+          class="card request-state flex min-h-[300px] flex-col items-center justify-center rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface)] p-10 text-center text-[var(--app-muted)] shadow-[var(--app-card-shadow)]"
+          data-testid="historical-invalid"
+        >
           Choose a valid currency pair and date range to view historical rates.
         </section>
       }
       @case ('loading') {
         <section
-          class="card request-state loading-state"
+          class="card request-state flex min-h-[300px] flex-col items-center justify-center rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface)] p-10 text-center text-[var(--app-muted)] shadow-[var(--app-card-shadow)]"
           data-testid="historical-loading"
           role="status"
         >
-          <span class="history-spinner" aria-hidden="true"></span
-          ><strong>Loading historical rates</strong>
-          <p>Retrieving observations for the selected pair and period…</p>
+          <span
+            class="history-spinner mb-3.5 size-8 animate-spin rounded-full border-2 border-[var(--app-border)] border-t-[var(--app-accent)]"
+            aria-hidden="true"
+          ></span
+          ><strong class="text-[#344054]">Loading historical rates</strong>
+          <p class="mt-[7px] mb-0">Retrieving observations for the selected pair and period…</p>
         </section>
       }
       @case ('error') {
         <section
-          class="card request-state error-state"
+          class="card request-state error-state flex min-h-[300px] flex-col items-center justify-center rounded-2xl border border-[var(--app-state-error-border)] bg-[var(--app-state-error-bg)] p-10 text-center text-[var(--app-muted)] shadow-[var(--app-card-shadow)]"
           data-testid="historical-error"
           role="alert"
           [attr.data-category]="state.error.category"
         >
-          <strong>Historical rates unavailable</strong>
-          <p>{{ state.error.message }}</p>
+          <strong class="text-[var(--app-negative)]">Historical rates unavailable</strong>
+          <p class="mt-[7px] mb-0">{{ state.error.message }}</p>
         </section>
       }
       @case ('empty') {
-        <section class="card no-data-summary" data-testid="metrics-no-data">
+        <section
+          class="card no-data-summary mb-[18px] rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface)] p-7 text-center text-[var(--app-muted)] shadow-[var(--app-card-shadow)]"
+          data-testid="metrics-no-data"
+        >
           No historical rate data for this pair and period.
         </section>
-        <section class="main-grid">
-          <div class="card chart-card">
-            <div class="section-header">
+        <section
+          class="main-grid mb-[18px] grid grid-cols-[minmax(0,2fr)_minmax(300px,0.95fr)] items-stretch gap-[18px] max-[1000px]:grid-cols-1"
+        >
+          <div
+            class="card chart-card min-w-0 rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface)] px-5 pt-5 pb-3.5 shadow-[var(--app-card-shadow)] max-[720px]:p-4"
+          >
+            <div
+              class="section-header mb-3.5 flex items-start justify-between gap-4 max-[720px]:block"
+            >
               <div>
-                <h2>Exchange-rate movement</h2>
-                <p>1 {{ baseCurrency() }} in {{ quoteCurrency() }}</p>
+                <h2 class="m-0 text-base font-[750]">Exchange-rate movement</h2>
+                <p class="mt-1 mb-0 text-xs text-[var(--app-muted)]">
+                  1 {{ baseCurrency() }} in {{ quoteCurrency() }}
+                </p>
               </div>
             </div>
             <app-rate-trend-chart [accessibleLabel]="chartAccessibleLabel()" />
           </div>
         </section>
-        <section class="card table-card">
-          <div class="table-header">
+        <section
+          class="card table-card overflow-hidden rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface)] shadow-[var(--app-card-shadow)]"
+        >
+          <div
+            class="table-header flex items-start justify-between gap-4 border-b border-[var(--app-border)] px-[22px] py-5 max-[720px]:items-end max-[720px]:px-4 max-[720px]:py-[17px]"
+          >
             <div>
-              <h2>Historical rates table</h2>
-              <p>Most recent observations first</p>
+              <h2 class="m-0 text-base font-[750]">Historical rates table</h2>
+              <p class="mt-1 mb-0 text-xs text-[var(--app-muted)]">
+                Most recent observations first
+              </p>
             </div>
-            <span>0 daily observations</span>
+            <span class="text-xs text-[var(--app-muted)]">0 daily observations</span>
           </div>
           <app-historical-rates-table />
         </section>
       }
       @case ('populated') {
-        <section class="card summary" aria-label="Period summary">
+        <section
+          class="card summary mb-[18px] grid grid-cols-[1.15fr_repeat(4,1fr)] overflow-hidden rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface)] shadow-[var(--app-card-shadow)] max-[1000px]:grid-cols-3 max-[720px]:grid-cols-2 [&>div]:min-w-0 [&>div]:border-r [&>div]:border-[var(--app-border)] [&>div]:px-[22px] [&>div]:py-5 [&>div:last-child]:border-r-0 max-[1000px]:[&>div:nth-child(3)]:border-r-0 max-[1000px]:[&>div:nth-child(n+4)]:border-t max-[720px]:[&>div]:border-t max-[720px]:[&>div:nth-child(1)]:col-span-full max-[720px]:[&>div:nth-child(1)]:border-t-0 max-[720px]:[&>div:nth-child(1)]:border-r-0 max-[720px]:[&>div:nth-child(odd)]:border-r-0 max-[720px]:[&>div:nth-child(4)]:border-r"
+        >
           <div class="pair-summary">
-            <span class="eyebrow">Currency pair</span
-            ><strong>{{ baseCurrency() }} / {{ quoteCurrency() }}</strong
-            ><small>{{ formattedRange() }}</small>
+            <span
+              class="eyebrow mb-2 block text-xs font-bold tracking-[0.08em] text-[var(--app-muted)] uppercase"
+              >Currency pair</span
+            ><strong class="block text-[22px] leading-[1.1] tracking-[-0.02em]"
+              >{{ baseCurrency() }} / {{ quoteCurrency() }}</strong
+            ><small class="mt-1.5 block min-h-4 text-xs text-[var(--app-muted)]">{{
+              formattedRange()
+            }}</small>
           </div>
           <div class="metric">
-            <span>Latest rate</span><strong>{{ latest()?.display }}</strong
-            ><small>{{ formattedLatestDate() }}</small>
+            <span class="mb-2 block text-xs font-[650] text-[var(--app-muted)]">Latest rate</span
+            ><strong
+              class="block overflow-hidden text-[23px] leading-[1.12] tracking-[-0.025em] text-ellipsis whitespace-nowrap max-[720px]:text-xl"
+              >{{ latest()?.display }}</strong
+            ><small class="mt-1.5 block min-h-4 text-xs text-[var(--app-muted)]">{{
+              formattedLatestDate()
+            }}</small>
           </div>
           <div class="metric">
-            <span>Period change</span>
+            <span class="mb-2 block text-xs font-[650] text-[var(--app-muted)]">Period change</span>
             @if (periodChange(); as change) {
               <strong
-                [class.positive]="!change.value.isNegative()"
-                [class.negative]="change.value.isNegative()"
+                class="block overflow-hidden text-[23px] leading-[1.12] tracking-[-0.025em] text-ellipsis whitespace-nowrap max-[720px]:text-xl"
+                [class]="
+                  change.value.isNegative()
+                    ? 'negative text-[var(--app-negative)]'
+                    : 'positive text-[var(--app-positive)]'
+                "
                 >{{ change.percent }}</strong
               >
             } @else {
-              <strong>—</strong>
+              <strong class="block text-[23px] leading-[1.12] max-[720px]:text-xl">—</strong>
             }
-            <small>Start to end</small>
+            <small class="mt-1.5 block min-h-4 text-xs text-[var(--app-muted)]">Start to end</small>
           </div>
           <div class="metric">
-            <span>Period high</span><strong>{{ periodHigh()?.display }}</strong
-            ><small>{{ formattedHighDate() }}</small>
+            <span class="mb-2 block text-xs font-[650] text-[var(--app-muted)]">Period high</span
+            ><strong
+              class="block overflow-hidden text-[23px] leading-[1.12] tracking-[-0.025em] text-ellipsis whitespace-nowrap max-[720px]:text-xl"
+              >{{ periodHigh()?.display }}</strong
+            ><small class="mt-1.5 block min-h-4 text-xs text-[var(--app-muted)]">{{
+              formattedHighDate()
+            }}</small>
           </div>
           <div class="metric">
-            <span>Period low</span><strong>{{ periodLow()?.display }}</strong
-            ><small>{{ formattedLowDate() }}</small>
+            <span class="mb-2 block text-xs font-[650] text-[var(--app-muted)]">Period low</span
+            ><strong
+              class="block overflow-hidden text-[23px] leading-[1.12] tracking-[-0.025em] text-ellipsis whitespace-nowrap max-[720px]:text-xl"
+              >{{ periodLow()?.display }}</strong
+            ><small class="mt-1.5 block min-h-4 text-xs text-[var(--app-muted)]">{{
+              formattedLowDate()
+            }}</small>
           </div>
         </section>
-        <section class="main-grid">
-          <div class="card chart-card">
-            <div class="section-header">
+        <section
+          class="main-grid mb-[18px] grid grid-cols-[minmax(0,2fr)_minmax(300px,0.95fr)] items-stretch gap-[18px] max-[1000px]:grid-cols-1"
+        >
+          <div
+            class="card chart-card min-w-0 rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface)] px-5 pt-5 pb-3.5 shadow-[var(--app-card-shadow)] max-[720px]:p-4"
+          >
+            <div
+              class="section-header mb-3.5 flex items-start justify-between gap-4 max-[720px]:block"
+            >
               <div>
-                <h2>Exchange-rate movement</h2>
-                <p>1 {{ baseCurrency() }} in {{ quoteCurrency() }}</p>
+                <h2 class="m-0 text-base font-[750]">Exchange-rate movement</h2>
+                <p class="mt-1 mb-0 text-xs text-[var(--app-muted)]">
+                  1 {{ baseCurrency() }} in {{ quoteCurrency() }}
+                </p>
               </div>
-              <div class="legend"><span></span>{{ baseCurrency() }} / {{ quoteCurrency() }}</div>
+              <div
+                class="legend flex items-center gap-2 text-xs whitespace-nowrap text-[var(--app-muted)] max-[720px]:mt-2"
+              >
+                <span class="h-0.5 w-6 rounded-full bg-[#344054]"></span>{{ baseCurrency() }} /
+                {{ quoteCurrency() }}
+              </div>
             </div>
             <app-rate-trend-chart
               [points]="points()"
@@ -178,22 +274,34 @@
               [periodLow]="periodLow()"
               [accessibleLabel]="chartAccessibleLabel()"
             />
-            <div class="annotation-key"><span></span>Period high / low</div>
+            <div
+              class="annotation-key mt-2 flex items-center gap-1.5 border-t border-[var(--app-border)] pt-3 text-xs text-[var(--app-muted)]"
+            >
+              <span class="size-[7px] rounded-full bg-[#344054]"></span>Period high / low
+            </div>
           </div>
           <app-ai-insights-panel
-            class="card insights-card"
+            class="card insights-card min-w-0 overflow-hidden rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface)] shadow-[var(--app-card-shadow)]"
             [value]="aiInsightValue()"
             [isLoading]="aiInsight.isLoading()"
             [error]="aiInsight.error()"
           />
         </section>
-        <section class="card table-card">
-          <div class="table-header">
+        <section
+          class="card table-card overflow-hidden rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface)] shadow-[var(--app-card-shadow)]"
+        >
+          <div
+            class="table-header flex items-start justify-between gap-4 border-b border-[var(--app-border)] px-[22px] py-5 max-[720px]:items-end max-[720px]:px-4 max-[720px]:py-[17px]"
+          >
             <div>
-              <h2>Historical rates table</h2>
-              <p>Most recent observations first</p>
+              <h2 class="m-0 text-base font-[750]">Historical rates table</h2>
+              <p class="mt-1 mb-0 text-xs text-[var(--app-muted)]">
+                Most recent observations first
+              </p>
             </div>
-            <span>{{ points().length }} daily observations</span>
+            <span class="text-xs text-[var(--app-muted)]"
+              >{{ points().length }} daily observations</span
+            >
           </div>
           <app-historical-rates-table [points]="points()" [dailyChanges]="dailyChanges()" />
         </section>
