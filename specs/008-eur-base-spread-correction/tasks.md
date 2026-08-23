@@ -153,7 +153,7 @@ ingests successfully, per spec.md's Independent Test for this story.
 
 ### Implementation for User Story 3
 
-- [ ] T011 [US3] Update `RateCollectionService` in
+- [X] T011 [US3] Update `RateCollectionService` in
       `backend/src/main/java/com/exchangerate/manager/service/RateCollectionService.java`: inject
       `ExchangeRateProperties`; at the top of `collect()`, immediately after
       `fixerClient.getLatestRates()` returns and before reading `rates`, compare
@@ -162,7 +162,7 @@ ingests successfully, per spec.md's Independent Test for this story.
       `rates.get(properties.baseCurrency())` is present and `compareTo(BigDecimal.ONE) == 0`,
       throwing `FixerApiException` on failure (research.md's optional EUR==1 sanity check) — both
       checks must run before the per-currency upsert loop starts
-- [ ] T012 [US3] Update `RateCollectionServiceTest` in
+- [X] T012 [US3] Update `RateCollectionServiceTest` in
       `backend/src/test/java/com/exchangerate/manager/service/RateCollectionServiceTest.java`: add
       cases for a response with `base = "USD"` (rejected), `base = null` (rejected), and a
       response with `base = "EUR"` but a `rates` map where `EUR` is missing or not numerically `1`
