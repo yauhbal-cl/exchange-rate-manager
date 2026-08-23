@@ -30,7 +30,8 @@ address is unchanged, FR-020).
 
 ```bash
 cd frontend && npm test                    # Vitest: all specs
-cd frontend && npm test -- usage           # just this feature's specs
+# Just this feature's specs:
+cd frontend && npm test -- --include src/app/features/usage-analytics
 ```
 
 Expected coverage (see [plan.md](./plan.md) → Project Structure for file names):
