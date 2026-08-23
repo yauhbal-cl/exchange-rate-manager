@@ -3,7 +3,7 @@ import { rxResource } from '@angular/core/rxjs-interop';
 import { ExchangeRateAnalyticsService } from '../../api-client';
 import { CurrencyCombobox } from '../rate-lookup/currency-combobox';
 import type { Currency } from '../rate-lookup/currencies';
-import { resolveRange, todayIso, type PeriodSelection } from './period-presets';
+import { customRangeError, resolveRange, todayIso, type PeriodSelection } from './period-presets';
 import { RateTrendChart } from './rate-trend-chart';
 import {
   computeDailyChanges,
@@ -114,8 +114,13 @@ export class HistoricalRates {
 
   protected readonly period = signal<PeriodSelection>({ kind: 'preset', id: '1M' });
 
+  protected readonly periodError = computed<string | null>(() => {
+    const period = this.period();
+    return period.kind === 'custom' ? customRangeError(period.startDate, period.endDate) : null;
+  });
+
   protected readonly pairAndRange = computed<TrendRequest | undefined>(() => {
-    if (this.pairError() !== null) {
+    if (this.pairError() !== null || this.periodError() !== null) {
       return undefined;
     }
     const { startDate, endDate } = resolveRange(this.period(), this.today);
