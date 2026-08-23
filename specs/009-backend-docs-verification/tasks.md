@@ -135,7 +135,7 @@ signal when required infra is missing.
       inconsistency).
 - [X] T014 [US3] Re-read `CLAUDE.md`'s Commands section and confirm it still correctly states
       `cd backend && ./mvnw verify` with no remaining drift against `README.md` after T013.
-- [ ] T015 [US3] Run quickstart.md Scenario 3: `cd backend && ./mvnw verify` twice in a row on an
+- [X] T015 [US3] Run quickstart.md Scenario 3: `cd backend && ./mvnw verify` twice in a row on an
       unchanged checkout; confirm both runs finish in under 10 minutes with the identical
       `BUILD SUCCESS`/`BUILD FAILURE` result (SC-003, FR-007), and that a failure (temporarily break
       one test to check) clearly names the failing class/phase (SC-004, FR-006).
