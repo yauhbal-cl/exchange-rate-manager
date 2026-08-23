@@ -85,4 +85,32 @@ class SpreadLookupTest {
 
         assertThat(spread).isEqualByComparingTo(DEFAULT_SPREAD_PERCENT);
     }
+
+    /**
+     * SC-004: a new currency added to a spread group, and a changed default percentage, must be
+     * reflected purely by editing {@link ExchangeRateProperties} — no change to
+     * {@link SpreadLookup}'s calculation logic. This test builds a second, independent properties
+     * instance (distinct spreads map, distinct default) that neither appears in nor overlaps with
+     * {@link #spreadLookup()}, and proves {@link SpreadLookup#spreadFor(String)} picks up both the
+     * newly added currency and the changed default without any production code change.
+     */
+    @Test
+    void newCurrencyAndChangedDefaultAreHonoredThroughConfigAloneWithNoLogicChange() {
+        BigDecimal changedDefaultSpreadPercent = new BigDecimal("3.00");
+        BigDecimal newCurrencySpreadPercent = new BigDecimal("5.00");
+        ExchangeRateProperties reconfiguredProperties = new ExchangeRateProperties(
+                "EUR",
+                changedDefaultSpreadPercent,
+                Map.of(
+                        "EUR", new BigDecimal("0.00"),
+                        "SEK", newCurrencySpreadPercent));
+        SpreadLookup reconfiguredSpreadLookup = new SpreadLookup(reconfiguredProperties);
+
+        BigDecimal sekSpread = reconfiguredSpreadLookup.spreadFor("SEK");
+        BigDecimal fallbackSpread = reconfiguredSpreadLookup.spreadFor("GBP");
+
+        assertThat(sekSpread).isEqualByComparingTo(newCurrencySpreadPercent);
+        assertThat(fallbackSpread).isEqualByComparingTo(changedDefaultSpreadPercent);
+        assertThat(fallbackSpread).isNotEqualByComparingTo(DEFAULT_SPREAD_PERCENT);
+    }
 }
