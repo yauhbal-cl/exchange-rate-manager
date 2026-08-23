@@ -61,8 +61,8 @@ Ordered steps for Exchange Rate Management System (see TASK.md, CLAUDE.md). Mark
 
 ## 8. Frontend Views
 
-- [ ] 5.1 Exchange Rate Calculator — currency pair + optional date form, validated inputs, loading state, API error display, signals for state
-- [ ] 5.2 Historical Rates & Trend Chart — currency pair + date range, table of raw rates, line chart, AI insight panel with loading state
+- [x] 5.1 Exchange Rate Calculator — currency pair + optional date form, validated inputs, loading state, API error display, signals for state
+- [x] 5.2 Historical Rates & Trend Chart — currency pair + date range, table of raw rates, line chart, AI insight panel with loading state
 - [ ] 5.3 Usage Analytics Dashboard — most-queried currencies, time-period patterns, visualization
 
 ## 9. Final Pass
