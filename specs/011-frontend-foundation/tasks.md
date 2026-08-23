@@ -93,7 +93,7 @@ still visible.
       (`CurrencyUsageEntry.currencyCode`, `.queryCount`, `.lastQueriedAt`) — own error/unavailable
       state per FR-014
 
-- [ ] T006 [P] [US1] Create ai-insight standalone component in
+- [X] T006 [P] [US1] Create ai-insight standalone component in
       `frontend/src/app/features/ai-insight/ai-insight.ts` (class `AiInsight`, inline template).
       Inject `ExchangeRateAIInsightService`, use `rxResource` with a fixed default pair
       (`from: 'USD'`, `to: 'EUR'`) calling `getExchangeRateTrendInsight(from, to)`. Render
