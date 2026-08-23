@@ -44,8 +44,17 @@ const EMPTY_VIEW: BreakdownView = {
               [attr.data-code]="row.currencyCode"
             >
               <span class="row-code">{{ row.currencyCode }}</span>
-              <!-- Bar track + fill; the FR-008 / FR-023 details land in T019. -->
-              <span class="row-bar"><span class="row-bar-fill"></span></span>
+              <!--
+                FR-008 / FR-023 / INV-5: the bar is decorative reinforcement of the count text
+                beside it, so the whole track is aria-hidden — no role, no aria-label, no
+                aria-valuenow, no title. A screen reader gets the row exactly once, as code plus
+                count. The fill's width is the only thing carrying the proportion, and it is a
+                value already spelled out in the count text, never information conveyed by
+                length alone.
+              -->
+              <span class="row-bar" data-testid="breakdown-bar" aria-hidden="true"
+                ><span class="row-bar-fill" [style.width.%]="row.proportionPercent"></span
+              ></span>
               <span class="row-count">{{ formatCount(row.queryCount) }}</span>
             </div>
           }
