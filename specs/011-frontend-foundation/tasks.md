@@ -204,7 +204,7 @@ hand-written `HttpClient` calls exist anywhere in application code outside `api-
 
 **Purpose**: Final validation spanning all user stories
 
-- [ ] T017 [P] Run `cd frontend && npm test` and confirm all Vitest tests, including T010 and
+- [X] T017 [P] Run `cd frontend && npm test` and confirm all Vitest tests, including T010 and
       T011, pass.
 
 - [ ] T018 [P] Manually validate the backend-unreachable edge case per quickstart.md ("Edge case —
