@@ -108,6 +108,13 @@ key authenticates that call. There is no default (`fixer.api-key: ${FIXER_API_KE
   ```
 - `FIXER_BASE_URL` is optional and defaults to `https://data.fixer.io/api`.
 
+The AI trend insight feature (Spring AI + Ollama) is configured via the same
+`application.yml`:
+- `OLLAMA_BASE_URL` is optional and defaults to `http://localhost:11434`, pointing the backend at
+  a local Ollama instance.
+- `AI_INSIGHT_TIMEOUT_SECONDS` is optional and defaults to `30`, the read-timeout (in seconds) for
+  AI insight calls.
+
 ## Prerequisites
 
 - Java 21 + Maven 3.9.x (backend)

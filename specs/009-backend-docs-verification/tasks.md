@@ -68,7 +68,7 @@ undocumented step.
       `ollama` service and a one-shot `ollama-pull` container that pulls `llama3.2`, and how to
       confirm the pull finished (`docker compose logs ollama-pull`) before relying on
       `/exchange/trend/insight` (research.md R2; addresses FR-001 Acceptance Scenario 2).
-- [ ] T005 [US1] In `README.md` "Environment Configuration > Backend", add entries for
+- [X] T005 [US1] In `README.md` "Environment Configuration > Backend", add entries for
       `OLLAMA_BASE_URL` (default `http://localhost:11434`, points the backend at the local Ollama
       instance) and `AI_INSIGHT_TIMEOUT_SECONDS` (default `30`, read-timeout for AI insight calls)
       — both currently read from `backend/src/main/resources/application.yml` but undocumented
