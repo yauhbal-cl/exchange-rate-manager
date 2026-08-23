@@ -35,7 +35,7 @@ paths are under `frontend/src/app/features/usage-analytics/`. No backend file, n
 **Purpose**: Confirm the existing surfaces this feature builds on, before writing any code
 
 - [X] T001 Confirm the generated API surface is present and unchanged: `getUsageAnalytics()` in `frontend/src/app/api-client/api/exchangeRateUsageAnalytics.service.ts` and the `currencyCode` / `queryCount` / `lastQueriedAt` fields of `frontend/src/app/api-client/model/currencyUsageEntry.ts`. Do **not** run `npm run generate:api` (quickstart.md → Prerequisites).
-- [ ] T002 [P] Confirm the current placeholder component in `frontend/src/app/features/usage-analytics/usage-analytics.ts` and its route entry `usage-analytics` in `frontend/src/app/app.routes.ts`, plus the nav link in `frontend/src/app/shell/shell.html` — record the exported class name so the rewrite keeps the route address and lazy `loadComponent` target intact (FR-020).
+- [X] T002 [P] Confirm the current placeholder component in `frontend/src/app/features/usage-analytics/usage-analytics.ts` and its route entry `usage-analytics` in `frontend/src/app/app.routes.ts`, plus the nav link in `frontend/src/app/shell/shell.html` — record the exported class name so the rewrite keeps the route address and lazy `loadComponent` target intact (FR-020).
 - [ ] T003 [P] Copy the design-token block (`--surface`, `--border`, `--muted`, `--accent`, …), the `max-width: 1180px` container rule and the `900px`/`640px` breakpoints from `frontend/src/app/features/rate-lookup/rate-lookup.css` and `frontend/src/app/features/historical-rates/historical-rates.css` into a new `frontend/src/app/features/usage-analytics/usage-analytics.css` as the page's base layer (research.md §8, FR-018).
 
 ---
