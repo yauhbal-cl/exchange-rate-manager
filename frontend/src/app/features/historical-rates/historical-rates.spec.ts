@@ -244,4 +244,30 @@ describe('HistoricalRates', () => {
       'End date must be on or after the start date.',
     );
   });
+
+  it('exchanges base/quote and fires exactly one new request for the swapped pair using the same period (FR-003, SC-002)', async () => {
+    getExchangeRateTrend
+      .mockReturnValueOnce(of(trendResponse()))
+      .mockReturnValueOnce(of(trendResponse({ fromCurrency: 'EUR', toCurrency: 'USD' })));
+
+    const fixture = TestBed.createComponent(HistoricalRates);
+    fixture.detectChanges();
+    await flush(fixture);
+
+    getExchangeRateTrend.mockClear();
+    const swapButton: HTMLButtonElement = fixture.nativeElement.querySelector(
+      'button[aria-label="Swap currencies"]',
+    );
+    swapButton.click();
+    await flush(fixture);
+
+    const range = resolveRange({ kind: 'preset', id: '1M' }, todayIso());
+    expect(getExchangeRateTrend).toHaveBeenCalledTimes(1);
+    expect(getExchangeRateTrend).toHaveBeenCalledWith(
+      'EUR',
+      'USD',
+      range.startDate,
+      range.endDate,
+    );
+  });
 });
