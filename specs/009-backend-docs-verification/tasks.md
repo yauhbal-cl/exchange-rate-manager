@@ -109,7 +109,7 @@ example request/response and documented error case match the live backend's actu
 - [X] T011 [US2] Run `cd backend && ./mvnw generate-sources` after T008-T010 and confirm the
       controllers still compile against the regenerated server interfaces with zero hand edits to
       generated code (FR-004 sanity check).
-- [ ] T012 [US2] Run quickstart.md Scenario 2 against the running backend: for each of the 6
+- [X] T012 [US2] Run quickstart.md Scenario 2 against the running backend: for each of the 6
       endpoints, send the documented example request and trigger one documented error case, and
       confirm actual responses match the documented shapes (SC-002 — 100% of endpoints match).
 
