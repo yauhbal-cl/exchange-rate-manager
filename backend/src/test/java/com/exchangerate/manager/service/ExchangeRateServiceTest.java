@@ -10,6 +10,7 @@ import com.exchangerate.manager.repository.ExchangeRateRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -25,6 +26,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -135,6 +137,34 @@ class ExchangeRateServiceTest {
 
         assertThat(result.rate()).isEqualByComparingTo(expected);
         assertThat(result.rateDate()).isEqualTo(rateDate);
+    }
+
+    @Test
+    void lookupIncrementsUsageInCurrencyCodeOrderAndMapsCountsToRequestedDirection() {
+        LocalDate rateDate = LocalDate.of(2026, 8, 20);
+
+        when(exchangeRateRepository.existsByCurrencyCode("CHF")).thenReturn(true);
+        when(exchangeRateRepository.existsByCurrencyCode("AUD")).thenReturn(true);
+        when(exchangeRateRepository.findByCurrencyCodeAndRateDate("CHF", rateDate))
+                .thenReturn(Optional.of(rateOf("CHF", new BigDecimal("1.080000"), rateDate)));
+        when(exchangeRateRepository.findByCurrencyCodeAndRateDate("AUD", rateDate))
+                .thenReturn(Optional.of(rateOf("AUD", new BigDecimal("1.000000"), rateDate)));
+        when(spreadLookup.spreadFor("CHF")).thenReturn(BigDecimal.ZERO);
+        when(spreadLookup.spreadFor("AUD")).thenReturn(BigDecimal.ZERO);
+        when(currencyUsageRepository.findByCurrencyCode("AUD"))
+                .thenReturn(Optional.of(usageOf("AUD", 11L)));
+        when(currencyUsageRepository.findByCurrencyCode("CHF"))
+                .thenReturn(Optional.of(usageOf("CHF", 22L)));
+
+        ExchangeRateLookupResult result = exchangeRateService.lookup("CHF", "AUD", rateDate);
+
+        InOrder usageOrder = inOrder(currencyUsageRepository);
+        usageOrder.verify(currencyUsageRepository).incrementUsage("AUD");
+        usageOrder.verify(currencyUsageRepository).findByCurrencyCode("AUD");
+        usageOrder.verify(currencyUsageRepository).incrementUsage("CHF");
+        usageOrder.verify(currencyUsageRepository).findByCurrencyCode("CHF");
+        assertThat(result.fromCurrencyUsageCount()).isEqualTo(22L);
+        assertThat(result.toCurrencyUsageCount()).isEqualTo(11L);
     }
 
     @Test

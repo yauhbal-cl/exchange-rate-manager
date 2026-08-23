@@ -24,8 +24,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Dedicated concurrency test for FR-009/SC-003: N simultaneous successful
- * {@link ExchangeRateService#lookup} calls against the same currency pair must not lose any
- * usage-counter increments.
+ * {@link ExchangeRateService#lookup} calls in both directions against the same currency pair must
+ * not deadlock or lose any usage-counter increments.
  *
  * <p>Deliberately NOT {@code @Transactional} at the class or method level (unlike the other
  * real-DB tests in this codebase, e.g. {@code ExchangeRateServiceTest}'s Mockito-only sibling or
@@ -69,7 +69,8 @@ class ExchangeRateServiceConcurrencyIT extends AbstractIntegrationTest {
     private PlatformTransactionManager transactionManager;
 
     @Test
-    void concurrentSuccessfulLookupsDoNotLoseUsageCounterIncrements() throws InterruptedException {
+    void oppositeDirectionConcurrentLookupsDoNotDeadlockOrLoseUsageCounterIncrements()
+            throws InterruptedException {
         // Seed in its own short-lived transaction (via TransactionTemplate, since this test class
         // is deliberately not @Transactional) — a @Modifying native query requires an active
         // transaction even for one-off setup writes.
@@ -87,6 +88,8 @@ class ExchangeRateServiceConcurrencyIT extends AbstractIntegrationTest {
 
         try {
             for (int i = 0; i < CONCURRENT_LOOKUPS; i++) {
+                String from = i % 2 == 0 ? FROM_CURRENCY : TO_CURRENCY;
+                String to = i % 2 == 0 ? TO_CURRENCY : FROM_CURRENCY;
                 futures.add(executor.submit(() -> {
                     try {
                         startLatch.await();
@@ -94,7 +97,7 @@ class ExchangeRateServiceConcurrencyIT extends AbstractIntegrationTest {
                         Thread.currentThread().interrupt();
                         throw new RuntimeException(e);
                     }
-                    exchangeRateService.lookup(FROM_CURRENCY, TO_CURRENCY, RATE_DATE);
+                    exchangeRateService.lookup(from, to, RATE_DATE);
                 }));
             }
 

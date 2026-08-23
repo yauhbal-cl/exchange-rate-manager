@@ -66,14 +66,25 @@ public class ExchangeRateService {
                 .divide(BigDecimal.valueOf(100), RATE_MATH_CONTEXT);
         BigDecimal rate = rateRatio.multiply(spreadFactor, RATE_MATH_CONTEXT);
 
-        currencyUsageRepository.incrementUsage(from);
-        Long fromCurrencyUsageCount = currencyUsageRepository.findByCurrencyCode(from)
+        boolean fromCurrencyComesFirst = from.compareTo(to) < 0;
+        String firstCurrency = fromCurrencyComesFirst ? from : to;
+        String secondCurrency = fromCurrencyComesFirst ? to : from;
+
+        currencyUsageRepository.incrementUsage(firstCurrency);
+        Long firstCurrencyUsageCount = currencyUsageRepository.findByCurrencyCode(firstCurrency)
                 .orElseThrow()
                 .getQueryCount();
-        currencyUsageRepository.incrementUsage(to);
-        Long toCurrencyUsageCount = currencyUsageRepository.findByCurrencyCode(to)
+        currencyUsageRepository.incrementUsage(secondCurrency);
+        Long secondCurrencyUsageCount = currencyUsageRepository.findByCurrencyCode(secondCurrency)
                 .orElseThrow()
                 .getQueryCount();
+
+        Long fromCurrencyUsageCount = fromCurrencyComesFirst
+                ? firstCurrencyUsageCount
+                : secondCurrencyUsageCount;
+        Long toCurrencyUsageCount = fromCurrencyComesFirst
+                ? secondCurrencyUsageCount
+                : firstCurrencyUsageCount;
 
         return new ExchangeRateLookupResult(
                 from, to, rate, effectiveDate, fromCurrencyUsageCount, toCurrencyUsageCount);
