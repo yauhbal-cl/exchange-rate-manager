@@ -130,7 +130,7 @@ just-now phrase.
 
 ### Tests for User Story 3 ⚠️
 
-- [ ] T023 [P] [US3] Create `frontend/src/app/features/usage-analytics/relative-time.spec.ts`: every unit-ladder threshold (`< 60 s` → the distinct just-now literal, `< 60 min` minutes, `< 24 h` hours, `< 30 d` days, `< 12 mo` months, else years), the future-instant clock-skew clamp to just-now, the unparseable-instant case, and the local absolute date-time string — all as pure `(instant, now)` calls with no fake timers (data-model.md §3, research.md §4).
+- [X] T023 [P] [US3] Create `frontend/src/app/features/usage-analytics/relative-time.spec.ts`: every unit-ladder threshold (`< 60 s` → the distinct just-now literal, `< 60 min` minutes, `< 24 h` hours, `< 30 d` days, `< 12 mo` months, else years), the future-instant clock-skew clamp to just-now, the unparseable-instant case, and the local absolute date-time string — all as pure `(instant, now)` calls with no fake timers (data-model.md §3, research.md §4).
 - [X] T024 [P] [US3] Add `buildRecentActivity` specs to `frontend/src/app/features/usage-analytics/usage-metrics.spec.ts`: `lastQueriedAt === null` exclusion (including a currency with `queryCount > 0` but a null timestamp), `lastQueriedAt` DESC then `currencyCode` ASC ordering, the 8-entry cap, and the empty case (data-model.md §2.3, US3 scenarios 1–4).
 
 ### Implementation for User Story 3
