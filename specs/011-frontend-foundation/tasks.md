@@ -207,7 +207,7 @@ hand-written `HttpClient` calls exist anywhere in application code outside `api-
 - [X] T017 [P] Run `cd frontend && npm test` and confirm all Vitest tests, including T010 and
       T011, pass.
 
-- [ ] T018 [P] Manually validate the backend-unreachable edge case per quickstart.md ("Edge case —
+- [X] T018 [P] Manually validate the backend-unreachable edge case per quickstart.md ("Edge case —
       backend unreachable"): stop the backend, load the app, click through all three nav entries,
       and confirm the shell/nav stay visible and responsive throughout while each view's own data
       section shows a clear error/unavailable message — validates FR-014/SC-005.
