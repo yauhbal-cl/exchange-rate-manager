@@ -41,6 +41,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RefreshResult'
+        '409':
+          description: >
+            A collection run (scheduled or manual) is already in progress; retry shortly
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
         '502':
           description: The external rate provider was unreachable or returned an error
           content:

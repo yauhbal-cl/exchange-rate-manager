@@ -101,7 +101,7 @@ example request/response and documented error case match the live backend's actu
       `ExchangeController.java` for request parameters, success response fields, and every error
       condition raised through the central `@RestControllerAdvice`; fix any drift directly in
       `contracts/openapi.yaml` (research.md R4).
-- [ ] T009 [US2] Audit `/exchange/refresh` and `/exchange/usage` in `contracts/openapi.yaml` against
+- [X] T009 [US2] Audit `/exchange/refresh` and `/exchange/usage` in `contracts/openapi.yaml` against
       `ExchangeController.java` the same way; fix any drift in `contracts/openapi.yaml`.
 - [ ] T010 [US2] Audit `/exchange/trend` and `/exchange/trend/insight` in `contracts/openapi.yaml`
       against `ExchangeController.java`, including the AI-unavailable degrade error path
