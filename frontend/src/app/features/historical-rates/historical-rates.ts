@@ -4,7 +4,9 @@ import { ExchangeRateAnalyticsService } from '../../api-client';
 import { CurrencyCombobox } from '../rate-lookup/currency-combobox';
 import type { Currency } from '../rate-lookup/currencies';
 import { resolveRange, todayIso, type PeriodSelection } from './period-presets';
+import { RateTrendChart } from './rate-trend-chart';
 import {
+  computeDailyChanges,
   computeLatest,
   computePeriodChange,
   computePeriodHigh,
@@ -20,7 +22,7 @@ interface TrendRequest {
 
 @Component({
   selector: 'app-historical-rates',
-  imports: [CurrencyCombobox],
+  imports: [CurrencyCombobox, RateTrendChart],
   template: `
     <div class="mx-auto max-w-6xl px-4 py-8">
       <h2 class="text-2xl font-semibold text-gray-900">Historical Exchange Rate Trends</h2>
@@ -84,6 +86,15 @@ interface TrendRequest {
           No historical rate data for this pair and period.
         </p>
       }
+
+      <div class="mt-6">
+        <app-rate-trend-chart
+          [points]="points()"
+          [dailyChanges]="dailyChanges()"
+          [periodHigh]="periodHigh()"
+          [periodLow]="periodLow()"
+        />
+      </div>
     </div>
   `,
 })
@@ -127,4 +138,5 @@ export class HistoricalRates {
   protected readonly periodChange = computed(() => computePeriodChange(this.points()));
   protected readonly periodHigh = computed(() => computePeriodHigh(this.points()));
   protected readonly periodLow = computed(() => computePeriodLow(this.points()));
+  protected readonly dailyChanges = computed(() => computeDailyChanges(this.points()));
 }
