@@ -49,9 +49,9 @@ Ordered steps for Exchange Rate Management System (see TASK.md, CLAUDE.md). Mark
 
 ## 6. Backend Docs & Verification
 
-- [ ] springdoc-openapi serving Swagger UI from generated interfaces
-- [ ] `./mvnw verify` green — unit tests for spread calc, usage counter concurrency, upsert/duplicate handling
-- [ ] Manual check: multi-instance scheduler behaves correctly (ShedLock verified)
+- [x] springdoc-openapi serving Swagger UI from generated interfaces
+- [x] `./mvnw verify` green — unit tests for spread calc, usage counter concurrency, upsert/duplicate handling
+- [x] Manual check: multi-instance scheduler behaves correctly (ShedLock verified)
 
 ## 7. Frontend Foundation
 
