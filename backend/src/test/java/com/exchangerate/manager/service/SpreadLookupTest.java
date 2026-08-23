@@ -30,6 +30,7 @@ class SpreadLookupTest {
                 Map.of(
                         "EUR", new BigDecimal("0.00"),
                         "JPY", new BigDecimal("3.25"),
+                        "HKD", new BigDecimal("3.25"),
                         "MYR", new BigDecimal("4.50"),
                         "RUB", new BigDecimal("6.00")));
         return new SpreadLookup(properties);
@@ -55,5 +56,33 @@ class SpreadLookupTest {
         BigDecimal spread = spreadLookup().spreadFor("JPY");
 
         assertThat(spread).isEqualByComparingTo(new BigDecimal("3.25"));
+    }
+
+    @Test
+    void hkdResolvesToThreePointTwoFivePercentGroup() {
+        BigDecimal spread = spreadLookup().spreadFor("HKD");
+
+        assertThat(spread).isEqualByComparingTo(new BigDecimal("3.25"));
+    }
+
+    @Test
+    void myrResolvesToFourPointFiveZeroPercentGroup() {
+        BigDecimal spread = spreadLookup().spreadFor("MYR");
+
+        assertThat(spread).isEqualByComparingTo(new BigDecimal("4.50"));
+    }
+
+    @Test
+    void rubResolvesToSixPercentGroup() {
+        BigDecimal spread = spreadLookup().spreadFor("RUB");
+
+        assertThat(spread).isEqualByComparingTo(new BigDecimal("6.00"));
+    }
+
+    @Test
+    void gbpNotInAnyGroupAndNotEurFallsBackToConfiguredDefault() {
+        BigDecimal spread = spreadLookup().spreadFor("GBP");
+
+        assertThat(spread).isEqualByComparingTo(DEFAULT_SPREAD_PERCENT);
     }
 }
