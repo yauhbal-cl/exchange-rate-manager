@@ -3,7 +3,14 @@ import { rxResource } from '@angular/core/rxjs-interop';
 import { ExchangeRateAnalyticsService } from '../../api-client';
 import { CurrencyCombobox } from '../rate-lookup/currency-combobox';
 import type { Currency } from '../rate-lookup/currencies';
-import { customRangeError, resolveRange, todayIso, type PeriodSelection } from './period-presets';
+import {
+  customRangeError,
+  PERIOD_PRESETS,
+  resolveRange,
+  todayIso,
+  type PeriodSelection,
+  type PresetId,
+} from './period-presets';
 import { RateTrendChart } from './rate-trend-chart';
 import {
   computeDailyChanges,
@@ -49,6 +56,24 @@ interface TrendRequest {
       @if (pairError()) {
         <p class="mt-2 text-amber-700">{{ pairError() }}</p>
       }
+
+      <div class="mt-4 flex flex-wrap gap-2">
+        @for (preset of presets; track preset.id) {
+          <button
+            type="button"
+            [attr.data-preset]="preset.id"
+            class="rounded border px-3 py-1.5 text-sm font-medium"
+            [class.border-blue-600]="isActivePreset(preset.id)"
+            [class.bg-blue-600]="isActivePreset(preset.id)"
+            [class.text-white]="isActivePreset(preset.id)"
+            [class.border-gray-300]="!isActivePreset(preset.id)"
+            [class.text-gray-700]="!isActivePreset(preset.id)"
+            (click)="selectPreset(preset.id)"
+          >
+            {{ preset.label }}
+          </button>
+        }
+      </div>
 
       @if (points().length > 0) {
         <div class="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
@@ -112,7 +137,17 @@ export class HistoricalRates {
       : null,
   );
 
+  protected readonly presets = PERIOD_PRESETS;
   protected readonly period = signal<PeriodSelection>({ kind: 'preset', id: '1M' });
+
+  protected selectPreset(id: PresetId): void {
+    this.period.set({ kind: 'preset', id });
+  }
+
+  protected isActivePreset(id: PresetId): boolean {
+    const period = this.period();
+    return period.kind === 'preset' && period.id === id;
+  }
 
   protected readonly periodError = computed<string | null>(() => {
     const period = this.period();
