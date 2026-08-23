@@ -121,10 +121,10 @@ table, each full width, at every viewport width.
 
 **Purpose**: Confirm no regressions beyond the two stories above
 
-- [ ] T006 [P] Run `cd frontend && npm test -- historical-rates` and confirm every test in
+- [X] T006 [P] Run `cd frontend && npm test -- historical-rates` and confirm every test in
   `historical-rates.spec.ts` (pre-existing plus T002 and T004) passes (SC-004; quickstart.md
   "Automated validation")
-- [ ] T007 [P] Run `cd frontend && npm test` (full suite) and confirm no unrelated regressions in
+- [X] T007 [P] Run `cd frontend && npm test` (full suite) and confirm no unrelated regressions in
   `period-presets.spec.ts`, `trend-metrics.spec.ts`, or any other spec (plan.md Constraints)
 - [ ] T008 Walk through quickstart.md's "Manual validation scenarios" in a browser — resize from
   narrow (~375px) to wide (~1440px+) and confirm the chart and AI Insights panel stay full width
