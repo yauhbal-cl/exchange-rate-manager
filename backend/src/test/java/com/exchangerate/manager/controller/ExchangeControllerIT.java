@@ -44,9 +44,12 @@ class ExchangeControllerIT extends AbstractIntegrationTest {
     private static final String USAGE_ENDPOINT = "/api/v1/exchange/usage";
     private static final String TREND_ENDPOINT = "/api/v1/exchange/trend";
 
-    // Neither EUR nor GBP appear in SpreadLookup's explicit tiers, so both fall to the DEFAULT
-    // spread (2.75). Keep the math context identical to ExchangeRateService's so the
-    // hand-computed expectation matches bit-for-bit under HALF_UP rounding.
+    // GBP never appears in SpreadLookup's explicit tiers, so it falls to the DEFAULT spread
+    // (2.75). EUR is explicitly configured at 0.00 (see application.yml's exchange-rates.spreads
+    // — EUR is Fixer.io's base currency), but since Section 6.1's formula applies
+    // MAX(toSpread, fromSpread), GBP's 2.75 dominates the EUR/GBP pair below regardless of EUR's
+    // own value. Keep the math context identical to ExchangeRateService's so the hand-computed
+    // expectation matches bit-for-bit under HALF_UP rounding.
     private static final MathContext RATE_MATH_CONTEXT = new MathContext(20, RoundingMode.HALF_UP);
     private static final BigDecimal DEFAULT_SPREAD = new BigDecimal("2.75");
 
@@ -55,6 +58,14 @@ class ExchangeControllerIT extends AbstractIntegrationTest {
     private static final String TO_CURRENCY = "GBP";
     private static final BigDecimal FROM_RATE_TO_USD = new BigDecimal("1.080000");
     private static final BigDecimal TO_RATE_TO_USD = new BigDecimal("0.860000");
+
+    // Shared counterpart for the EUR-zero-spread / USD-non-zero-spread tests below, matching the
+    // spec's own worked examples (specs/008-eur-base-spread-correction/spec.md, Acceptance
+    // Scenarios 1-2 under US1). PLN isn't in any SpreadLookup tier, so it always falls to the
+    // 2.75 DEFAULT_SPREAD, same as GBP above; distinct from GBP purely so failures are easy to
+    // tell apart by currency code in test output.
+    private static final String DEFAULT_TIER_COUNTERPART_CURRENCY = "PLN";
+    private static final BigDecimal DEFAULT_TIER_COUNTERPART_RATE_TO_USD = new BigDecimal("0.230000");
 
     // Obviously-fake 3-letter code, never seeded into exchange_rates by any test in this class.
     private static final String UNKNOWN_CURRENCY = "ZZZ";
@@ -118,6 +129,75 @@ class ExchangeControllerIT extends AbstractIntegrationTest {
                 .toString();
 
         assertThat(new BigDecimal(rateAsText)).isEqualByComparingTo(expectedRate);
+    }
+
+    // The two tests below map directly to spec.md's US1 Acceptance Scenarios 1 and 2: EUR must
+    // never contribute a non-zero spread (it's Fixer.io's base currency), and USD must never be
+    // mistaken for that base currency just because it's used for internal rate normalization —
+    // USD gets the same 2.75 DEFAULT_SPREAD as any other unlisted currency.
+    //
+    // Caveat: because the formula is MAX(toSpread, fromSpread) (Section 6.1) and every non-EUR
+    // currency's spread (2.75 default, or 3.25/4.50/6.00 group tiers) is >= EUR's 0.00, the
+    // *numeric* rate produced here would be identical even under the old bug that hardcoded USD
+    // (not EUR) as the zero-spread currency — the DEFAULT_TIER_COUNTERPART_CURRENCY leg always
+    // dominates the max() either way. These tests document and lock in the currently-correct,
+    // spec-mandated per-currency spread assignment; the regression-proof unit coverage that
+    // actually distinguishes "EUR resolves to 0.00" from "USD resolves to 0.00" lives in
+    // SpreadLookupTest, which asserts spreadFor(...) directly without going through max().
+    @Test
+    void getExchangeRateAppliesZeroSpreadForEurLegAgainstDefaultTierCurrency() throws Exception {
+        exchangeRateRepository.upsert(FROM_CURRENCY, FROM_RATE_TO_USD, RATE_DATE);
+        exchangeRateRepository.upsert(
+                DEFAULT_TIER_COUNTERPART_CURRENCY, DEFAULT_TIER_COUNTERPART_RATE_TO_USD, RATE_DATE);
+
+        BigDecimal expectedRate = computeExpectedRate(FROM_RATE_TO_USD, DEFAULT_TIER_COUNTERPART_RATE_TO_USD);
+
+        MvcResult result = mockMvc.perform(get(ENDPOINT)
+                        .param("from", FROM_CURRENCY)
+                        .param("to", DEFAULT_TIER_COUNTERPART_CURRENCY)
+                        .param("date", RATE_DATE.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.fromCurrency").value(FROM_CURRENCY))
+                .andExpect(jsonPath("$.toCurrency").value(DEFAULT_TIER_COUNTERPART_CURRENCY))
+                .andReturn();
+
+        BigDecimal actualRate = new BigDecimal(com.jayway.jsonpath.JsonPath
+                .parse(result.getResponse().getContentAsString())
+                .read("$.rate")
+                .toString());
+
+        assertThat(actualRate).isEqualByComparingTo(expectedRate);
+    }
+
+    @Test
+    void getExchangeRateAppliesUsdDefaultSpreadNotZeroWhenEurIsNotInvolved() throws Exception {
+        String usdCurrency = "USD";
+        BigDecimal usdRateToUsd = new BigDecimal("1.000000");
+
+        exchangeRateRepository.upsert(usdCurrency, usdRateToUsd, RATE_DATE);
+        exchangeRateRepository.upsert(
+                DEFAULT_TIER_COUNTERPART_CURRENCY, DEFAULT_TIER_COUNTERPART_RATE_TO_USD, RATE_DATE);
+
+        BigDecimal expectedRate = computeExpectedRate(usdRateToUsd, DEFAULT_TIER_COUNTERPART_RATE_TO_USD);
+
+        MvcResult result = mockMvc.perform(get(ENDPOINT)
+                        .param("from", usdCurrency)
+                        .param("to", DEFAULT_TIER_COUNTERPART_CURRENCY)
+                        .param("date", RATE_DATE.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.fromCurrency").value(usdCurrency))
+                .andExpect(jsonPath("$.toCurrency").value(DEFAULT_TIER_COUNTERPART_CURRENCY))
+                .andReturn();
+
+        BigDecimal actualRate = new BigDecimal(com.jayway.jsonpath.JsonPath
+                .parse(result.getResponse().getContentAsString())
+                .read("$.rate")
+                .toString());
+
+        // Must equal the DEFAULT_SPREAD (2.75) adjusted rate — USD's own configured spread —
+        // not an unadjusted (0%-spread) rate, which is what the old USD-hardcoded-to-zero bug
+        // would have wrongly produced whenever USD's spread happened to be the max() winner.
+        assertThat(actualRate).isEqualByComparingTo(expectedRate);
     }
 
     @Test
