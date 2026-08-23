@@ -1,0 +1,337 @@
+import { TestBed } from '@angular/core/testing';
+import { HttpErrorResponse } from '@angular/common/http';
+import { of, Subject, throwError } from 'rxjs';
+import { RateLookup } from './rate-lookup';
+import { ExchangeRateLookupService, type ExchangeRateResponse } from '../../api-client';
+
+function selectOption(select: HTMLSelectElement, value: string): void {
+  select.value = value;
+  select.dispatchEvent(new Event('change'));
+}
+
+function response(overrides: Partial<ExchangeRateResponse> = {}): ExchangeRateResponse {
+  return {
+    fromCurrency: 'USD',
+    toCurrency: 'EUR',
+    rate: '0.9234500000',
+    rateDate: '2026-08-20',
+    fromCurrencyUsageCount: 3,
+    toCurrencyUsageCount: 5,
+    ...overrides,
+  };
+}
+
+describe('RateLookup', () => {
+  let getExchangeRate: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    getExchangeRate = vi.fn();
+    TestBed.configureTestingModule({
+      providers: [{ provide: ExchangeRateLookupService, useValue: { getExchangeRate } }],
+    });
+  });
+
+  it('submits the selected currency pair and renders the result', () => {
+    getExchangeRate.mockReturnValue(of(response()));
+
+    const fixture = TestBed.createComponent(RateLookup);
+    fixture.detectChanges();
+
+    const from: HTMLSelectElement = fixture.nativeElement.querySelector('select[name="from"]');
+    const to: HTMLSelectElement = fixture.nativeElement.querySelector('select[name="to"]');
+    selectOption(from, 'USD');
+    selectOption(to, 'EUR');
+    fixture.detectChanges();
+
+    fixture.nativeElement.querySelector('button[type="submit"]').click();
+    fixture.detectChanges();
+
+    expect(getExchangeRate).toHaveBeenCalledTimes(1);
+    expect(getExchangeRate).toHaveBeenCalledWith('USD', 'EUR', undefined);
+
+    const text: string = fixture.nativeElement.textContent;
+    expect(text).toContain('USD');
+    expect(text).toContain('EUR');
+    expect(text).toContain('0.9234500000');
+    expect(text).toContain('2026-08-20');
+    expect(text).toContain('3');
+    expect(text).toContain('5');
+  });
+
+  it('replaces the previous result rather than appending when resubmitted with a changed target', () => {
+    getExchangeRate
+      .mockReturnValueOnce(of(response()))
+      .mockReturnValueOnce(of(response({ toCurrency: 'GBP', rate: '0.7800000000', rateDate: '2026-08-21' })));
+
+    const fixture = TestBed.createComponent(RateLookup);
+    fixture.detectChanges();
+
+    const from: HTMLSelectElement = fixture.nativeElement.querySelector('select[name="from"]');
+    const to: HTMLSelectElement = fixture.nativeElement.querySelector('select[name="to"]');
+    const submit = () => fixture.nativeElement.querySelector('button[type="submit"]').click();
+
+    selectOption(from, 'USD');
+    selectOption(to, 'EUR');
+    fixture.detectChanges();
+    submit();
+    fixture.detectChanges();
+
+    selectOption(to, 'GBP');
+    fixture.detectChanges();
+    submit();
+    fixture.detectChanges();
+
+    expect(getExchangeRate).toHaveBeenCalledTimes(2);
+
+    const text: string = fixture.nativeElement.textContent;
+    expect(text).toContain('GBP');
+    expect(text).not.toContain('0.9234500000');
+  });
+
+  it('passes a selected date through to getExchangeRate', () => {
+    getExchangeRate.mockReturnValue(of(response({ rateDate: '2026-01-15' })));
+
+    const fixture = TestBed.createComponent(RateLookup);
+    fixture.detectChanges();
+
+    const from: HTMLSelectElement = fixture.nativeElement.querySelector('select[name="from"]');
+    const to: HTMLSelectElement = fixture.nativeElement.querySelector('select[name="to"]');
+    const dateInput: HTMLInputElement = fixture.nativeElement.querySelector('input[name="date"]');
+    selectOption(from, 'USD');
+    selectOption(to, 'EUR');
+    dateInput.value = '2026-01-15';
+    dateInput.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    fixture.nativeElement.querySelector('button[type="submit"]').click();
+    fixture.detectChanges();
+
+    expect(getExchangeRate).toHaveBeenCalledWith('USD', 'EUR', '2026-01-15');
+  });
+
+  it('omits the date when the date field is left blank', () => {
+    getExchangeRate.mockReturnValue(of(response()));
+
+    const fixture = TestBed.createComponent(RateLookup);
+    fixture.detectChanges();
+
+    const from: HTMLSelectElement = fixture.nativeElement.querySelector('select[name="from"]');
+    const to: HTMLSelectElement = fixture.nativeElement.querySelector('select[name="to"]');
+    selectOption(from, 'USD');
+    selectOption(to, 'EUR');
+    fixture.detectChanges();
+
+    fixture.nativeElement.querySelector('button[type="submit"]').click();
+    fixture.detectChanges();
+
+    expect(getExchangeRate).toHaveBeenCalledWith('USD', 'EUR', undefined);
+  });
+
+  it('shows a validation message and blocks submit when currencies are identical', () => {
+    const fixture = TestBed.createComponent(RateLookup);
+    fixture.detectChanges();
+
+    const from: HTMLSelectElement = fixture.nativeElement.querySelector('select[name="from"]');
+    const to: HTMLSelectElement = fixture.nativeElement.querySelector('select[name="to"]');
+    selectOption(from, 'USD');
+    selectOption(to, 'USD');
+    fixture.detectChanges();
+
+    fixture.nativeElement.querySelector('button[type="submit"]').click();
+    fixture.detectChanges();
+
+    expect(getExchangeRate).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.textContent).toContain(
+      'Source and target currency must be different.',
+    );
+  });
+
+  it('shows a validation message and blocks submit when a currency is unselected', () => {
+    const fixture = TestBed.createComponent(RateLookup);
+    fixture.detectChanges();
+
+    const from: HTMLSelectElement = fixture.nativeElement.querySelector('select[name="from"]');
+    selectOption(from, 'USD');
+    fixture.detectChanges();
+
+    fixture.nativeElement.querySelector('button[type="submit"]').click();
+    fixture.detectChanges();
+
+    expect(getExchangeRate).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.textContent).toContain(
+      'Select both a source and a target currency.',
+    );
+  });
+
+  it('shows a validation message and blocks submit when the date is after today', () => {
+    const fixture = TestBed.createComponent(RateLookup);
+    fixture.detectChanges();
+
+    const from: HTMLSelectElement = fixture.nativeElement.querySelector('select[name="from"]');
+    const to: HTMLSelectElement = fixture.nativeElement.querySelector('select[name="to"]');
+    const dateInput: HTMLInputElement = fixture.nativeElement.querySelector('input[name="date"]');
+    selectOption(from, 'USD');
+    selectOption(to, 'EUR');
+    dateInput.value = '2099-01-01';
+    dateInput.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    fixture.nativeElement.querySelector('button[type="submit"]').click();
+    fixture.detectChanges();
+
+    expect(getExchangeRate).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.textContent).toContain('Date cannot be in the future.');
+  });
+
+  it('renders the invalid category message from a 400 response', () => {
+    getExchangeRate.mockReturnValue(
+      throwError(
+        () => new HttpErrorResponse({ status: 400, error: { detail: 'from and to must differ.' } }),
+      ),
+    );
+
+    const fixture = TestBed.createComponent(RateLookup);
+    fixture.detectChanges();
+
+    const from: HTMLSelectElement = fixture.nativeElement.querySelector('select[name="from"]');
+    const to: HTMLSelectElement = fixture.nativeElement.querySelector('select[name="to"]');
+    selectOption(from, 'USD');
+    selectOption(to, 'EUR');
+    fixture.detectChanges();
+
+    fixture.nativeElement.querySelector('button[type="submit"]').click();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('from and to must differ.');
+  });
+
+  it('renders the no-data category message from a 404 response', () => {
+    getExchangeRate.mockReturnValue(
+      throwError(
+        () =>
+          new HttpErrorResponse({ status: 404, error: { detail: 'No stored rate for that date.' } }),
+      ),
+    );
+
+    const fixture = TestBed.createComponent(RateLookup);
+    fixture.detectChanges();
+
+    const from: HTMLSelectElement = fixture.nativeElement.querySelector('select[name="from"]');
+    const to: HTMLSelectElement = fixture.nativeElement.querySelector('select[name="to"]');
+    selectOption(from, 'USD');
+    selectOption(to, 'EUR');
+    fixture.detectChanges();
+
+    fixture.nativeElement.querySelector('button[type="submit"]').click();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('No stored rate for that date.');
+  });
+
+  it('renders the unreachable fallback message on a network failure, leaving the form usable', () => {
+    getExchangeRate.mockReturnValue(throwError(() => new HttpErrorResponse({ status: 0 })));
+
+    const fixture = TestBed.createComponent(RateLookup);
+    fixture.detectChanges();
+
+    const from: HTMLSelectElement = fixture.nativeElement.querySelector('select[name="from"]');
+    const to: HTMLSelectElement = fixture.nativeElement.querySelector('select[name="to"]');
+    selectOption(from, 'USD');
+    selectOption(to, 'EUR');
+    fixture.detectChanges();
+
+    const submit: HTMLButtonElement = fixture.nativeElement.querySelector('button[type="submit"]');
+    submit.click();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain(
+      'Unable to reach the exchange rate service. Please try again later.',
+    );
+    expect(submit.disabled).toBe(false);
+  });
+
+  it('clears the previous error once a retried submit resolves', () => {
+    getExchangeRate
+      .mockReturnValueOnce(
+        throwError(
+          () =>
+            new HttpErrorResponse({
+              status: 404,
+              error: { detail: 'No rate data found for that date.' },
+            }),
+        ),
+      )
+      .mockReturnValueOnce(of(response()));
+
+    const fixture = TestBed.createComponent(RateLookup);
+    fixture.detectChanges();
+
+    const from: HTMLSelectElement = fixture.nativeElement.querySelector('select[name="from"]');
+    const to: HTMLSelectElement = fixture.nativeElement.querySelector('select[name="to"]');
+    const submit = () => fixture.nativeElement.querySelector('button[type="submit"]').click();
+    selectOption(from, 'USD');
+    selectOption(to, 'EUR');
+    fixture.detectChanges();
+
+    submit();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('No rate data found for that date.');
+
+    submit();
+    fixture.detectChanges();
+
+    const text: string = fixture.nativeElement.textContent;
+    expect(text).not.toContain('No rate data found for that date.');
+    expect(text).toContain('0.9234500000');
+  });
+
+  it('discards a stale response when a newer request resolves first', async () => {
+    // Per FR-005/edge cases, the submit control is disabled while a lookup is in flight,
+    // so this can't be driven through the disabled button — it exercises the rxResource
+    // request-identity discard (FR-010) that backstops that same-tab race directly.
+    const first = new Subject<ExchangeRateResponse>();
+    const second = new Subject<ExchangeRateResponse>();
+    getExchangeRate.mockReturnValueOnce(first).mockReturnValueOnce(second);
+
+    const fixture = TestBed.createComponent(RateLookup);
+    fixture.detectChanges();
+
+    const from: HTMLSelectElement = fixture.nativeElement.querySelector('select[name="from"]');
+    const to: HTMLSelectElement = fixture.nativeElement.querySelector('select[name="to"]');
+    const submitButton: HTMLButtonElement = fixture.nativeElement.querySelector('button[type="submit"]');
+    const submit = () => {
+      submitButton.disabled = false;
+      submitButton.click();
+    };
+
+    selectOption(from, 'USD');
+    selectOption(to, 'EUR');
+    fixture.detectChanges();
+    submit();
+    fixture.detectChanges();
+
+    selectOption(to, 'GBP');
+    fixture.detectChanges();
+    submit();
+    fixture.detectChanges();
+    await Promise.resolve();
+    await Promise.resolve();
+    fixture.detectChanges();
+
+    second.next(response({ toCurrency: 'GBP', rate: '0.5000000000' }));
+    second.complete();
+    await Promise.resolve();
+    await Promise.resolve();
+    fixture.detectChanges();
+
+    first.next(response({ toCurrency: 'EUR', rate: '0.6600000000' }));
+    first.complete();
+    await Promise.resolve();
+    await Promise.resolve();
+    fixture.detectChanges();
+
+    const text: string = fixture.nativeElement.textContent;
+    expect(text).toContain('0.5000000000');
+    expect(text).not.toContain('0.6600000000');
+  });
+});
