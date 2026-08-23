@@ -1,4 +1,10 @@
-import { BREAKDOWN_ROW_LIMIT, buildBreakdownView, computeUsageSummary } from './usage-metrics';
+import {
+  BREAKDOWN_ROW_LIMIT,
+  RECENT_ENTRY_LIMIT,
+  buildBreakdownView,
+  buildRecentActivity,
+  computeUsageSummary,
+} from './usage-metrics';
 import type { CurrencyUsageEntry } from '../../api-client';
 
 function entry(currencyCode: string, queryCount: number): CurrencyUsageEntry {
@@ -326,5 +332,197 @@ describe('buildBreakdownView', () => {
 
     expect(view.neverQueriedCount + view.queriedTotal).toBe(entries.length);
     expect(view.queriedTotal).toBe(computeUsageSummary(entries).queriedCurrencyCount);
+  });
+});
+
+describe('buildRecentActivity', () => {
+  // Fixed load-time `now`, passed explicitly: the phrases are pure functions of
+  // `(instant, now)` and never advance, so no fake timers are needed (data-model.md §3).
+  const NOW = new Date('2026-08-23T12:00:00Z');
+
+  function queried(
+    currencyCode: string,
+    lastQueriedAt: string | null,
+    queryCount = 1,
+  ): CurrencyUsageEntry {
+    return { currencyCode, queryCount, lastQueriedAt };
+  }
+
+  /** The FR-012a formatting contract, expressed locale-independently (data-model.md §3). */
+  function expectedAbsoluteLocal(instant: string): string {
+    return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(
+      new Date(instant),
+    );
+  }
+
+  it('returns no entries for an empty entry array (data-model.md §2.3, FR-013, US3 scenario 4)', () => {
+    expect(buildRecentActivity([], NOW)).toEqual([]);
+  });
+
+  it('returns no entries when no currency has ever been queried (FR-011, US3 scenario 4)', () => {
+    const entries = [queried('USD', null, 0), queried('EUR', null, 0), queried('GBP', null, 0)];
+
+    expect(buildRecentActivity(entries, NOW)).toEqual([]);
+  });
+
+  it('excludes entries with lastQueriedAt === null (FR-011, US3 scenario 2)', () => {
+    const entries = [
+      queried('USD', '2026-08-23T11:55:00Z'),
+      queried('EUR', null, 0),
+      queried('GBP', '2026-08-23T10:00:00Z'),
+      queried('JPY', null, 0),
+    ];
+
+    expect(buildRecentActivity(entries, NOW).map((item) => item.currencyCode)).toEqual([
+      'USD',
+      'GBP',
+    ]);
+  });
+
+  it('excludes a currency with queryCount > 0 but a null lastQueriedAt, which still appears in the breakdown (data-model.md §2.3, spec edge case "query count but no recorded last-queried time")', () => {
+    const entries = [
+      queried('USD', '2026-08-23T11:55:00Z', 12),
+      queried('CHF', null, 7),
+      queried('GBP', '2026-08-23T10:00:00Z', 3),
+    ];
+
+    expect(buildRecentActivity(entries, NOW).map((item) => item.currencyCode)).toEqual([
+      'USD',
+      'GBP',
+    ]);
+    expect(buildBreakdownView(entries).rows.map((row) => row.currencyCode)).toContain('CHF');
+  });
+
+  it('orders entries by lastQueriedAt descending, most recent first (FR-010, US3 scenario 1)', () => {
+    const entries = [
+      queried('GBP', '2026-08-21T12:00:00Z'),
+      queried('USD', '2026-08-23T11:58:00Z'),
+      queried('CHF', '2026-07-30T09:15:00Z'),
+      queried('EUR', '2026-08-23T08:00:00Z'),
+    ];
+
+    expect(buildRecentActivity(entries, NOW).map((item) => item.currencyCode)).toEqual([
+      'USD',
+      'EUR',
+      'GBP',
+      'CHF',
+    ]);
+  });
+
+  it('orders by the represented instant, not by the raw string, across differing UTC offsets (data-model.md §2.3)', () => {
+    // 09:30+02:00 === 07:30Z, so EUR is the *older* instant despite the larger literal.
+    const entries = [
+      queried('EUR', '2026-08-23T09:30:00+02:00'),
+      queried('USD', '2026-08-23T08:00:00Z'),
+    ];
+
+    expect(buildRecentActivity(entries, NOW).map((item) => item.currencyCode)).toEqual([
+      'USD',
+      'EUR',
+    ]);
+  });
+
+  it('breaks identical instants on alphabetically ascending currencyCode (SC-006, data-model.md §2.3)', () => {
+    const entries = [
+      queried('USD', '2026-08-23T11:00:00Z'),
+      queried('CHF', '2026-08-23T11:00:00Z'),
+      queried('EUR', '2026-08-23T11:00:00Z'),
+      queried('AUD', '2026-08-22T11:00:00Z'),
+    ];
+
+    expect(buildRecentActivity(entries, NOW).map((item) => item.currencyCode)).toEqual([
+      'CHF',
+      'EUR',
+      'USD',
+      'AUD',
+    ]);
+  });
+
+  it('caps entries at RECENT_ENTRY_LIMIT, keeping the most recent (FR-011, US3 scenario 3)', () => {
+    const entries = [
+      queried('AUD', '2026-08-23T11:00:00Z'),
+      queried('BGN', '2026-08-23T10:00:00Z'),
+      queried('CAD', '2026-08-23T09:00:00Z'),
+      queried('CHF', '2026-08-23T08:00:00Z'),
+      queried('CNY', '2026-08-23T07:00:00Z'),
+      queried('CZK', '2026-08-23T06:00:00Z'),
+      queried('DKK', '2026-08-23T05:00:00Z'),
+      queried('EUR', '2026-08-23T04:00:00Z'),
+      queried('GBP', '2026-08-23T03:00:00Z'),
+      queried('HKD', '2026-08-23T02:00:00Z'),
+    ];
+    expect(entries.length).toBeGreaterThan(RECENT_ENTRY_LIMIT);
+
+    const recent = buildRecentActivity(entries, NOW);
+
+    expect(recent).toHaveLength(RECENT_ENTRY_LIMIT);
+    expect(recent.map((item) => item.currencyCode)).toEqual([
+      'AUD',
+      'BGN',
+      'CAD',
+      'CHF',
+      'CNY',
+      'CZK',
+      'DKK',
+      'EUR',
+    ]);
+  });
+
+  it('keeps lastQueriedAt verbatim from the API for the machine-readable datetime attribute (FR-025)', () => {
+    const entries = [
+      queried('USD', '2026-08-23T11:58:00Z'),
+      queried('EUR', '2026-08-23T09:30:00+02:00'),
+    ];
+
+    expect(buildRecentActivity(entries, NOW).map((item) => item.lastQueriedAt)).toEqual([
+      '2026-08-23T11:58:00Z',
+      '2026-08-23T09:30:00+02:00',
+    ]);
+  });
+
+  it('attaches a non-empty relativePhrase to every entry (FR-012, data-model.md §3)', () => {
+    const entries = [
+      queried('USD', '2026-08-23T11:58:00Z'),
+      queried('EUR', '2026-08-21T12:00:00Z'),
+      queried('GBP', '2025-08-23T12:00:00Z'),
+    ];
+
+    const recent = buildRecentActivity(entries, NOW);
+
+    expect(recent).toHaveLength(3);
+    for (const item of recent) {
+      // Exact wording is relative-time.spec.ts's contract, not this one.
+      expect(typeof item.relativePhrase).toBe('string');
+      expect(item.relativePhrase.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('attaches the local absolute date-time of the same instant as absoluteLocal (FR-012a, data-model.md §3)', () => {
+    const entries = [
+      queried('USD', '2026-08-23T11:58:00Z'),
+      queried('EUR', '2026-08-21T12:00:00Z'),
+    ];
+
+    const recent = buildRecentActivity(entries, NOW);
+
+    expect(recent).toHaveLength(2);
+    for (const item of recent) {
+      expect(item.absoluteLocal).toBe(expectedAbsoluteLocal(item.lastQueriedAt));
+      expect(item.absoluteLocal.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('does not mutate or reorder the input array (INV-6, data-model.md §1 "derivations copy before sorting")', () => {
+    const entries = [
+      queried('GBP', '2026-08-21T12:00:00Z'),
+      queried('USD', '2026-08-23T11:58:00Z'),
+      queried('CHF', null, 0),
+      queried('EUR', '2026-08-23T08:00:00Z'),
+    ];
+    const snapshot = entries.map((item) => ({ ...item }));
+
+    buildRecentActivity(entries, NOW);
+
+    expect(entries).toEqual(snapshot);
   });
 });
