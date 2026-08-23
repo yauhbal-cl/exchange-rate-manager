@@ -22,7 +22,10 @@ Chart.register(...registerables);
 const DENSE_LABEL_THRESHOLD = 15;
 const MAX_VISIBLE_TICKS = 8;
 
-function extremesPlugin(periodHigh: ExtremePoint | null, periodLow: ExtremePoint | null): Plugin<'line'> {
+function extremesPlugin(
+  periodHigh: ExtremePoint | null,
+  periodLow: ExtremePoint | null,
+): Plugin<'line'> {
   return {
     id: 'periodExtremes',
     afterDatasetsDraw(chart) {
@@ -40,8 +43,8 @@ function extremesPlugin(periodHigh: ExtremePoint | null, periodLow: ExtremePoint
           return;
         }
         ctx.save();
-        ctx.font = '11px sans-serif';
-        ctx.fillStyle = '#374151';
+        ctx.font = '700 11px Inter, system-ui, sans-serif';
+        ctx.fillStyle = '#344054';
         ctx.textAlign = 'center';
         ctx.fillText(text, element.x, element.y + offsetY);
         ctx.restore();
@@ -70,21 +73,26 @@ function buildConfig(
       datasets: [
         {
           data: points.map((point) => Number(point.rate)),
-          borderColor: '#2563eb',
-          backgroundColor: '#2563eb',
-          borderWidth: 1.5,
-          tension: 0.15,
+          borderColor: '#344054',
+          backgroundColor: '#344054',
+          borderWidth: 2.2,
+          tension: 0.18,
           fill: false,
           pointRadius: (context) =>
-            isExtremeIndex(context.dataIndex, periodHigh) || isExtremeIndex(context.dataIndex, periodLow)
-              ? 5
-              : 2,
+            isExtremeIndex(context.dataIndex, periodHigh) ||
+            isExtremeIndex(context.dataIndex, periodLow)
+              ? 4.5
+              : 0,
           pointBackgroundColor: (context) =>
             isExtremeIndex(context.dataIndex, periodHigh)
-              ? '#16a34a'
+              ? '#ffffff'
               : isExtremeIndex(context.dataIndex, periodLow)
-                ? '#dc2626'
-                : '#2563eb',
+                ? '#ffffff'
+                : '#344054',
+          pointBorderColor: '#344054',
+          pointBorderWidth: 2,
+          pointHoverRadius: 5,
+          pointHoverBackgroundColor: '#ffffff',
         },
       ],
     },
@@ -94,23 +102,36 @@ function buildConfig(
       scales: {
         x: {
           type: 'category',
-          grid: { color: '#f3f4f6' },
+          border: { display: false },
+          grid: { display: false },
           ticks: {
+            color: '#98a2b3',
+            font: { size: 11 },
             autoSkip: true,
             maxRotation: 0,
-            maxTicksLimit: points.length <= DENSE_LABEL_THRESHOLD ? points.length : MAX_VISIBLE_TICKS,
+            maxTicksLimit:
+              points.length <= DENSE_LABEL_THRESHOLD ? points.length : MAX_VISIBLE_TICKS,
           },
         },
         y: {
           beginAtZero: false,
-          grid: { color: '#f3f4f6' },
+          border: { display: false },
+          grid: { color: '#eef1f4' },
+          ticks: { color: '#98a2b3', font: { size: 11 }, padding: 8 },
         },
       },
       plugins: {
         legend: { display: false },
         tooltip: {
+          backgroundColor: '#111827',
+          titleFont: { size: 13, weight: 700 },
+          bodyFont: { size: 12 },
+          padding: 10,
+          cornerRadius: 10,
+          displayColors: false,
           callbacks: {
-            title: (items: TooltipItem<'line'>[]) => points[items[0]?.dataIndex ?? 0]?.rateDate ?? '',
+            title: (items: TooltipItem<'line'>[]) =>
+              points[items[0]?.dataIndex ?? 0]?.rateDate ?? '',
             label: (item: TooltipItem<'line'>) => {
               const point = points[item.dataIndex];
               const change = dailyChanges[item.dataIndex]?.percent;
@@ -126,16 +147,14 @@ function buildConfig(
 
 @Component({
   selector: 'app-rate-trend-chart',
+  styleUrl: './rate-trend-chart.css',
   template: `
     @if (points().length > 0) {
-      <div class="relative h-72 w-full">
+      <div class="chart-container">
         <canvas #canvas></canvas>
       </div>
     } @else {
-      <div
-        class="flex h-72 items-center justify-center text-gray-500"
-        data-testid="chart-no-data"
-      >
+      <div class="chart-empty" data-testid="chart-no-data">
         No historical rate data for this pair and period.
       </div>
     }

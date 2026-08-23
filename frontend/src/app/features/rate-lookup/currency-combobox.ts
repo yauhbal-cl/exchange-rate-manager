@@ -6,6 +6,7 @@ const SCROLL_LOAD_THRESHOLD_PX = 48;
 
 @Component({
   selector: 'app-currency-combobox',
+  styleUrl: './currency-combobox.css',
   template: `
     <div class="relative flex flex-col gap-1">
       <label [for]="inputId()" class="text-sm font-medium text-gray-700">{{ label() }}</label>

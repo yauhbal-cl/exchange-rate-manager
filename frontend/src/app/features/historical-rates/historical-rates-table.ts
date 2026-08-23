@@ -10,38 +10,39 @@ interface Row {
 
 @Component({
   selector: 'app-historical-rates-table',
+  styleUrl: './historical-rates-table.css',
   template: `
     @if (rows().length > 0) {
-      <table class="w-full text-left text-sm">
-        <thead>
-          <tr class="border-b border-gray-200 text-gray-500">
-            <th class="py-2 pr-4 font-medium">Date</th>
-            <th class="py-2 pr-4 font-medium">Exchange rate</th>
-            <th class="py-2 font-medium">Daily change</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (row of rows(); track row.rateDate) {
-            <tr class="border-b border-gray-100">
-              <td class="py-2 pr-4 text-gray-700">{{ row.rateDate }}</td>
-              <td class="py-2 pr-4 text-gray-900">{{ row.rate }}</td>
-              <td
-                class="py-2"
-                [class.text-green-700]="row.percent && !row.percent.startsWith('-')"
-                [class.text-red-700]="row.percent && row.percent.startsWith('-')"
-                [class.text-gray-400]="!row.percent"
-              >
-                {{ row.percent ?? '—' }}
-              </td>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Exchange rate</th>
+              <th>Daily change</th>
             </tr>
-          }
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            @for (row of rows(); track row.rateDate) {
+              <tr>
+                <td>{{ row.rateDate }}</td>
+                <td class="rate">{{ row.rate }}</td>
+                <td>
+                  <span
+                    class="change"
+                    [class.positive]="row.percent && !row.percent.startsWith('-')"
+                    [class.negative]="row.percent && row.percent.startsWith('-')"
+                    [class.muted]="!row.percent"
+                    >{{ row.percent ?? '—' }}</span
+                  >
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
     } @else {
-      <div
-        class="flex h-32 items-center justify-center text-gray-500"
-        data-testid="table-no-data"
-      >
+      <div class="table-empty" data-testid="table-no-data">
         No historical rate data for this pair and period.
       </div>
     }

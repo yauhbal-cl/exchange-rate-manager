@@ -25,13 +25,23 @@ export function categorizeAiInsightError(error: unknown): AiInsightError | null 
 
 @Component({
   selector: 'app-ai-insights-panel',
+  styleUrl: './ai-insights-panel.css',
   template: `
-    <div class="rounded py-4 pr-4">
-      <h3 class="text-lg font-semibold text-gray-900">AI Insights</h3>
+    <div class="panel">
+      <div class="panel-header">
+        <div class="title-wrap">
+          <span class="spark" aria-hidden="true">✦</span>
+          <div>
+            <h2>AI Insights</h2>
+            <p>Context from the selected period</p>
+          </div>
+        </div>
+        <span class="ai-badge">AI</span>
+      </div>
 
       <button
         type="button"
-        class="mt-3 rounded bg-blue-600 px-3 py-1.5 text-sm text-white disabled:opacity-50"
+        class="generate-button"
         [disabled]="!canGenerate() || isLoading()"
         (click)="generate.emit()"
       >
@@ -39,12 +49,23 @@ export function categorizeAiInsightError(error: unknown): AiInsightError | null 
       </button>
 
       @if (isLoading()) {
-        <p class="mt-3 text-gray-600">Generating insight…</p>
+        <div class="message loading">Generating insight…</div>
       } @else if (error(); as err) {
-        <p class="mt-3 text-red-600" [attr.data-category]="err.category">{{ err.message }}</p>
+        <div class="message error" [attr.data-category]="err.category">{{ err.message }}</div>
       } @else if (value(); as insight) {
-        <p class="mt-3 text-gray-800">{{ insight.narrative }}</p>
+        <div class="insight">
+          <span>Period interpretation</span>
+          <p>{{ insight.narrative }}</p>
+        </div>
+      } @else {
+        <div class="message empty">
+          Generate an AI interpretation of the visible historical series.
+        </div>
       }
+      <p class="note">
+        Insights are descriptive, generated from the selected historical series, and are not
+        financial advice.
+      </p>
     </div>
   `,
 })

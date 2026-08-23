@@ -32,146 +32,162 @@ interface TrendRequest {
 @Component({
   selector: 'app-historical-rates',
   imports: [CurrencyCombobox, RateTrendChart, HistoricalRatesTable, AiInsightsPanel],
+  styleUrl: './historical-rates.css',
   template: `
-    <div class="mx-auto max-w-6xl px-4 py-8">
-      <h2 class="text-2xl font-semibold text-gray-900">Historical Exchange Rate Trends</h2>
-      <p class="mt-1 text-gray-600">
-        Explore how a currency pair has moved over a chosen period, with summary metrics, a
-        chart, and the raw historical rates.
-      </p>
+    <main class="history-page">
+      <header class="page-header">
+        <div>
+          <h1>Historical rates</h1>
+          <p>
+            Explore historical exchange-rate movements, compare period highs and lows, and review
+            contextual AI-generated insights for the selected currency pair.
+          </p>
+        </div>
+        <div class="as-of">Data through {{ formattedToday() }}</div>
+      </header>
 
-      <div class="mt-4 flex flex-wrap items-end gap-4">
-        <app-currency-combobox
-          id="base-currency"
-          name="base-currency"
-          label="Base"
-          [(value)]="baseCurrency"
-        />
-        <button
-          type="button"
-          aria-label="Swap currencies"
-          class="rounded border border-gray-300 px-3 py-2 text-gray-700 hover:bg-gray-50"
-          (click)="swap()"
-        >
-          ⇄
-        </button>
-        <app-currency-combobox
-          id="quote-currency"
-          name="quote-currency"
-          label="Quote"
-          [(value)]="quoteCurrency"
-        />
-      </div>
-
-      @if (pairError()) {
-        <p class="mt-2 text-amber-700">{{ pairError() }}</p>
-      }
-
-      <div class="mt-4 flex flex-wrap gap-2">
-        @for (preset of presets; track preset.id) {
-          <button
-            type="button"
-            [attr.data-preset]="preset.id"
-            class="rounded border px-3 py-1.5 text-sm font-medium"
-            [class.border-blue-600]="isActivePreset(preset.id)"
-            [class.bg-blue-600]="isActivePreset(preset.id)"
-            [class.text-white]="isActivePreset(preset.id)"
-            [class.border-gray-300]="!isActivePreset(preset.id)"
-            [class.text-gray-700]="!isActivePreset(preset.id)"
-            (click)="selectPreset(preset.id)"
-          >
-            {{ preset.label }}
+      <section class="card filters" aria-label="Historical rate filters">
+        <div class="filter-grid">
+          <div class="currency-field">
+            <app-currency-combobox
+              id="base-currency"
+              name="base-currency"
+              label="Base currency"
+              [(value)]="baseCurrency"
+            />
+          </div>
+          <button type="button" aria-label="Swap currencies" class="swap-button" (click)="swap()">
+            ⇄
           </button>
-        }
-      </div>
-
-      <div class="mt-3 flex flex-wrap items-end gap-4">
-        <label class="flex flex-col gap-1">
-          <span class="text-sm font-medium text-gray-700">Start</span>
-          <input
-            type="date"
-            name="range-start"
-            class="rounded border border-gray-300 px-3 py-2"
-            [value]="resolvedRange().startDate"
-            (change)="setRangeStart($any($event.target).value)"
-          />
-        </label>
-        <label class="flex flex-col gap-1">
-          <span class="text-sm font-medium text-gray-700">End</span>
-          <input
-            type="date"
-            name="range-end"
-            class="rounded border border-gray-300 px-3 py-2"
-            [value]="resolvedRange().endDate"
-            (change)="setRangeEnd($any($event.target).value)"
-          />
-        </label>
-      </div>
-
-      @if (periodError()) {
-        <p class="mt-2 text-amber-700">{{ periodError() }}</p>
-      }
-
-      @if (points().length > 0) {
-        <div class="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <div>
-            <p class="text-sm text-gray-500">Latest rate</p>
-            <p class="text-xl font-semibold text-gray-900">{{ latest()?.display }}</p>
+          <div class="currency-field">
+            <app-currency-combobox
+              id="quote-currency"
+              name="quote-currency"
+              label="Quote currency"
+              [(value)]="quoteCurrency"
+            />
           </div>
-          <div>
-            <p class="text-sm text-gray-500">Period change</p>
-            @if (periodChange(); as change) {
-              <p
-                class="text-xl font-semibold"
-                [class.text-green-700]="!change.value.isNegative()"
-                [class.text-red-700]="change.value.isNegative()"
-              >
-                {{ change.percent }}
-              </p>
-            } @else {
-              <p class="text-xl font-semibold text-gray-400">—</p>
-            }
+          <div class="date-field">
+            <span class="field-label">Custom date range</span>
+            <div class="date-range">
+              <input
+                type="date"
+                name="range-start"
+                [value]="resolvedRange().startDate"
+                (change)="setRangeStart($any($event.target).value)"
+              />
+              <input
+                type="date"
+                name="range-end"
+                [value]="resolvedRange().endDate"
+                (change)="setRangeEnd($any($event.target).value)"
+              />
+            </div>
           </div>
-          <div>
-            <p class="text-sm text-gray-500">Period high</p>
-            <p class="text-xl font-semibold text-gray-900">{{ periodHigh()?.display }}</p>
-            <p class="text-xs text-gray-500">{{ periodHigh()?.date }}</p>
-          </div>
-          <div>
-            <p class="text-sm text-gray-500">Period low</p>
-            <p class="text-xl font-semibold text-gray-900">{{ periodLow()?.display }}</p>
-            <p class="text-xs text-gray-500">{{ periodLow()?.date }}</p>
+          <div class="preset-field">
+            <span class="field-label">Date-range presets</span>
+            <div class="preset-list">
+              @for (preset of presets; track preset.id) {
+                <button
+                  type="button"
+                  [attr.data-preset]="preset.id"
+                  class="preset-button"
+                  [class.active]="isActivePreset(preset.id)"
+                  (click)="selectPreset(preset.id)"
+                >
+                  {{ preset.label }}
+                </button>
+              }
+            </div>
           </div>
         </div>
+        @if (pairError() || periodError()) {
+          <p class="validation-message">{{ pairError() ?? periodError() }}</p>
+        }
+      </section>
+
+      @if (points().length > 0) {
+        <section class="card summary" aria-label="Period summary">
+          <div class="pair-summary">
+            <span class="eyebrow">Currency pair</span>
+            <strong>{{ baseCurrency() }} / {{ quoteCurrency() }}</strong>
+            <small>{{ formattedRange() }}</small>
+          </div>
+          <div class="metric">
+            <span>Latest rate</span>
+            <strong>{{ latest()?.display }}</strong>
+            <small>{{ formattedLatestDate() }}</small>
+          </div>
+          <div class="metric">
+            <span>Period change</span>
+            @if (periodChange(); as change) {
+              <strong
+                [class.positive]="!change.value.isNegative()"
+                [class.negative]="change.value.isNegative()"
+              >
+                {{ change.percent }}
+              </strong>
+            } @else {
+              <strong>—</strong>
+            }
+            <small>Start to end</small>
+          </div>
+          <div class="metric">
+            <span>Period high</span>
+            <strong>{{ periodHigh()?.display }}</strong>
+            <small>{{ formattedHighDate() }}</small>
+          </div>
+          <div class="metric">
+            <span>Period low</span>
+            <strong>{{ periodLow()?.display }}</strong>
+            <small>{{ formattedLowDate() }}</small>
+          </div>
+        </section>
       } @else {
-        <p class="mt-6 text-gray-500" data-testid="metrics-no-data">
+        <section class="card no-data-summary" data-testid="metrics-no-data">
           No historical rate data for this pair and period.
-        </p>
+        </section>
       }
 
-      <div class="mt-6">
-        <app-rate-trend-chart
-          [points]="points()"
-          [dailyChanges]="dailyChanges()"
-          [periodHigh]="periodHigh()"
-          [periodLow]="periodLow()"
-        />
-      </div>
+      <section class="main-grid">
+        <div class="card chart-card">
+          <div class="section-header">
+            <div>
+              <h2>Exchange-rate movement</h2>
+              <p>1 {{ baseCurrency() }} in {{ quoteCurrency() }}</p>
+            </div>
+            <div class="legend"><span></span>{{ baseCurrency() }} / {{ quoteCurrency() }}</div>
+          </div>
+          <app-rate-trend-chart
+            [points]="points()"
+            [dailyChanges]="dailyChanges()"
+            [periodHigh]="periodHigh()"
+            [periodLow]="periodLow()"
+          />
+          <div class="annotation-key"><span></span>Period high / low</div>
+        </div>
 
-      <div class="mt-6">
         <app-ai-insights-panel
+          class="card insights-card"
           [value]="aiInsightValue()"
           [isLoading]="aiInsight.isLoading()"
           [error]="aiInsight.error()"
           [canGenerate]="canGenerateInsight()"
           (generate)="generateInsight()"
         />
-      </div>
+      </section>
 
-      <div class="mt-6">
+      <section class="card table-card">
+        <div class="table-header">
+          <div>
+            <h2>Historical rates table</h2>
+            <p>Most recent observations first</p>
+          </div>
+          <span>{{ points().length }} daily observations</span>
+        </div>
         <app-historical-rates-table [points]="points()" [dailyChanges]="dailyChanges()" />
-      </div>
-    </div>
+      </section>
+    </main>
   `,
 })
 export class HistoricalRates {
@@ -248,6 +264,16 @@ export class HistoricalRates {
   protected readonly periodHigh = computed(() => computePeriodHigh(this.points()));
   protected readonly periodLow = computed(() => computePeriodLow(this.points()));
   protected readonly dailyChanges = computed(() => computeDailyChanges(this.points()));
+  protected readonly formattedToday = computed(() => this.formatDate(this.today));
+  protected readonly formattedRange = computed(() => {
+    const range = this.resolvedRange();
+    return `${this.formatDate(range.startDate)} – ${this.formatDate(range.endDate)}`;
+  });
+  protected readonly formattedLatestDate = computed(() =>
+    this.points().length ? this.formatDate(this.points()[this.points().length - 1].rateDate) : '—',
+  );
+  protected readonly formattedHighDate = computed(() => this.formatDate(this.periodHigh()?.date));
+  protected readonly formattedLowDate = computed(() => this.formatDate(this.periodLow()?.date));
 
   protected readonly aiRequest = signal<TrendRequest | undefined>(undefined);
 
@@ -272,6 +298,16 @@ export class HistoricalRates {
 
   protected generateInsight(): void {
     this.aiRequest.set(this.pairAndRange());
+  }
+
+  private formatDate(value: string | undefined): string {
+    if (!value) return '—';
+    return new Intl.DateTimeFormat('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      timeZone: 'UTC',
+    }).format(new Date(`${value}T00:00:00Z`));
   }
 
   constructor() {
