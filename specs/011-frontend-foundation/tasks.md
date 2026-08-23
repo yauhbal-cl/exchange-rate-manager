@@ -181,7 +181,7 @@ now-complete application (all three views built in Phase 3), it does not rebuild
 confirm a complete, compiling API layer is produced with no manual edits needed, and that no
 hand-written `HttpClient` calls exist anywhere in application code outside `api-client/`.
 
-- [ ] T014 [US3] Execute quickstart.md Scenario 3 step 1-2: run `cd frontend && npm run
+- [X] T014 [US3] Execute quickstart.md Scenario 3 step 1-2: run `cd frontend && npm run
       generate:api` again, confirm the command completes and `frontend/src/app/api-client/` is
       fully rewritten, and confirm `cd frontend && npm run build` still compiles with no errors
       (no manual follow-up edits needed) — validates FR-010/FR-011/SC-003.
