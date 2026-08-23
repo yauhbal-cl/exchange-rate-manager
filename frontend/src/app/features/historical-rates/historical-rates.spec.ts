@@ -270,4 +270,41 @@ describe('HistoricalRates', () => {
       range.endDate,
     );
   });
+
+  it('renders table rows most-recent-first matching the chart points exactly, with daily % change (FR-009, SC-003)', async () => {
+    getExchangeRateTrend.mockReturnValue(
+      of(
+        trendResponse({
+          points: [
+            { rateDate: '2026-08-01', rate: '0.9000000000' },
+            { rateDate: '2026-08-15', rate: '0.9500000000' },
+            { rateDate: '2026-08-23', rate: '0.9100000000' },
+          ],
+        }),
+      ),
+    );
+
+    const fixture = TestBed.createComponent(HistoricalRates);
+    fixture.detectChanges();
+    await flush(fixture);
+
+    const rows: NodeListOf<HTMLTableRowElement> =
+      fixture.nativeElement.querySelectorAll('tbody tr');
+    expect(rows.length).toBe(3);
+    expect(rows[0].textContent).toContain('2026-08-23');
+    expect(rows[0].textContent).toContain('0.9100000000');
+    expect(rows[1].textContent).toContain('2026-08-15');
+    expect(rows[2].textContent).toContain('2026-08-01');
+    expect(rows[2].textContent).toContain('—');
+  });
+
+  it('shows the table no-data state consistent with the chart when points is empty (Acceptance Scenario 2)', async () => {
+    getExchangeRateTrend.mockReturnValue(of(trendResponse({ points: [] })));
+
+    const fixture = TestBed.createComponent(HistoricalRates);
+    fixture.detectChanges();
+    await flush(fixture);
+
+    expect(fixture.nativeElement.querySelector('[data-testid="table-no-data"]')).not.toBeNull();
+  });
 });
