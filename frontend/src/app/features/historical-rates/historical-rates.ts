@@ -3,6 +3,7 @@ import { rxResource } from '@angular/core/rxjs-interop';
 import { ExchangeRateAIInsightService, ExchangeRateAnalyticsService } from '../../api-client';
 import { CurrencyCombobox } from '../rate-lookup/currency-combobox';
 import type { Currency } from '../rate-lookup/currencies';
+import { AiInsightsPanel } from './ai-insights-panel';
 import { HistoricalRatesTable } from './historical-rates-table';
 import {
   customRangeError,
@@ -30,7 +31,7 @@ interface TrendRequest {
 
 @Component({
   selector: 'app-historical-rates',
-  imports: [CurrencyCombobox, RateTrendChart, HistoricalRatesTable],
+  imports: [CurrencyCombobox, RateTrendChart, HistoricalRatesTable, AiInsightsPanel],
   template: `
     <div class="mx-auto max-w-6xl px-4 py-8">
       <h2 class="text-2xl font-semibold text-gray-900">Historical Exchange Rate Trends</h2>
@@ -148,13 +149,24 @@ interface TrendRequest {
         </p>
       }
 
-      <div class="mt-6">
-        <app-rate-trend-chart
-          [points]="points()"
-          [dailyChanges]="dailyChanges()"
-          [periodHigh]="periodHigh()"
-          [periodLow]="periodLow()"
-        />
+      <div class="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <div class="lg:col-span-2">
+          <app-rate-trend-chart
+            [points]="points()"
+            [dailyChanges]="dailyChanges()"
+            [periodHigh]="periodHigh()"
+            [periodLow]="periodLow()"
+          />
+        </div>
+        <div class="lg:col-span-1">
+          <app-ai-insights-panel
+            [value]="aiInsightValue()"
+            [isLoading]="aiInsight.isLoading()"
+            [error]="aiInsight.error()"
+            [canGenerate]="canGenerateInsight()"
+            (generate)="generateInsight()"
+          />
+        </div>
       </div>
 
       <div class="mt-6">
@@ -250,6 +262,18 @@ export class HistoricalRates {
         params.endDate,
       ),
   });
+
+  protected readonly canGenerateInsight = computed(
+    () => this.points().length > 0 && !this.trend.isLoading(),
+  );
+
+  protected readonly aiInsightValue = computed(() =>
+    this.aiInsight.hasValue() ? this.aiInsight.value() : undefined,
+  );
+
+  protected generateInsight(): void {
+    this.aiRequest.set(this.pairAndRange());
+  }
 
   constructor() {
     effect(() => {
