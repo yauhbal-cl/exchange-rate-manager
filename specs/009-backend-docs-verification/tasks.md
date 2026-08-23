@@ -133,7 +133,7 @@ signal when required infra is missing.
       (Surefire) and Testcontainers-backed integration tests (Failsafe) in one pass with a single
       `BUILD SUCCESS`/`BUILD FAILURE` result (research.md R3; resolves the README/CLAUDE.md
       inconsistency).
-- [ ] T014 [US3] Re-read `CLAUDE.md`'s Commands section and confirm it still correctly states
+- [X] T014 [US3] Re-read `CLAUDE.md`'s Commands section and confirm it still correctly states
       `cd backend && ./mvnw verify` with no remaining drift against `README.md` after T013.
 - [ ] T015 [US3] Run quickstart.md Scenario 3: `cd backend && ./mvnw verify` twice in a row on an
       unchanged checkout; confirm both runs finish in under 10 minutes with the identical
