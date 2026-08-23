@@ -47,7 +47,7 @@ tasks in this file touch `frontend/` only — no backend changes in this feature
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T002 Run `cd frontend && npm run generate:api` to regenerate `frontend/src/app/api-client/`
+- [X] T002 Run `cd frontend && npm run generate:api` to regenerate `frontend/src/app/api-client/`
       fresh from `contracts/openapi.yaml`, and confirm `ExchangeRateLookupService`
       (`getExchangeRate`), `ExchangeRateUsageAnalyticsService` (`getUsageAnalytics`), and
       `ExchangeRateAIInsightService` (`getExchangeRateTrendInsight`) are exported from
