@@ -90,19 +90,19 @@ spread, not 0%) per spec.md's Independent Test for this story.
 
 ### Implementation for User Story 1
 
-- [ ] T006 [US1] Refactor `SpreadLookup` in
+- [X] T006 [US1] Refactor `SpreadLookup` in
       `backend/src/main/java/com/exchangerate/manager/service/SpreadLookup.java`: remove the
       hardcoded `SPREADS` map and `DEFAULT_KEY` constant; inject `ExchangeRateProperties` via
       constructor (`@RequiredArgsConstructor`); `spreadFor(String currencyCode)` looks up
       `currencyCode` in `properties.spreads()`, falling back to `properties.defaultSpreadPercent()`
       when absent — no re-uppercasing/trimming inside this method per research.md's
       "SpreadLookup input handling" decision (trust the already-validated/uppercased input)
-- [ ] T007 [P] [US1] Create `SpreadLookupTest` in
+- [X] T007 [P] [US1] Create `SpreadLookupTest` in
       `backend/src/test/java/com/exchangerate/manager/service/SpreadLookupTest.java`: plain unit
       test constructing `SpreadLookup` with a hand-built `ExchangeRateProperties` instance —
       assert EUR resolves to 0%, USD (absent from `spreads`) resolves to the 2.75% default (not
       0%), and a currency present in `spreads` resolves to its configured value
-- [ ] T008 [US1] Update `ExchangeControllerIT` in
+- [X] T008 [US1] Update `ExchangeControllerIT` in
       `backend/src/test/java/com/exchangerate/manager/controller/ExchangeControllerIT.java`: fix
       any existing assertions that assumed USD carried a 0% spread; add/adjust cases confirming an
       EUR-involving quote applies 0% for EUR and a USD-involving (non-EUR) quote applies USD's real
