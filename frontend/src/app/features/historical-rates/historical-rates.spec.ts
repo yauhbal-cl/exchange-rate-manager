@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 import { HistoricalRates } from './historical-rates';
 import { ExchangeRateAnalyticsService, type ExchangeRateTrendResponse } from '../../api-client';
-import { resolveRange, todayIso } from './period-presets';
+import { PERIOD_PRESETS, resolveRange, subtractMonths, todayIso } from './period-presets';
 
 function selectCurrency(
   fixture: { nativeElement: HTMLElement; detectChanges(): void },
@@ -131,6 +131,117 @@ describe('HistoricalRates', () => {
     expect(getExchangeRateTrend).not.toHaveBeenCalled();
     expect(fixture.nativeElement.textContent).toContain(
       'Base and quote currency must be different.',
+    );
+  });
+
+  for (const preset of PERIOD_PRESETS) {
+    it(`resolves the ${preset.id} preset to its trailing window and fires a new trend request (FR-004)`, async () => {
+      getExchangeRateTrend.mockReturnValue(of(trendResponse()));
+
+      const fixture = TestBed.createComponent(HistoricalRates);
+      fixture.detectChanges();
+      await flush(fixture);
+
+      getExchangeRateTrend.mockClear();
+      const button: HTMLButtonElement = fixture.nativeElement.querySelector(
+        `button[data-preset="${preset.id}"]`,
+      );
+      button.click();
+      await flush(fixture);
+
+      const range = resolveRange({ kind: 'preset', id: preset.id }, todayIso());
+      expect(getExchangeRateTrend).toHaveBeenCalledTimes(1);
+      expect(getExchangeRateTrend).toHaveBeenCalledWith(
+        'USD',
+        'EUR',
+        range.startDate,
+        range.endDate,
+      );
+    });
+  }
+
+  it('fires a request with the exact dates of a valid custom range (FR-005, Acceptance Scenario 2)', async () => {
+    getExchangeRateTrend.mockReturnValue(of(trendResponse()));
+
+    const fixture = TestBed.createComponent(HistoricalRates);
+    fixture.detectChanges();
+    await flush(fixture);
+
+    getExchangeRateTrend.mockClear();
+    const startInput: HTMLInputElement = fixture.nativeElement.querySelector(
+      'input[name="range-start"]',
+    );
+    const endInput: HTMLInputElement = fixture.nativeElement.querySelector(
+      'input[name="range-end"]',
+    );
+    startInput.value = '2026-06-01';
+    startInput.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    endInput.value = '2026-07-01';
+    endInput.dispatchEvent(new Event('change'));
+    await flush(fixture);
+
+    expect(getExchangeRateTrend).toHaveBeenLastCalledWith(
+      'USD',
+      'EUR',
+      '2026-06-01',
+      '2026-07-01',
+    );
+  });
+
+  it('shows a validation message and fires no request for a custom range spanning more than 6 months (FR-006, SC-004)', async () => {
+    getExchangeRateTrend.mockReturnValue(of(trendResponse()));
+
+    const fixture = TestBed.createComponent(HistoricalRates);
+    fixture.detectChanges();
+    await flush(fixture);
+
+    getExchangeRateTrend.mockClear();
+    const startInput: HTMLInputElement = fixture.nativeElement.querySelector(
+      'input[name="range-start"]',
+    );
+    const endInput: HTMLInputElement = fixture.nativeElement.querySelector(
+      'input[name="range-end"]',
+    );
+    const endDate = '2026-08-01';
+    const tooFarStart = subtractMonths(subtractMonths(endDate, 6), 1);
+    endInput.value = endDate;
+    endInput.dispatchEvent(new Event('change'));
+    await flush(fixture);
+
+    getExchangeRateTrend.mockClear();
+    startInput.value = tooFarStart;
+    startInput.dispatchEvent(new Event('change'));
+    await flush(fixture);
+
+    expect(getExchangeRateTrend).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.textContent).toContain('Custom range cannot exceed 6 months.');
+  });
+
+  it('shows a validation message and fires no request when the custom range start is after the end (Acceptance Scenario 4)', async () => {
+    getExchangeRateTrend.mockReturnValue(of(trendResponse()));
+
+    const fixture = TestBed.createComponent(HistoricalRates);
+    fixture.detectChanges();
+    await flush(fixture);
+
+    getExchangeRateTrend.mockClear();
+    const startInput: HTMLInputElement = fixture.nativeElement.querySelector(
+      'input[name="range-start"]',
+    );
+    const endInput: HTMLInputElement = fixture.nativeElement.querySelector(
+      'input[name="range-end"]',
+    );
+    endInput.value = '2026-07-01';
+    endInput.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    startInput.value = '2026-08-01';
+    startInput.dispatchEvent(new Event('change'));
+    await flush(fixture);
+
+    expect(getExchangeRateTrend).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.textContent).toContain(
+      'End date must be on or after the start date.',
     );
   });
 });
