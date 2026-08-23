@@ -66,14 +66,14 @@ Story 1).
 
 ### Tests for User Story 1
 
-- [ ] T002 [P] [US1] In `frontend/src/app/features/historical-rates/historical-rates.spec.ts`,
+- [X] T002 [P] [US1] In `frontend/src/app/features/historical-rates/historical-rates.spec.ts`,
   add a test asserting the component's rendered `innerHTML` no longer contains the side-by-side
   split classes (`lg:grid-cols-3`, `lg:col-span-2`) that currently constrain the chart to a
   partial-width column — write it so it fails against the current template (FR-001, FR-004)
 
 ### Implementation for User Story 1
 
-- [ ] T003 [US1] In `frontend/src/app/features/historical-rates/historical-rates.ts`'s template,
+- [X] T003 [US1] In `frontend/src/app/features/historical-rates/historical-rates.ts`'s template,
   remove the `<div class="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">` wrapper and its
   `<div class="lg:col-span-2">` chart cell; render `<app-rate-trend-chart>` in its own full-width
   block (`<div class="mt-6">`), matching the pattern already used for the table block below it

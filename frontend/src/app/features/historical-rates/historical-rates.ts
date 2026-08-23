@@ -149,24 +149,23 @@ interface TrendRequest {
         </p>
       }
 
-      <div class="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <div class="lg:col-span-2">
-          <app-rate-trend-chart
-            [points]="points()"
-            [dailyChanges]="dailyChanges()"
-            [periodHigh]="periodHigh()"
-            [periodLow]="periodLow()"
-          />
-        </div>
-        <div class="lg:col-span-1">
-          <app-ai-insights-panel
-            [value]="aiInsightValue()"
-            [isLoading]="aiInsight.isLoading()"
-            [error]="aiInsight.error()"
-            [canGenerate]="canGenerateInsight()"
-            (generate)="generateInsight()"
-          />
-        </div>
+      <div class="mt-6">
+        <app-rate-trend-chart
+          [points]="points()"
+          [dailyChanges]="dailyChanges()"
+          [periodHigh]="periodHigh()"
+          [periodLow]="periodLow()"
+        />
+      </div>
+
+      <div class="mt-6">
+        <app-ai-insights-panel
+          [value]="aiInsightValue()"
+          [isLoading]="aiInsight.isLoading()"
+          [error]="aiInsight.error()"
+          [canGenerate]="canGenerateInsight()"
+          (generate)="generateInsight()"
+        />
       </div>
 
       <div class="mt-6">
