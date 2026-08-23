@@ -128,12 +128,12 @@ primarily the test coverage proving the full table, not new production code.
 
 ### Implementation for User Story 2
 
-- [ ] T009 [P] [US2] Extend `SpreadLookupTest`
+- [X] T009 [P] [US2] Extend `SpreadLookupTest`
       (`backend/src/test/java/com/exchangerate/manager/service/SpreadLookupTest.java`) with cases
       for one representative currency from each Appendix B group — JPY or HKD or KRW → 3.25%, MYR
       or INR or MXN → 4.50%, RUB or CNY or ZAR → 6.00% — and a currency in none of the groups and
       not EUR (e.g. GBP) → 2.75% default
-- [ ] T010 [US2] Add a `SpreadLookupTest` case proving config-only extensibility (SC-004): build a
+- [X] T010 [US2] Add a `SpreadLookupTest` case proving config-only extensibility (SC-004): build a
       second `ExchangeRateProperties` instance with an added/changed spread entry and confirm
       `SpreadLookup` reflects it with zero changes to `SpreadLookup` itself
 
