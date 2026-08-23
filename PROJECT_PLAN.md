@@ -40,12 +40,12 @@ Ordered steps for Exchange Rate Management System (see TASK.md, CLAUDE.md). Mark
 
 ## 5. AI Trend Insight (Section 7)
 
-- [ ] Add `spring-ai-starter-model-ollama` 2.0.1, Ollama service in docker-compose, pull `llama3.2`
-- [ ] Implement `GET /exchange/insight` — from, to, fromDate, toDate
-- [ ] Serialize historical rate rows (dates + values) verbatim into prompt context
-- [ ] System prompt constrains output to short, data-grounded commentary
-- [ ] Graceful degrade to clear error when Ollama/model unreachable (no fabricated insight)
-- [ ] Document local model setup in README (no config guesswork)
+- [x] Add `spring-ai-starter-model-ollama` 2.0.1, Ollama service in docker-compose, pull `llama3.2`
+- [x] Implement `GET /exchange/insight` — from, to, fromDate, toDate
+- [x] Serialize historical rate rows (dates + values) verbatim into prompt context
+- [x] System prompt constrains output to short, data-grounded commentary
+- [x] Graceful degrade to clear error when Ollama/model unreachable (no fabricated insight)
+- [x] Document local model setup in README (no config guesswork)
 
 ## 6. Backend Docs & Verification
 
