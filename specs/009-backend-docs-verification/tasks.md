@@ -161,7 +161,7 @@ signal when required infra is missing.
       so implemented vs. not-yet-built capabilities are clearly distinguished (FR-008). Frontend-only
       version claims (e.g. the Angular/TypeScript versions in the Project Structure block) are out of
       scope per spec.md Assumptions.
-- [ ] T018 Run all four quickstart.md scenarios once more, back to back, after T001-T017 land, as
+- [X] T018 Run all four quickstart.md scenarios once more, back to back, after T001-T017 land, as
       final sign-off that the corrected docs and verification procedure hold together end-to-end.
 
 ---
