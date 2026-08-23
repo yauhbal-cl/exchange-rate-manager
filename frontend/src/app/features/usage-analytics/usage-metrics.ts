@@ -6,6 +6,8 @@
  * returns plain data, so each acceptance scenario is a one-line unit assertion.
  */
 
+import type { CurrencyUsageEntry } from '../../api-client';
+
 /**
  * Backs the three KPI cards (data-model.md §2.1, FR-003 … FR-005a). Computed from the
  * complete, unlimited entry set — the display caps below never narrow its input (INV-2).
@@ -71,4 +73,41 @@ const COUNT_FORMATTER = new Intl.NumberFormat();
  */
 export function formatCount(value: number): string {
   return COUNT_FORMATTER.format(value);
+}
+
+/**
+ * Derives the three KPI card values (data-model.md §2.1, FR-003 … FR-005a).
+ *
+ * `entries` is the complete, unlimited response set: the sum (FR-003) and the queried-currency
+ * count (FR-004) span every currency known to the system, and `mostQueried` is resolved here —
+ * before the §2.2 / §2.3 display caps, which never narrow this input (FR-005a, INV-2).
+ *
+ * `mostQueried` follows the FR-006 ordering restricted to `queryCount > 0`: highest `queryCount`,
+ * ties broken by alphabetically first `currencyCode`, so it is stable across reloads (FR-005,
+ * SC-006). It is `null` when no currency has ever been queried (US1 scenario 4).
+ *
+ * Pure: the input is treated as immutable and sorted on a copy (data-model.md §1, INV-6).
+ */
+export function computeUsageSummary(entries: readonly CurrencyUsageEntry[]): UsageSummary {
+  let totalQueries = 0;
+  const queried: CurrencyUsageEntry[] = [];
+
+  for (const entry of entries) {
+    totalQueries += entry.queryCount;
+    if (entry.queryCount > 0) {
+      queried.push(entry);
+    }
+  }
+
+  // Codepoint comparison, not `localeCompare`: currency codes are ASCII A–Z, and the ordering
+  // must not shift with the viewer's locale (SC-006).
+  const [top] = queried.sort(
+    (a, b) => b.queryCount - a.queryCount || (a.currencyCode < b.currencyCode ? -1 : 1),
+  );
+
+  return {
+    totalQueries,
+    queriedCurrencyCount: queried.length,
+    mostQueried: top ? { currencyCode: top.currencyCode, queryCount: top.queryCount } : null,
+  };
 }
