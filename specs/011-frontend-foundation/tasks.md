@@ -216,7 +216,7 @@ hand-written `HttpClient` calls exist anywhere in application code outside `api-
       activate all three nav entries without a mouse; using a screen reader (or browser
       accessibility inspector), confirm the currently active entry exposes `aria-current="page"`.
 
-- [ ] T020 Run `cd frontend && npm run build` (production configuration) and confirm the build
+- [X] T020 Run `cd frontend && npm run build` (production configuration) and confirm the build
       succeeds within the existing `angular.json` bundle budgets, with no compile errors.
 
 ---
