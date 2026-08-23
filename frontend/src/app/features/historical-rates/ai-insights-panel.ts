@@ -26,7 +26,7 @@ export function categorizeAiInsightError(error: unknown): AiInsightError | null 
 @Component({
   selector: 'app-ai-insights-panel',
   template: `
-    <div class="rounded border border-gray-200 p-4">
+    <div class="rounded py-4 pr-4">
       <h3 class="text-lg font-semibold text-gray-900">AI Insights</h3>
 
       <button
