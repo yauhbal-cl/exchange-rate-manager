@@ -92,8 +92,13 @@ describe('computeDailyChanges', () => {
       point('2026-08-03', '1.0450000000'),
     ];
     const changes = computeDailyChanges(points);
-    expect(changes[1].percent).toBe('+10.00%');
-    expect(changes[2].percent).toBe('-5.00%');
+    const second = changes[1];
+    const third = changes[2];
+    expect(second).toBeDefined();
+    expect(third).toBeDefined();
+    if (!second || !third) throw new Error('Expected daily changes for all three points');
+    expect(second.percent).toBe('+10.00%');
+    expect(third.percent).toBe('-5.00%');
   });
 
   it('uses exact decimal arithmetic with no floating-point drift (0.115% boundary case)', () => {
@@ -102,7 +107,10 @@ describe('computeDailyChanges', () => {
     // float drift) and would wrongly round down to "0.11%" — this pins the Decimal-exact result.
     const points = [point('2026-08-01', '1.00000'), point('2026-08-02', '1.00115')];
     const changes = computeDailyChanges(points);
-    expect(changes[1].percent).toBe('+0.12%');
+    const second = changes[1];
+    expect(second).toBeDefined();
+    if (!second) throw new Error('Expected a second daily change');
+    expect(second.percent).toBe('+0.12%');
 
     const change = computePeriodChange(points);
     expect(change?.absolute).toBe('0.00115');

@@ -1,234 +1,145 @@
-import { Component, computed, inject, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
+import {
+  AbstractControl,
+  NonNullableFormBuilder,
+  ReactiveFormsModule,
+  ValidationErrors,
+  ValidatorFn,
+  Validators,
+} from '@angular/forms';
+import { timeout } from 'rxjs';
 import { ExchangeRateLookupService } from '../../api-client';
+import { formatIsoDateUtc, todayIsoUtc } from '../../shared/date-utils';
+import { problemDetail } from '../../shared/problem-detail';
 import { CurrencyCombobox } from './currency-combobox';
+import {
+  RateLookupResult,
+  type LookupError,
+  type RateLookupResultState,
+} from './rate-lookup-result';
 
 interface RateLookupRequest {
   from: string;
   to: string;
   date: string | undefined;
 }
-
-interface LookupError {
-  category: 'invalid' | 'no-data' | 'unreachable';
-  message: string;
-}
-
 const UNREACHABLE_MESSAGE = 'Unable to reach the exchange rate service. Please try again later.';
 
-function todayIso(): string {
-  return new Date().toISOString().slice(0, 10);
+function differentCurrencies(control: AbstractControl): ValidationErrors | null {
+  const from = control.get('from')?.value;
+  const to = control.get('to')?.value;
+  return from && to && from === to ? { sameCurrency: true } : null;
+}
+
+function maximumDate(maximum: string): ValidatorFn {
+  return (control) =>
+    typeof control.value === 'string' && control.value.length > 0 && control.value > maximum
+      ? { futureDate: true }
+      : null;
+}
+
+export function categorizeLookupError(error: unknown): LookupError {
+  if (error instanceof HttpErrorResponse) {
+    const detail = problemDetail(error.error);
+    if (error.status === 400)
+      return { category: 'invalid', message: detail ?? 'The lookup request is invalid.' };
+    if (error.status === 404)
+      return {
+        category: 'no-data',
+        message: detail ?? 'No stored rate was found for this pair and date.',
+      };
+    if (error.status === 0 || error.status >= 500)
+      return { category: 'unreachable', message: UNREACHABLE_MESSAGE };
+  }
+  return { category: 'unreachable', message: UNREACHABLE_MESSAGE };
 }
 
 @Component({
   selector: 'app-rate-lookup',
-  imports: [CurrencyCombobox],
+  imports: [ReactiveFormsModule, CurrencyCombobox, RateLookupResult],
   styleUrl: './rate-lookup.css',
-  template: `
-    <main class="calculator-page">
-      <header class="page-header">
-        <div>
-          <h1>Rate calculator</h1>
-          <p>
-            Look up the exchange rate for a currency pair using the latest available data or a
-            specific historical date.
-          </p>
-        </div>
-        <div class="as-of">Rates available through {{ formattedToday }}</div>
-      </header>
-
-      <section class="calculator-grid">
-        <div class="card lookup-card">
-          <div class="section-header">
-            <span class="section-icon" aria-hidden="true">↗</span>
-            <div>
-              <h2>Exchange rate lookup</h2>
-              <p>Choose a source and target currency</p>
-            </div>
-          </div>
-
-          <form (submit)="$event.preventDefault(); onSubmit()">
-            <div class="currency-row">
-              <app-currency-combobox
-                id="from-currency"
-                name="from"
-                label="From currency"
-                [(value)]="fromCurrency"
-              />
-
-              <button
-                type="button"
-                class="swap-button"
-                aria-label="Swap currencies"
-                [disabled]="!fromCurrency() || !toCurrency()"
-                (click)="swapCurrencies()"
-              >
-                ⇄
-              </button>
-
-              <app-currency-combobox
-                id="to-currency"
-                name="to"
-                label="To currency"
-                [(value)]="toCurrency"
-              />
-            </div>
-
-            <label class="date-field">
-              <span>Date <small>Optional</small></span>
-              <input
-                type="date"
-                name="date"
-                [attr.max]="today"
-                [value]="date()"
-                (change)="date.set($any($event.target).value)"
-              />
-              <small>Leave blank to use the latest available rate.</small>
-            </label>
-
-            @if (validationError()) {
-              <p class="validation-message">{{ validationError() }}</p>
-            }
-
-            <button
-              type="submit"
-              class="submit-button"
-              [disabled]="validationError() !== null || rate.isLoading()"
-            >
-              @if (rate.isLoading()) {
-                <span class="spinner" aria-hidden="true"></span> Looking up rate…
-              } @else {
-                Look up rate <span aria-hidden="true">→</span>
-              }
-            </button>
-          </form>
-        </div>
-
-        <div class="card result-card" aria-live="polite">
-          <div class="result-header">
-            <div>
-              <h2>Exchange rate</h2>
-              <p>Your lookup result</p>
-            </div>
-          </div>
-
-          @if (rate.isLoading()) {
-            <div class="result-state loading-state">
-              <span class="large-spinner" aria-hidden="true"></span>
-              <strong>Finding exchange rate</strong>
-              <p>Checking the selected pair and date…</p>
-            </div>
-          } @else if (lookupError(); as error) {
-            <div class="result-state error-state" [attr.data-category]="error.category">
-              <span class="state-icon" aria-hidden="true">!</span>
-              <strong>Rate unavailable</strong>
-              <p>{{ error.message }}</p>
-            </div>
-          } @else if (rate.value(); as value) {
-            <div class="result-content">
-              <div class="rate-hero">
-                <div class="pair-label">
-                  <span>{{ value.fromCurrency }}</span>
-                  <span class="pair-arrow" aria-hidden="true">→</span>
-                  <span>{{ value.toCurrency }}</span>
-                </div>
-                <span class="rate-caption">Exchange rate</span>
-                <div class="rate-value">{{ value.rate }}</div>
-              </div>
-
-              <div class="observation-date">
-                <span class="calendar-icon" aria-hidden="true"></span>
-                <div>
-                  <span>Rate observation date</span>
-                  <strong>{{ value.rateDate }}</strong>
-                  <p>This is the market date on which this stored exchange rate was recorded.</p>
-                </div>
-              </div>
-            </div>
-          } @else {
-            <div class="result-state empty-state">
-              <span class="empty-icon" aria-hidden="true">⇄</span>
-              <strong>Your rate will appear here</strong>
-              <p>Select two currencies and submit the form to see their exchange rate.</p>
-            </div>
-          }
-        </div>
-      </section>
-
-      <p class="footer-note">
-        Exchange rates reflect stored market data and may differ from rates offered by financial
-        institutions.
-      </p>
-    </main>
-  `,
+  templateUrl: './rate-lookup.html',
 })
 export class RateLookup {
-  private readonly exchangeRateLookupService = inject(ExchangeRateLookupService);
+  private readonly service = inject(ExchangeRateLookupService);
+  private readonly formBuilder = inject(NonNullableFormBuilder);
 
-  protected readonly today = todayIso();
-  protected readonly formattedToday = new Intl.DateTimeFormat('en-GB', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    timeZone: 'UTC',
-  }).format(new Date(`${this.today}T00:00:00Z`));
-
-  protected readonly fromCurrency = signal('');
-  protected readonly toCurrency = signal('');
-  protected readonly date = signal('');
+  protected readonly today = todayIsoUtc();
+  protected readonly formattedToday = formatIsoDateUtc(this.today);
+  protected readonly submitted = signal(false);
   protected readonly submittedRequest = signal<RateLookupRequest | undefined>(undefined);
+  protected readonly form = this.formBuilder.group(
+    {
+      from: ['', Validators.required],
+      to: ['', Validators.required],
+      date: ['', maximumDate(this.today)],
+    },
+    { validators: differentCurrencies },
+  );
 
   protected readonly rate = rxResource({
     params: () => this.submittedRequest(),
     stream: ({ params }) =>
-      this.exchangeRateLookupService.getExchangeRate(params.from, params.to, params.date),
+      this.service
+        .getExchangeRate(params.from, params.to, params.date)
+        .pipe(timeout({ each: 10_000 })),
   });
 
-  protected readonly validationError = computed<string | null>(() => {
-    if (!this.fromCurrency() || !this.toCurrency()) {
-      return 'Select both a source and a target currency.';
-    }
-    if (this.fromCurrency() === this.toCurrency()) {
-      return 'Source and target currency must be different.';
-    }
-    if (this.date() && this.date() > this.today) {
-      return 'Date cannot be in the future.';
-    }
-    return null;
-  });
-
-  protected readonly lookupError = computed<LookupError | null>(() => {
+  protected readonly resultState = computed<RateLookupResultState>(() => {
+    if (this.rate.isLoading()) return { kind: 'loading' };
     const error = this.rate.error();
-    if (!error) {
-      return null;
-    }
-    if (error instanceof HttpErrorResponse) {
-      const detail = (error.error as { detail?: string } | null)?.detail;
-      if (error.status === 400) {
-        return { category: 'invalid', message: detail ?? UNREACHABLE_MESSAGE };
-      }
-      if (error.status === 404) {
-        return { category: 'no-data', message: detail ?? UNREACHABLE_MESSAGE };
-      }
-    }
-    return { category: 'unreachable', message: UNREACHABLE_MESSAGE };
+    if (error !== undefined) return { kind: 'error', error: categorizeLookupError(error) };
+    if (this.rate.hasValue()) return { kind: 'success', value: this.rate.value() };
+    return { kind: 'initial' };
   });
 
-  protected onSubmit(): void {
-    if (this.validationError() !== null) {
-      return;
-    }
-    this.submittedRequest.set({
-      from: this.fromCurrency(),
-      to: this.toCurrency(),
-      date: this.date() || undefined,
+  constructor() {
+    effect(() => {
+      if (this.rate.isLoading()) this.form.disable({ emitEvent: false });
+      else this.form.enable({ emitEvent: false });
     });
   }
 
+  protected showError(control: AbstractControl): boolean {
+    return control.invalid && (control.touched || control.dirty || this.submitted());
+  }
+
+  protected showPairError(): boolean {
+    return (
+      this.form.hasError('sameCurrency') &&
+      (this.submitted() || this.form.controls.from.touched || this.form.controls.to.touched)
+    );
+  }
+
+  protected showRequiredSummary(): boolean {
+    return (
+      this.submitted() &&
+      (this.form.controls.from.hasError('required') || this.form.controls.to.hasError('required'))
+    );
+  }
+
+  protected onDateChange(event: Event): void {
+    if (event.target instanceof HTMLInputElement) {
+      this.form.controls.date.setValue(event.target.value);
+      this.form.controls.date.markAsDirty();
+    }
+  }
+
+  protected onSubmit(): void {
+    this.submitted.set(true);
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }
+    const value = this.form.getRawValue();
+    this.submittedRequest.set({ from: value.from, to: value.to, date: value.date || undefined });
+  }
+
   protected swapCurrencies(): void {
-    const from = this.fromCurrency();
-    this.fromCurrency.set(this.toCurrency());
-    this.toCurrency.set(from);
+    const { from, to } = this.form.getRawValue();
+    this.form.patchValue({ from: to, to: from });
+    this.form.markAsDirty();
   }
 }

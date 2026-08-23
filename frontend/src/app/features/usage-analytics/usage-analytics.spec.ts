@@ -291,6 +291,8 @@ describe('UsageAnalytics', () => {
     // that never exercised the "beyond the top 10" case.
     expect(queried.length).toBeGreaterThan(10);
     expect(expectedTotal).toBeGreaterThan(topTenSubtotal);
+    expect(expectedTop).toBeDefined();
+    if (!expectedTop) throw new Error('Expected at least one queried currency');
 
     expect(fixture.nativeElement.querySelector('[data-testid="kpi-row"]')).not.toBeNull();
 
@@ -341,6 +343,8 @@ describe('UsageAnalytics', () => {
 
     breakdownRows(fixture).forEach((row, index) => {
       const expected = EXPECTED_UNCAPPED_ROWS[index];
+      expect(expected).toBeDefined();
+      if (!expected) throw new Error(`Missing expected breakdown row ${index}`);
       const bar = row.querySelector<HTMLElement>('[data-testid="breakdown-bar"]');
 
       // Code and count each have one text carrier; the proportional graphic contributes no
@@ -386,6 +390,8 @@ describe('UsageAnalytics', () => {
     // Each row carries its own code and count, in the same position as the ranking above.
     rows.forEach((row, index) => {
       const expected = EXPECTED_UNCAPPED_ROWS[index];
+      expect(expected).toBeDefined();
+      if (!expected) throw new Error(`Missing expected breakdown row ${index}`);
       expect(normalize(row.querySelector('.row-code')?.textContent)).toBe(expected.code);
       expect(normalize(row.querySelector('.row-count')?.textContent)).toBe(
         displayCount(expected.count),

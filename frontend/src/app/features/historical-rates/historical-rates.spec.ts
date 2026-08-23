@@ -302,14 +302,20 @@ describe('HistoricalRates', () => {
     fixture.detectChanges();
     await flush(fixture);
 
-    const rows: NodeListOf<HTMLTableRowElement> =
-      fixture.nativeElement.querySelectorAll('tbody tr');
+    const rows = Array.from<HTMLTableRowElement>(
+      fixture.nativeElement.querySelectorAll('tbody tr'),
+    );
     expect(rows.length).toBe(3);
-    expect(rows[0].textContent).toContain('2026-08-23');
-    expect(rows[0].textContent).toContain('0.9100000000');
-    expect(rows[1].textContent).toContain('2026-08-15');
-    expect(rows[2].textContent).toContain('2026-08-01');
-    expect(rows[2].textContent).toContain('—');
+    const [newest, middle, oldest] = rows;
+    expect(newest).toBeDefined();
+    expect(middle).toBeDefined();
+    expect(oldest).toBeDefined();
+    if (!newest || !middle || !oldest) throw new Error('Expected three historical table rows');
+    expect(newest.textContent).toContain('2026-08-23');
+    expect(newest.textContent).toContain('0.9100000000');
+    expect(middle.textContent).toContain('2026-08-15');
+    expect(oldest.textContent).toContain('2026-08-01');
+    expect(oldest.textContent).toContain('—');
   });
 
   it('shows the table no-data state consistent with the chart when points is empty (Acceptance Scenario 2)', async () => {
@@ -341,11 +347,14 @@ describe('HistoricalRates', () => {
     expect(fixture.nativeElement.textContent).not.toContain('Generate insight');
   });
 
-  it('shows an animated, accessible loading state while an insight is being generated', () => {
+  it('shows an animated, accessible loading state while an insight is being generated', async () => {
     getExchangeRateTrend.mockReturnValue(of(trendResponse()));
     getExchangeRateTrendInsight.mockReturnValue(new Subject<TrendInsightResponse>());
 
     const fixture = TestBed.createComponent(HistoricalRates);
+    fixture.detectChanges();
+    await Promise.resolve();
+    await Promise.resolve();
     fixture.detectChanges();
 
     const loading: HTMLElement = fixture.nativeElement.querySelector('.message.loading');
@@ -431,12 +440,15 @@ describe('HistoricalRates', () => {
     );
     button.click();
     await Promise.resolve();
+    await Promise.resolve();
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).not.toContain(
       'The rate rose steadily over the period.',
     );
-    expect(fixture.nativeElement.querySelector('.spinner')).not.toBeNull();
+    const loading: HTMLElement | null = fixture.nativeElement.querySelector('[role="status"]');
+    expect(loading).not.toBeNull();
+    expect(loading?.textContent).toMatch(/Loading historical rates|Generating insight/);
   });
 
   it('renders the chart, then the AI Insights panel, then the table, full width in every insight state (FR-002, FR-003, SC-003)', async () => {
@@ -471,5 +483,80 @@ describe('HistoricalRates', () => {
     await flush(fixture);
     expect(fixture.nativeElement.textContent).toContain('interpretation unavailable');
     assertStackOrder();
+  });
+
+  it('renders a dedicated loading status without empty copy or metrics', () => {
+    getExchangeRateTrend.mockReturnValue(new Subject<ExchangeRateTrendResponse>());
+    const fixture = TestBed.createComponent(HistoricalRates);
+    fixture.detectChanges();
+
+    const loading: HTMLElement | null = fixture.nativeElement.querySelector(
+      '[data-testid="historical-loading"]',
+    );
+    expect(loading?.getAttribute('role')).toBe('status');
+    expect(fixture.nativeElement.textContent).not.toContain('No historical rate data');
+    expect(fixture.nativeElement.textContent).not.toContain('Latest rate');
+  });
+
+  it.each([
+    [400, {}, 'The historical-rate request is invalid.'],
+    [404, { detail: 'No observations for that range.' }, 'No observations for that range.'],
+    [503, { detail: 'internal' }, 'Unable to reach the historical-rate service.'],
+  ])(
+    'categorizes a %s trend failure without rendering empty or stale values',
+    async (status, error, message) => {
+      getExchangeRateTrend.mockReturnValue(
+        throwError(() => new HttpErrorResponse({ status, error })),
+      );
+      const fixture = TestBed.createComponent(HistoricalRates);
+      fixture.detectChanges();
+      await flush(fixture);
+
+      const alert: HTMLElement | null = fixture.nativeElement.querySelector(
+        '[data-testid="historical-error"]',
+      );
+      expect(alert?.getAttribute('role')).toBe('alert');
+      expect(alert?.textContent).toContain(message);
+      expect(fixture.nativeElement.textContent).not.toContain('No historical rate data');
+      expect(fixture.nativeElement.textContent).not.toContain('Latest rate');
+    },
+  );
+
+  it('removes populated metrics during a refresh and exposes filter accessibility state', async () => {
+    const refresh = new Subject<ExchangeRateTrendResponse>();
+    getExchangeRateTrend.mockReturnValueOnce(of(trendResponse())).mockReturnValueOnce(refresh);
+    const fixture = TestBed.createComponent(HistoricalRates);
+    fixture.detectChanges();
+    await flush(fixture);
+    expect(fixture.nativeElement.textContent).toContain('0.9500000000');
+
+    const preset: HTMLButtonElement = fixture.nativeElement.querySelector(
+      'button[data-preset="3M"]',
+    );
+    preset.click();
+    fixture.detectChanges();
+
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="historical-loading"]'),
+    ).not.toBeNull();
+    expect(fixture.nativeElement.textContent).not.toContain('0.9500000000');
+    expect(fixture.nativeElement.textContent).not.toContain('No historical rate data');
+    expect(preset.getAttribute('aria-pressed')).toBe('true');
+    expect(fixture.nativeElement.querySelector('label[for="range-start"]')?.textContent).toContain(
+      'Start date',
+    );
+    expect(fixture.nativeElement.querySelector('label[for="range-end"]')?.textContent).toContain(
+      'End date',
+    );
+  });
+
+  it('gives a populated chart an accessible pair-and-range name', async () => {
+    getExchangeRateTrend.mockReturnValue(of(trendResponse()));
+    const fixture = TestBed.createComponent(HistoricalRates);
+    fixture.detectChanges();
+    await flush(fixture);
+    const canvas: HTMLCanvasElement | null = fixture.nativeElement.querySelector('canvas');
+    expect(canvas?.getAttribute('aria-label')).toContain('USD to EUR');
+    expect(canvas?.getAttribute('aria-label')).toContain('historical rates table');
   });
 });

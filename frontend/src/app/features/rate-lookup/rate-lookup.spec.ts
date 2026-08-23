@@ -336,4 +336,69 @@ describe('RateLookup', () => {
     expect(text).toContain('0.5000000000');
     expect(text).not.toContain('0.6600000000');
   });
+
+  it('uses status-specific fallbacks when a problem detail is absent or blank', async () => {
+    getExchangeRate
+      .mockReturnValueOnce(
+        throwError(() => new HttpErrorResponse({ status: 400, error: { detail: '   ' } })),
+      )
+      .mockReturnValueOnce(throwError(() => new HttpErrorResponse({ status: 404, error: {} })));
+    const fixture = TestBed.createComponent(RateLookup);
+    fixture.detectChanges();
+    selectCurrency(fixture, 'from', 'USD');
+    selectCurrency(fixture, 'to', 'EUR');
+
+    const submit = () => fixture.nativeElement.querySelector('button[type="submit"]').click();
+    submit();
+    await flush(fixture);
+    expect(fixture.nativeElement.textContent).toContain('The lookup request is invalid.');
+
+    submit();
+    await flush(fixture);
+    expect(fixture.nativeElement.textContent).toContain(
+      'No stored rate was found for this pair and date.',
+    );
+  });
+
+  it('categorizes a server failure as unreachable even when it includes detail copy', async () => {
+    getExchangeRate.mockReturnValue(
+      throwError(() => new HttpErrorResponse({ status: 503, error: { detail: 'internal' } })),
+    );
+    const fixture = TestBed.createComponent(RateLookup);
+    fixture.detectChanges();
+    selectCurrency(fixture, 'from', 'USD');
+    selectCurrency(fixture, 'to', 'EUR');
+    fixture.nativeElement.querySelector('button[type="submit"]').click();
+    await flush(fixture);
+    expect(fixture.nativeElement.textContent).toContain(
+      'Unable to reach the exchange rate service.',
+    );
+    expect(fixture.nativeElement.textContent).not.toContain('internal');
+  });
+
+  it('times out after 10 seconds and re-enables the form', async () => {
+    vi.useFakeTimers();
+    try {
+      getExchangeRate.mockReturnValue(new Subject<ExchangeRateResponse>());
+      const fixture = TestBed.createComponent(RateLookup);
+      fixture.detectChanges();
+      selectCurrency(fixture, 'from', 'USD');
+      selectCurrency(fixture, 'to', 'EUR');
+      const submit: HTMLButtonElement =
+        fixture.nativeElement.querySelector('button[type="submit"]');
+      submit.click();
+      fixture.detectChanges();
+      expect(submit.disabled).toBe(true);
+
+      await vi.advanceTimersByTimeAsync(10_001);
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.textContent).toContain(
+        'Unable to reach the exchange rate service.',
+      );
+      expect(submit.disabled).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

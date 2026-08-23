@@ -22,7 +22,7 @@ Chart.register(...registerables);
 const DENSE_LABEL_THRESHOLD = 15;
 const MAX_VISIBLE_TICKS = 8;
 
-function extremesPlugin(
+export function buildExtremesPlugin(
   periodHigh: ExtremePoint | null,
   periodLow: ExtremePoint | null,
 ): Plugin<'line'> {
@@ -56,7 +56,7 @@ function extremesPlugin(
   };
 }
 
-function buildConfig(
+export function buildTrendChartConfig(
   points: readonly RateTrendPoint[],
   dailyChanges: readonly DailyChange[],
   periodHigh: ExtremePoint | null,
@@ -136,6 +136,9 @@ function buildConfig(
               points[items[0]?.dataIndex ?? 0]?.rateDate ?? '',
             label: (item: TooltipItem<'line'>) => {
               const point = points[item.dataIndex];
+              if (!point) {
+                return [];
+              }
               const change = dailyChanges[item.dataIndex]?.percent;
               return [`Rate: ${point.rate}`, `Daily change: ${change ?? '—'}`];
             },
@@ -143,7 +146,7 @@ function buildConfig(
         },
       },
     },
-    plugins: [extremesPlugin(periodHigh, periodLow)],
+    plugins: [buildExtremesPlugin(periodHigh, periodLow)],
   };
 }
 
@@ -153,7 +156,7 @@ function buildConfig(
   template: `
     @if (points().length > 0) {
       <div class="chart-container">
-        <canvas #canvas></canvas>
+        <canvas #canvas role="img" [attr.aria-label]="accessibleLabel()"></canvas>
       </div>
     } @else {
       <div class="chart-empty" data-testid="chart-no-data">
@@ -167,6 +170,9 @@ export class RateTrendChart {
   readonly dailyChanges = input<readonly DailyChange[]>([]);
   readonly periodHigh = input<ExtremePoint | null>(null);
   readonly periodLow = input<ExtremePoint | null>(null);
+  readonly accessibleLabel = input<string>(
+    'Exchange-rate trend. The historical rates table provides the same data as text.',
+  );
 
   private readonly canvasRef = viewChild<ElementRef<HTMLCanvasElement>>('canvas');
   private chart: Chart<'line'> | undefined;
@@ -185,7 +191,7 @@ export class RateTrendChart {
         return;
       }
 
-      const config = buildConfig(points, dailyChanges, periodHigh, periodLow);
+      const config = buildTrendChartConfig(points, dailyChanges, periodHigh, periodLow);
       this.chart?.destroy();
       this.chart = new Chart(canvas, config);
     });

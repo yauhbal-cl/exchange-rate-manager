@@ -1,14 +1,14 @@
 :host {
-  --history-bg: #f6f7f9;
-  --surface: #ffffff;
-  --surface-subtle: #f9fafb;
-  --text: #18202a;
-  --muted: #667085;
-  --border: #e4e7ec;
-  --accent: #5b61d6;
-  --accent-soft: #f1f2ff;
-  --positive: #18794e;
-  --negative: #b42318;
+  --history-bg: var(--app-page-bg);
+  --surface: var(--app-surface);
+  --surface-subtle: var(--app-surface-subtle);
+  --text: var(--app-text);
+  --muted: var(--app-muted);
+  --border: var(--app-border);
+  --accent: var(--app-accent);
+  --accent-soft: var(--app-accent-soft);
+  --positive: var(--app-positive);
+  --negative: var(--app-negative);
   display: block;
   min-height: calc(100vh - 57px);
   background: var(--history-bg);
@@ -25,9 +25,9 @@ input {
 }
 
 .history-page {
-  max-width: 1440px;
+  max-width: var(--app-page-max-width);
   margin: 0 auto;
-  padding: 36px 32px 56px;
+  padding: var(--app-page-padding);
 }
 .page-header {
   display: flex;
@@ -105,6 +105,35 @@ input {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
+}
+.date-field {
+  margin: 0;
+  border: 0;
+  padding: 0;
+  min-width: 0;
+}
+.date-range label {
+  color: var(--muted);
+  font-size: 11px;
+}
+.date-range {
+  grid-template-columns: 1fr 1fr;
+}
+.date-range label:first-child {
+  grid-column: 1;
+  grid-row: 1;
+}
+.date-range input:nth-of-type(1) {
+  grid-column: 1;
+  grid-row: 2;
+}
+.date-range label:nth-of-type(2) {
+  grid-column: 2;
+  grid-row: 1;
+}
+.date-range input:nth-of-type(2) {
+  grid-column: 2;
+  grid-row: 2;
 }
 .date-range input {
   width: 100%;
@@ -199,6 +228,43 @@ input {
   padding: 28px;
   color: var(--muted);
   text-align: center;
+}
+.request-state {
+  display: flex;
+  min-height: 300px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  text-align: center;
+  color: var(--muted);
+}
+.request-state strong {
+  color: #344054;
+}
+.request-state p {
+  margin: 7px 0 0;
+}
+.error-state {
+  border-color: var(--app-state-error-border);
+  background: var(--app-state-error-bg);
+}
+.error-state strong {
+  color: var(--negative);
+}
+.history-spinner {
+  width: 32px;
+  height: 32px;
+  margin-bottom: 14px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: history-spin 0.8s linear infinite;
+}
+@keyframes history-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .main-grid {
@@ -307,7 +373,7 @@ h2 {
 }
 @media (max-width: 720px) {
   .history-page {
-    padding: 24px 16px 40px;
+    padding: var(--app-page-padding-mobile);
   }
   .page-header {
     display: block;

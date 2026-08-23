@@ -1,0 +1,50 @@
+<main class="usage-page">
+  <header class="page-header">
+    <h1>Usage analytics</h1>
+    <p>An overview of query activity across every currency the system tracks.</p>
+  </header>
+  <div class="data-area">
+    @if (isLoading()) {
+      <div class="card usage-state usage-state-loading" data-testid="usage-loading" role="status">
+        <span class="usage-spinner" aria-hidden="true"></span
+        ><strong>Loading usage analytics</strong>
+        <p>Gathering query activity across all currencies…</p>
+      </div>
+    } @else if (hasError()) {
+      <div class="card usage-state usage-state-error" data-testid="usage-error" role="alert">
+        <span class="usage-state-icon" aria-hidden="true">!</span
+        ><strong>Usage analytics unavailable</strong>
+        <p>We couldn't load query activity right now. Please try again later.</p>
+      </div>
+    } @else {
+      <section class="card kpi-row" data-testid="kpi-row" aria-labelledby="kpi-row-heading">
+        <h2 class="kpi-row-heading" id="kpi-row-heading">Summary</h2>
+        <div class="kpi-card" data-testid="kpi-total-queries">
+          <p class="kpi-label">Total queries</p>
+          <p class="kpi-value">{{ formatCount(summary().totalQueries) }}</p>
+          <p class="kpi-hint">Every recorded lookup, across all known currencies</p>
+        </div>
+        <div class="kpi-card" data-testid="kpi-queried-currencies">
+          <p class="kpi-label">Currencies queried</p>
+          <p class="kpi-value">{{ formatCount(summary().queriedCurrencyCount) }}</p>
+          <p class="kpi-hint">Distinct currencies looked up at least once</p>
+        </div>
+        <div class="kpi-card" data-testid="kpi-most-queried">
+          <p class="kpi-label">Most queried currency</p>
+          @if (summary().mostQueried; as top) {
+            <p class="kpi-value">{{ top.currencyCode }}</p>
+            <p class="kpi-hint">Query count: {{ formatCount(top.queryCount) }}</p>
+          } @else {
+            <p class="kpi-value kpi-value-empty">No currency queried yet</p>
+            <p class="kpi-hint">A currency appears here after its first lookup</p>
+          }
+        </div>
+      </section>
+      <div class="panel-grid">
+        <app-usage-breakdown-panel [view]="breakdown()" /><app-recent-activity-panel
+          [entries]="recentActivity()"
+        />
+      </div>
+    }
+  </div>
+</main>

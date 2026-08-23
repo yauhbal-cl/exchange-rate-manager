@@ -36,7 +36,10 @@ export function computeLatest(points: readonly RateTrendPoint[]): DecimalDisplay
   if (points.length === 0) {
     return null;
   }
-  const last = points[points.length - 1];
+  const last = points.at(-1);
+  if (!last) {
+    return null;
+  }
   return { display: last.rate, value: new Decimal(last.rate) };
 }
 
@@ -44,8 +47,13 @@ export function computePeriodChange(points: readonly RateTrendPoint[]): PeriodCh
   if (points.length < 2) {
     return null;
   }
-  const first = new Decimal(points[0].rate);
-  const last = new Decimal(points[points.length - 1].rate);
+  const firstPoint = points[0];
+  const lastPoint = points.at(-1);
+  if (!firstPoint || !lastPoint) {
+    return null;
+  }
+  const first = new Decimal(firstPoint.rate);
+  const last = new Decimal(lastPoint.rate);
   const absolute = last.minus(first);
   const percent = first.isZero() ? new Decimal(0) : absolute.dividedBy(first).times(100);
   return { absolute: absolute.toString(), percent: formatPercent(percent), value: absolute };
@@ -78,9 +86,15 @@ export function computeDailyChanges(points: readonly RateTrendPoint[]): DailyCha
     if (index === 0) {
       return { rateDate: point.rateDate, percent: null };
     }
-    const previous = new Decimal(points[index - 1].rate);
+    const previousPoint = points[index - 1];
+    if (!previousPoint) {
+      return { rateDate: point.rateDate, percent: null };
+    }
+    const previous = new Decimal(previousPoint.rate);
     const current = new Decimal(point.rate);
-    const percent = previous.isZero() ? new Decimal(0) : current.minus(previous).dividedBy(previous).times(100);
+    const percent = previous.isZero()
+      ? new Decimal(0)
+      : current.minus(previous).dividedBy(previous).times(100);
     return { rateDate: point.rateDate, percent: formatPercent(percent) };
   });
 }

@@ -1,12 +1,12 @@
 :host {
-  --page-bg: #f6f7f9;
-  --surface: #ffffff;
-  --surface-subtle: #f9fafb;
-  --text: #18202a;
-  --muted: #667085;
-  --border: #e4e7ec;
-  --accent: #5b61d6;
-  --accent-soft: #f1f2ff;
+  --page-bg: var(--app-page-bg);
+  --surface: var(--app-surface);
+  --surface-subtle: var(--app-surface-subtle);
+  --text: var(--app-text);
+  --muted: var(--app-muted);
+  --border: var(--app-border);
+  --accent: var(--app-accent);
+  --accent-soft: var(--app-accent-soft);
   display: block;
   min-height: calc(100vh - 57px);
   background: var(--page-bg);
@@ -19,9 +19,9 @@
 }
 
 .usage-page {
-  max-width: 1440px;
+  max-width: var(--app-page-max-width);
   margin: 0 auto;
-  padding: 36px 32px 56px;
+  padding: var(--app-page-padding);
 }
 .page-header {
   margin-bottom: 24px;
@@ -192,7 +192,7 @@
 }
 @media (max-width: 640px) {
   .usage-page {
-    padding: 24px 16px 40px;
+    padding: var(--app-page-padding-mobile);
   }
   .kpi-row {
     grid-template-columns: minmax(0, 1fr);

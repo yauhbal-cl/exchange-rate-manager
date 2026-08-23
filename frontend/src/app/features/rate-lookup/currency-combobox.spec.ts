@@ -79,4 +79,63 @@ describe('CurrencyCombobox', () => {
     expect(input(fixture).value).toContain('USD');
     expect(fixture.nativeElement.querySelector('[role="listbox"]')).toBeNull();
   });
+
+  it('applies programmatic writes without reporting a user change', () => {
+    const fixture = create();
+    const changed = vi.fn();
+    fixture.componentInstance.registerOnChange(changed);
+
+    fixture.componentInstance.writeValue('EUR');
+    fixture.detectChanges();
+
+    expect(input(fixture).value).toContain('EUR');
+    expect(changed).not.toHaveBeenCalled();
+  });
+
+  it('reports user selections through the CVA change callback', () => {
+    const fixture = create();
+    const changed = vi.fn();
+    fixture.componentInstance.registerOnChange(changed);
+    input(fixture).dispatchEvent(new Event('focus'));
+    fixture.detectChanges();
+    input(fixture).value = 'USD';
+    input(fixture).dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    const option: HTMLElement = fixture.nativeElement.querySelector('[data-code="USD"]');
+    option.dispatchEvent(new Event('mousedown'));
+
+    expect(changed).toHaveBeenCalledWith('USD');
+  });
+
+  it('reports blur as touched and propagates the disabled state', () => {
+    const fixture = create();
+    const touched = vi.fn();
+    fixture.componentInstance.registerOnTouched(touched);
+
+    input(fixture).dispatchEvent(new Event('blur'));
+    fixture.componentInstance.setDisabledState(true);
+    fixture.detectChanges();
+
+    expect(touched).toHaveBeenCalledTimes(1);
+    expect(input(fixture).disabled).toBe(true);
+    input(fixture).dispatchEvent(new Event('focus'));
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[role="listbox"]')).toBeNull();
+  });
+
+  it('rejects mixing legacy value binding with the Angular Forms API', () => {
+    const fixture = create();
+    fixture.componentInstance.ngOnChanges({
+      value: {
+        previousValue: '',
+        currentValue: 'USD',
+        firstChange: true,
+        isFirstChange: () => true,
+      },
+    });
+    expect(() => fixture.componentInstance.writeValue('EUR')).toThrowError(
+      /cannot use value binding and Angular Forms/,
+    );
+  });
 });

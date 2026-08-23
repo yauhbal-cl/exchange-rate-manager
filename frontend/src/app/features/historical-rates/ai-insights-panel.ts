@@ -1,6 +1,7 @@
 import { Component, computed, input } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import type { TrendInsightResponse } from '../../api-client';
+import { problemDetail } from '../../shared/problem-detail';
 
 export interface AiInsightError {
   category: 'no-data' | 'unavailable';
@@ -14,7 +15,7 @@ export function categorizeAiInsightError(error: unknown): AiInsightError | null 
     return null;
   }
   if (error instanceof HttpErrorResponse) {
-    const detail = (error.error as { detail?: string } | null)?.detail;
+    const detail = problemDetail(error.error);
     if (error.status === 404) {
       return { category: 'no-data', message: detail ?? UNAVAILABLE_MESSAGE };
     }

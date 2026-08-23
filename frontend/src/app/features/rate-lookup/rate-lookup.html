@@ -1,0 +1,102 @@
+<main class="calculator-page">
+  <header class="page-header">
+    <div>
+      <h1>Rate calculator</h1>
+      <p>
+        Look up the exchange rate for a currency pair using the latest available data or a specific
+        historical date.
+      </p>
+    </div>
+    <div class="as-of">Rates available through {{ formattedToday }}</div>
+  </header>
+  <section class="calculator-grid">
+    <div class="card lookup-card">
+      <div class="section-header">
+        <span class="section-icon" aria-hidden="true">↗</span>
+        <div>
+          <h2>Exchange rate lookup</h2>
+          <p>Choose a source and target currency</p>
+        </div>
+      </div>
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+        <div class="currency-row">
+          <div>
+            <app-currency-combobox
+              id="from-currency"
+              name="from"
+              label="From currency"
+              formControlName="from"
+              [ariaInvalid]="showError(form.controls.from)"
+              [ariaDescribedBy]="showError(form.controls.from) ? 'from-error' : ''"
+            />
+            @if (showError(form.controls.from)) {
+              <p id="from-error" class="field-error">Select a source currency.</p>
+            }
+          </div>
+          <button
+            type="button"
+            class="swap-button"
+            aria-label="Swap currencies"
+            [disabled]="form.disabled || !form.controls.from.value || !form.controls.to.value"
+            (click)="swapCurrencies()"
+          >
+            ⇄
+          </button>
+          <div>
+            <app-currency-combobox
+              id="to-currency"
+              name="to"
+              label="To currency"
+              formControlName="to"
+              [ariaInvalid]="showError(form.controls.to) || showPairError()"
+              [ariaDescribedBy]="
+                showError(form.controls.to) ? 'to-error' : showPairError() ? 'pair-error' : ''
+              "
+            />
+            @if (showError(form.controls.to)) {
+              <p id="to-error" class="field-error">Select a target currency.</p>
+            }
+          </div>
+        </div>
+        @if (showRequiredSummary()) {
+          <p class="validation-message">Select both a source and a target currency.</p>
+        }
+        @if (showPairError()) {
+          <p id="pair-error" class="validation-message">
+            Source and target currency must be different.
+          </p>
+        }
+        <label class="date-field" for="lookup-date"
+          ><span>Date <small>Optional</small></span
+          ><input
+            id="lookup-date"
+            type="date"
+            name="date"
+            formControlName="date"
+            [attr.max]="today"
+            [attr.aria-invalid]="showError(form.controls.date) ? 'true' : null"
+            [attr.aria-describedby]="
+              showError(form.controls.date) ? 'date-error date-help' : 'date-help'
+            "
+            (change)="onDateChange($event)"
+          /><small id="date-help">Leave blank to use the latest available rate.</small></label
+        >
+        @if (showError(form.controls.date)) {
+          <p id="date-error" class="field-error">Date cannot be in the future.</p>
+        }
+        <button type="submit" class="submit-button" [disabled]="rate.isLoading()">
+          @if (rate.isLoading()) {
+            <span class="spinner" aria-hidden="true"></span> Looking up rate…
+          } @else {
+            Look up rate <span aria-hidden="true">→</span>
+          }
+        </button>
+      </form>
+    </div>
+    <app-rate-lookup-result [state]="resultState()" />
+  </section>
+  <p class="footer-note">
+    Exchange rates reflect stored market data and may differ from rates offered by financial
+    institutions.
+  </p>
+</main>

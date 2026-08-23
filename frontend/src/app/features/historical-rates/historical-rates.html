@@ -1,0 +1,203 @@
+<main class="history-page">
+  <header class="page-header">
+    <div>
+      <h1>Historical rates</h1>
+      <p>
+        Explore historical exchange-rate movements, compare period highs and lows, and review
+        contextual AI-generated insights for the selected currency pair.
+      </p>
+    </div>
+    <div class="as-of">Data through {{ formattedToday }}</div>
+  </header>
+
+  <section class="card filters" aria-label="Historical rate filters">
+    <div class="filter-grid">
+      <div class="currency-field">
+        <app-currency-combobox
+          id="base-currency"
+          name="base-currency"
+          label="Base currency"
+          [(value)]="baseCurrency"
+        />
+      </div>
+      <button type="button" aria-label="Swap currencies" class="swap-button" (click)="swap()">
+        ⇄
+      </button>
+      <div class="currency-field">
+        <app-currency-combobox
+          id="quote-currency"
+          name="quote-currency"
+          label="Quote currency"
+          [(value)]="quoteCurrency"
+        />
+      </div>
+      <fieldset class="date-field">
+        <legend class="field-label">Custom date range</legend>
+        <div class="date-range">
+          <label for="range-start">Start date</label
+          ><input
+            id="range-start"
+            type="date"
+            name="range-start"
+            [value]="resolvedRange().startDate"
+            (change)="setRangeStart($event)"
+          /><label for="range-end">End date</label
+          ><input
+            id="range-end"
+            type="date"
+            name="range-end"
+            [value]="resolvedRange().endDate"
+            (change)="setRangeEnd($event)"
+          />
+        </div>
+      </fieldset>
+      <div class="preset-field">
+        <span class="field-label">Date-range presets</span>
+        <div class="preset-list">
+          @for (preset of presets; track preset.id) {
+            <button
+              type="button"
+              [attr.data-preset]="preset.id"
+              class="preset-button"
+              [class.active]="isActivePreset(preset.id)"
+              [attr.aria-pressed]="isActivePreset(preset.id)"
+              (click)="selectPreset(preset.id)"
+            >
+              {{ preset.label }}
+            </button>
+          }
+        </div>
+      </div>
+    </div>
+    @if (pairError() || periodError()) {
+      <p class="validation-message">{{ pairError() ?? periodError() }}</p>
+    }
+  </section>
+
+  @if (requestState(); as state) {
+    @switch (state.kind) {
+      @case ('invalid') {
+        <section class="card request-state invalid-state" data-testid="historical-invalid">
+          Choose a valid currency pair and date range to view historical rates.
+        </section>
+      }
+      @case ('loading') {
+        <section
+          class="card request-state loading-state"
+          data-testid="historical-loading"
+          role="status"
+        >
+          <span class="history-spinner" aria-hidden="true"></span
+          ><strong>Loading historical rates</strong>
+          <p>Retrieving observations for the selected pair and period…</p>
+        </section>
+      }
+      @case ('error') {
+        <section
+          class="card request-state error-state"
+          data-testid="historical-error"
+          role="alert"
+          [attr.data-category]="state.error.category"
+        >
+          <strong>Historical rates unavailable</strong>
+          <p>{{ state.error.message }}</p>
+        </section>
+      }
+      @case ('empty') {
+        <section class="card no-data-summary" data-testid="metrics-no-data">
+          No historical rate data for this pair and period.
+        </section>
+        <section class="main-grid">
+          <div class="card chart-card">
+            <div class="section-header">
+              <div>
+                <h2>Exchange-rate movement</h2>
+                <p>1 {{ baseCurrency() }} in {{ quoteCurrency() }}</p>
+              </div>
+            </div>
+            <app-rate-trend-chart [accessibleLabel]="chartAccessibleLabel()" />
+          </div>
+        </section>
+        <section class="card table-card">
+          <div class="table-header">
+            <div>
+              <h2>Historical rates table</h2>
+              <p>Most recent observations first</p>
+            </div>
+            <span>0 daily observations</span>
+          </div>
+          <app-historical-rates-table />
+        </section>
+      }
+      @case ('populated') {
+        <section class="card summary" aria-label="Period summary">
+          <div class="pair-summary">
+            <span class="eyebrow">Currency pair</span
+            ><strong>{{ baseCurrency() }} / {{ quoteCurrency() }}</strong
+            ><small>{{ formattedRange() }}</small>
+          </div>
+          <div class="metric">
+            <span>Latest rate</span><strong>{{ latest()?.display }}</strong
+            ><small>{{ formattedLatestDate() }}</small>
+          </div>
+          <div class="metric">
+            <span>Period change</span>
+            @if (periodChange(); as change) {
+              <strong
+                [class.positive]="!change.value.isNegative()"
+                [class.negative]="change.value.isNegative()"
+                >{{ change.percent }}</strong
+              >
+            } @else {
+              <strong>—</strong>
+            }
+            <small>Start to end</small>
+          </div>
+          <div class="metric">
+            <span>Period high</span><strong>{{ periodHigh()?.display }}</strong
+            ><small>{{ formattedHighDate() }}</small>
+          </div>
+          <div class="metric">
+            <span>Period low</span><strong>{{ periodLow()?.display }}</strong
+            ><small>{{ formattedLowDate() }}</small>
+          </div>
+        </section>
+        <section class="main-grid">
+          <div class="card chart-card">
+            <div class="section-header">
+              <div>
+                <h2>Exchange-rate movement</h2>
+                <p>1 {{ baseCurrency() }} in {{ quoteCurrency() }}</p>
+              </div>
+              <div class="legend"><span></span>{{ baseCurrency() }} / {{ quoteCurrency() }}</div>
+            </div>
+            <app-rate-trend-chart
+              [points]="points()"
+              [dailyChanges]="dailyChanges()"
+              [periodHigh]="periodHigh()"
+              [periodLow]="periodLow()"
+              [accessibleLabel]="chartAccessibleLabel()"
+            />
+            <div class="annotation-key"><span></span>Period high / low</div>
+          </div>
+          <app-ai-insights-panel
+            class="card insights-card"
+            [value]="aiInsightValue()"
+            [isLoading]="aiInsight.isLoading()"
+            [error]="aiInsight.error()"
+          />
+        </section>
+        <section class="card table-card">
+          <div class="table-header">
+            <div>
+              <h2>Historical rates table</h2>
+              <p>Most recent observations first</p>
+            </div>
+            <span>{{ points().length }} daily observations</span>
+          </div>
+          <app-historical-rates-table [points]="points()" [dailyChanges]="dailyChanges()" />
+        </section>
+      }
+    }
+  }
+</main>

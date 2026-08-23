@@ -16,8 +16,7 @@ export const PERIOD_PRESETS: readonly PeriodPreset[] = [
 ];
 
 export type PeriodSelection =
-  | { kind: 'preset'; id: PresetId }
-  | { kind: 'custom'; startDate: string; endDate: string };
+  { kind: 'preset'; id: PresetId } | { kind: 'custom'; startDate: string; endDate: string };
 
 export interface DateRange {
   startDate: string;
@@ -27,7 +26,7 @@ export interface DateRange {
 const CUSTOM_RANGE_MAX_MONTHS = 6;
 
 export function todayIso(): string {
-  return toIso(new Date());
+  return todayIsoUtc();
 }
 
 /**
@@ -55,7 +54,10 @@ export function resolveRange(selection: PeriodSelection, today: string): DateRan
   if (selection.kind === 'custom') {
     return { startDate: selection.startDate, endDate: selection.endDate };
   }
-  const preset = PERIOD_PRESETS.find((candidate) => candidate.id === selection.id)!;
+  const preset = PERIOD_PRESETS.find((candidate) => candidate.id === selection.id);
+  if (!preset) {
+    throw new Error(`Unknown period preset: ${selection.id}`);
+  }
   const endDate = today;
   const startDate =
     preset.unit === 'days'
@@ -80,7 +82,22 @@ export function customRangeError(startDate: string, endDate: string): string | n
 }
 
 function parseIso(date: string): [number, number, number] {
-  const [year, month, day] = date.split('-').map(Number);
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+  if (!match) {
+    throw new Error(`Invalid ISO date: ${date}`);
+  }
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  if (
+    !Number.isInteger(year) ||
+    month < 1 ||
+    month > 12 ||
+    day < 1 ||
+    day > daysInMonth(year, month)
+  ) {
+    throw new Error(`Invalid ISO date: ${date}`);
+  }
   return [year, month, day];
 }
 
@@ -95,3 +112,4 @@ function formatIso(year: number, month: number, day: number): string {
 function toIso(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
+import { todayIsoUtc } from '../../shared/date-utils';
