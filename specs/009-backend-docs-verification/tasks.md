@@ -64,7 +64,7 @@ undocumented step.
 
 ### Implementation for User Story 1
 
-- [ ] T004 [US1] In `README.md` Quick Start, document that `docker compose up -d` also starts the
+- [X] T004 [US1] In `README.md` Quick Start, document that `docker compose up -d` also starts the
       `ollama` service and a one-shot `ollama-pull` container that pulls `llama3.2`, and how to
       confirm the pull finished (`docker compose logs ollama-pull`) before relying on
       `/exchange/trend/insight` (research.md R2; addresses FR-001 Acceptance Scenario 2).

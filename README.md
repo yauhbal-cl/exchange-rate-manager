@@ -7,7 +7,7 @@ Exchange Rate Management System — A full-stack application for managing exchan
 From a clean checkout, complete setup in under 15 minutes:
 
 ```bash
-# 1. Start local database
+# 1. Start local database + Ollama
 docker compose up -d
 
 # 2. Build and run backend
@@ -24,6 +24,17 @@ npm start
 - Backend: `http://localhost:8080/api/v1/status` (health check)
 - Frontend: `http://localhost:4200` (dashboard)
 - API Docs: `http://localhost:8080/swagger-ui.html`
+
+`docker compose up -d` also starts the `ollama` service and a one-shot `ollama-pull` container
+that pulls the `llama3.2` model. The pull can take a few minutes on first run. Confirm it finished
+before relying on the AI insight endpoint:
+
+```bash
+docker compose logs ollama-pull
+```
+
+Look for a completed pull (e.g. `success`) in the output. Until the pull finishes,
+`/exchange/trend/insight` will fail or degrade instead of returning an insight.
 
 ## Project Structure
 
