@@ -2,6 +2,7 @@ import { Component, computed, inject } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { timeout } from 'rxjs';
 import { ExchangeRateUsageAnalyticsService, type CurrencyUsageEntry } from '../../api-client';
+import { computeUsageSummary, formatCount } from './usage-metrics';
 
 @Component({
   selector: 'app-usage-analytics',
@@ -45,10 +46,54 @@ import { ExchangeRateUsageAnalyticsService, type CurrencyUsageEntry } from '../.
             <strong>Usage analytics unavailable</strong>
             <p>We couldn't load query activity right now. Please try again later.</p>
           </div>
-        } @else if (isEmpty()) {
-          <!-- Zero known currencies: KPI zeros + panel empty states (FR-013): T013 / T021 / T029 -->
-        } @else if (isPopulated()) {
-          <!-- KPI row + breakdown + recent activity: T013 / T021 / T029 -->
+        } @else {
+          <!--
+            Resolved: empty and populated share this branch because the KPI row renders in both
+            (data-model.md §5 — the empty page reads 0 / 0 / explicit none, which is real data, not
+            a fabricated value). Only the panels differ between the two, so the isEmpty() /
+            isPopulated() split lives inside, below the row.
+
+            FR-002 / FR-024: a real <section> labelled by a visible eyebrow-style <h2> rather than
+            an sr-only one (research.md §7), so heading navigation and the visual hierarchy agree.
+            Nothing here is focusable or interactive (FR-026).
+          -->
+          <section class="card kpi-row" data-testid="kpi-row" aria-labelledby="kpi-row-heading">
+            <h2 class="kpi-row-heading" id="kpi-row-heading">Summary</h2>
+
+            <div class="kpi-card" data-testid="kpi-total-queries">
+              <p class="kpi-label">Total queries</p>
+              <p class="kpi-value">{{ formatCount(summary().totalQueries) }}</p>
+              <p class="kpi-hint">Every recorded lookup, across all known currencies</p>
+            </div>
+
+            <div class="kpi-card" data-testid="kpi-queried-currencies">
+              <p class="kpi-label">Currencies queried</p>
+              <p class="kpi-value">{{ formatCount(summary().queriedCurrencyCount) }}</p>
+              <p class="kpi-hint">Distinct currencies looked up at least once</p>
+            </div>
+
+            <div class="kpi-card" data-testid="kpi-most-queried">
+              <p class="kpi-label">Most queried currency</p>
+              @if (summary().mostQueried; as top) {
+                <p class="kpi-value">{{ top.currencyCode }}</p>
+                <!-- FR-005: the code alone is not the value — its count is text beside it. -->
+                <p class="kpi-hint">Query count: {{ formatCount(top.queryCount) }}</p>
+              } @else {
+                <!--
+                  FR-013: an explicit indication, never blank and never a zero presented as if
+                  some currency held the top spot.
+                -->
+                <p class="kpi-value kpi-value-empty">No currency queried yet</p>
+                <p class="kpi-hint">A currency appears here after its first lookup</p>
+              }
+            </div>
+          </section>
+
+          @if (isEmpty()) {
+            <!-- No usage records at all: both panels' empty states (FR-013): T021 / T029 -->
+          } @else if (isPopulated()) {
+            <!-- Breakdown + recent activity, in the two-column grid: T021 / T029 -->
+          }
         }
       </div>
     </main>
@@ -97,4 +142,13 @@ export class UsageAnalytics {
   protected readonly isEmpty = computed(() => this.isResolved() && this.entries().length === 0);
 
   protected readonly isPopulated = computed(() => this.isResolved() && this.entries().length > 0);
+
+  /**
+   * The three KPI values (data-model.md §2.1). Derived from the full `entries()` set — no display
+   * cap is applied before this point, so the cards describe the whole system (FR-005a, INV-2).
+   */
+  protected readonly summary = computed(() => computeUsageSummary(this.entries()));
+
+  /** The shared locale count formatter, applied at render time only (FR-019, data-model.md §4). */
+  protected readonly formatCount = formatCount;
 }
