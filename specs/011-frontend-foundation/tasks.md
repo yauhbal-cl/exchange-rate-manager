@@ -133,7 +133,7 @@ still visible.
       `aria-current="page"` (via `routerLinkActive`'s `ariaCurrentWhenActive`) and the other two
       entries do not. Depends on T007.
 
-- [ ] T011 [P] [US1] Add Vitest test `frontend/src/app/app.routes.spec.ts` verifying `app.routes.ts`
+- [X] T011 [P] [US1] Add Vitest test `frontend/src/app/app.routes.spec.ts` verifying `app.routes.ts`
       resolves the empty path (`''`) to a redirect targeting `rate-lookup`, and the wildcard path
       (`'**'`) resolves to the `not-found` route entry. Depends on T008.
 
