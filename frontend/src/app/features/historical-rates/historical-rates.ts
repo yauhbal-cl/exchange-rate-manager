@@ -3,6 +3,7 @@ import { rxResource } from '@angular/core/rxjs-interop';
 import { ExchangeRateAnalyticsService } from '../../api-client';
 import { CurrencyCombobox } from '../rate-lookup/currency-combobox';
 import type { Currency } from '../rate-lookup/currencies';
+import { HistoricalRatesTable } from './historical-rates-table';
 import {
   customRangeError,
   PERIOD_PRESETS,
@@ -29,7 +30,7 @@ interface TrendRequest {
 
 @Component({
   selector: 'app-historical-rates',
-  imports: [CurrencyCombobox, RateTrendChart],
+  imports: [CurrencyCombobox, RateTrendChart, HistoricalRatesTable],
   template: `
     <div class="mx-auto max-w-6xl px-4 py-8">
       <h2 class="text-2xl font-semibold text-gray-900">Historical Exchange Rate Trends</h2>
@@ -154,6 +155,10 @@ interface TrendRequest {
           [periodHigh]="periodHigh()"
           [periodLow]="periodLow()"
         />
+      </div>
+
+      <div class="mt-6">
+        <app-historical-rates-table [points]="points()" [dailyChanges]="dailyChanges()" />
       </div>
     </div>
   `,
