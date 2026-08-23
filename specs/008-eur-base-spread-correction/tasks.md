@@ -47,7 +47,7 @@ tests and logic depend on.
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T002 Create `ExchangeRateProperties` in
+- [X] T002 Create `ExchangeRateProperties` in
       `backend/src/main/java/com/exchangerate/manager/config/ExchangeRateProperties.java`:
       `@ConfigurationProperties(prefix = "exchange-rates")`, `@Validated`, immutable
       (constructor-bound record or final-field/no-setters class) with fields `baseCurrency`
@@ -58,17 +58,17 @@ tests and logic depend on.
       (e.g. `isBaseCurrencySpreadZero()`) asserting `spreads.get(baseCurrency)` exists and
       `compareTo(BigDecimal.ZERO) == 0`. Javadoc must state this is "the provider's (Fixer.io's)
       business base currency, used for spread policy" per research.md's naming-separation decision.
-- [ ] T003 Register `ExchangeRateProperties` for binding (`@EnableConfigurationProperties` on a
+- [X] T003 Register `ExchangeRateProperties` for binding (`@EnableConfigurationProperties` on a
       `@Configuration` class, e.g. alongside the existing classes in
       `backend/src/main/java/com/exchangerate/manager/config/`, or
       `@ConfigurationPropertiesScan` if that's already the project's pattern — check
       `backend/src/main/java/com/exchangerate/manager/ExchangeRateManagerApplication.java` first)
-- [ ] T004 Add the `exchange-rates:` block to `backend/src/main/resources/application.yml`:
+- [X] T004 Add the `exchange-rates:` block to `backend/src/main/resources/application.yml`:
       `baseCurrency: EUR`, `defaultSpreadPercent: 2.75`, and `spreads:` containing `EUR: 0.00`,
       `JPY: 3.25`, `HKD: 3.25`, `KRW: 3.25`, `MYR: 4.50`, `INR: 4.50`, `MXN: 4.50`, `RUB: 6.00`,
       `CNY: 6.00`, `ZAR: 6.00` (USD intentionally absent — falls through to the 2.75% default per
       FR-002)
-- [ ] T005 [P] Create `ExchangeRatePropertiesTest` in
+- [X] T005 [P] Create `ExchangeRatePropertiesTest` in
       `backend/src/test/java/com/exchangerate/manager/config/ExchangeRatePropertiesTest.java`:
       plain unit test (no Spring context) using a `jakarta.validation.Validator` directly —
       cover valid config passes, blank/lowercase/4-letter `baseCurrency` fails pattern, negative
