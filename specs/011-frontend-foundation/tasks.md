@@ -190,7 +190,7 @@ hand-written `HttpClient` calls exist anywhere in application code outside `api-
       regeneration and confirm the changes are generator output only — no hand-authored diff
       survives inside that directory — validates FR-012.
 
-- [ ] T016 [P] [US3] Run `grep -rn "HttpClient" frontend/src/app --include=*.ts | grep -v
+- [X] T016 [P] [US3] Run `grep -rn "HttpClient" frontend/src/app --include=*.ts | grep -v
       api-client` and confirm zero matches outside `api-client/`, confirming the rate-lookup,
       usage-analytics, and ai-insight views built in Phase 3 all call the backend exclusively
       through their injected generated `*Service` classes — validates FR-013/SC-004. Run after
