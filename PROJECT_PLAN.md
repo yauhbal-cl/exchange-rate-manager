@@ -55,9 +55,9 @@ Ordered steps for Exchange Rate Management System (see TASK.md, CLAUDE.md). Mark
 
 ## 7. Frontend Foundation
 
-- [ ] Angular 21 app scaffold, standalone components, zoneless, routing for 3 views
-- [ ] `environment.ts` → `apiBaseUrl` configurable without code changes for `ng serve`
-- [ ] Generate typed HTTP client from `contracts/openapi.yaml` into `frontend/src/app/api-client/`
+- [x] Angular 21 app scaffold, standalone components, zoneless, routing for 3 views
+- [x] `environment.ts` → `apiBaseUrl` configurable without code changes for `ng serve`
+- [x] Generate typed HTTP client from `contracts/openapi.yaml` into `frontend/src/app/api-client/`
 
 ## 8. Frontend Views
 
