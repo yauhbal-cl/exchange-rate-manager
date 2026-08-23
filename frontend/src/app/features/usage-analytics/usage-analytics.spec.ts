@@ -322,6 +322,58 @@ describe('UsageAnalytics', () => {
     expect(normalize(kpiCard(fixture, 'kpi-most-queried').textContent)).not.toMatch(/\d/);
   });
 
+  it('exposes the dashboard as a non-interactive heading and text hierarchy (FR-022–FR-024, FR-026, SC-008)', async () => {
+    const fixture = await renderWith(getUsageAnalytics, UNCAPPED_ENTRIES);
+    const page = fixture.nativeElement as HTMLElement;
+
+    // Heading navigation follows the same order and levels as the visual layout.
+    expect(
+      Array.from(page.querySelectorAll<HTMLHeadingElement>('h1, h2')).map((heading) => ({
+        level: heading.tagName.toLowerCase(),
+        text: normalize(heading.textContent),
+      })),
+    ).toEqual([
+      { level: 'h1', text: 'Usage analytics' },
+      { level: 'h2', text: 'Summary' },
+      { level: 'h2', text: 'Activity breakdown' },
+      { level: 'h2', text: 'Recent activity' },
+    ]);
+
+    breakdownRows(fixture).forEach((row, index) => {
+      const expected = EXPECTED_UNCAPPED_ROWS[index];
+      const bar = row.querySelector<HTMLElement>('[data-testid="breakdown-bar"]');
+
+      // Code and count each have one text carrier; the proportional graphic contributes no
+      // duplicate name, value, tooltip or range semantics to the accessibility tree.
+      expect(row.querySelectorAll('.row-code')).toHaveLength(1);
+      expect(row.querySelectorAll('.row-count')).toHaveLength(1);
+      expect(normalize(row.textContent)).toBe(`${expected.code}${displayCount(expected.count)}`);
+      expect(bar?.getAttribute('aria-hidden')).toBe('true');
+      for (const attribute of ['role', 'aria-label', 'aria-valuenow', 'title']) {
+        expect(bar?.hasAttribute(attribute), `bar must not expose ${attribute}`).toBe(false);
+      }
+    });
+
+    recentEntries(fixture).forEach((entry) => {
+      const code = normalize(entry.querySelector('.entry-code')?.textContent);
+      const time = normalize(entry.querySelector('.entry-time')?.textContent);
+
+      expect(entry.querySelectorAll('.entry-code')).toHaveLength(1);
+      expect(entry.querySelectorAll('time.entry-time')).toHaveLength(1);
+      expect(code).not.toBe('');
+      expect(time).not.toBe('');
+      expect(normalize(entry.textContent)).toBe(`${code}${time}`);
+    });
+
+    // With no controls, links, editable content or non-negative tabindex, Tab cannot enter or be
+    // trapped by the page and every value remains available as ordinary text.
+    expect(
+      page.querySelectorAll(
+        'a[href], button, input, select, textarea, [contenteditable="true"], [tabindex]:not([tabindex="-1"])',
+      ),
+    ).toHaveLength(0);
+  });
+
   it('renders one breakdown row per queried currency, ranked by count then code (FR-006, US2 scenario 3)', async () => {
     const fixture = await renderWith(getUsageAnalytics, UNCAPPED_ENTRIES);
 
