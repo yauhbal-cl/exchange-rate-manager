@@ -170,7 +170,7 @@ than the right and visible borders/spacing; narrow to 320 px and confirm the pan
 ## Phase 7: Polish & Cross-Cutting Concerns
 
 - [X] T035 [P] Run `cd frontend && npm test -- usage` and confirm all three spec files pass: `usage-metrics.spec.ts`, `relative-time.spec.ts`, `usage-analytics.spec.ts`.
-- [ ] T036 [P] Run `cd frontend && npm test` to confirm no regression in the existing suite, then `cd frontend && npm run build` for a type-clean production build.
+- [X] T036 [P] Run `cd frontend && npm test` to confirm no regression in the existing suite, then `cd frontend && npm run build` for a type-clean production build.
 - [ ] T037 Verify determinism (SC-006, INV-6): reload the populated page repeatedly and confirm identical ordering, most-queried currency, entries and phrases; confirm every derivation in `frontend/src/app/features/usage-analytics/usage-metrics.ts` sorts a copy and never mutates the resource value.
 - [ ] T038 Accessibility pass per quickstart.md → "Accessibility & counter-safety": heading navigation `<h1>` → "Summary" / "Activity breakdown" / "Recent activity", each breakdown row announced once as code + count, no bar announced, and `Tab` taking focus to nothing on the page (FR-022 … FR-026, SC-008).
 - [ ] T039 Counter-safety and call-shape check (FR-021, FR-005a, SC-007): note `curl "$BASE/exchange/usage"`, reload the page 10 times, re-`curl` and confirm every `queryCount` / `lastQueriedAt` is unchanged; in the network panel confirm exactly one `GET /exchange/usage` per load with no `limit` and no `recentDays` parameter.
