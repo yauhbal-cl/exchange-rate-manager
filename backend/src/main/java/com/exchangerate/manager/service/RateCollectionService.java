@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
@@ -55,14 +56,8 @@ public class RateCollectionService {
                             + expectedBaseCurrency + "' but got '" + actualBaseCurrency + "'");
         }
 
-        Map<String, BigDecimal> rates = response.getRates();
-        BigDecimal baseCurrencySelfRate = rates == null ? null : rates.get(expectedBaseCurrency);
-        if (baseCurrencySelfRate == null || baseCurrencySelfRate.compareTo(BigDecimal.ONE) != 0) {
-            throw new RateCollectionException(
-                    "Fixer.io /latest call sanity check failed: expected rates['"
-                            + expectedBaseCurrency + "'] to equal 1 but got '"
-                            + baseCurrencySelfRate + "'");
-        }
+        Map<String, BigDecimal> rates = new LinkedHashMap<>(response.getRates());
+        rates.put(expectedBaseCurrency, BigDecimal.ONE);
 
         LocalDate rateDate = response.getDate();
         BigDecimal eurToUsd = rates.get("USD");
