@@ -151,4 +151,56 @@ class UsageAnalyticsServiceTest {
         assertThat(result).isEmpty();
         verify(currencyQueryEventRepository, never()).findQueryTimestamps(any(), any());
     }
+
+    @Test
+    void getUsageAnalyticsWithRecentDaysPassesThatWindowToTimestampQuery() {
+        Instant timestamp = Instant.parse("2026-08-01T10:00:00Z");
+
+        CurrencyUsageRepository.CurrencyUsageProjection eurRow = usageRowOf("EUR", 4L, timestamp);
+        CurrencyQueryEventRepository.CurrencyQueryEventProjection eurEvent = eventRowOf("EUR", timestamp);
+
+        when(currencyUsageRepository.findCurrencyUsage(10, 30)).thenReturn(List.of(eurRow));
+        when(currencyQueryEventRepository.findQueryTimestamps(List.of("EUR"), 30))
+                .thenReturn(List.of(eurEvent));
+
+        List<CurrencyUsageSummary> result = usageAnalyticsService.getUsageAnalytics(10, 30);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).queryTimestamps()).containsExactly(timestamp);
+    }
+
+    @Test
+    void getUsageAnalyticsWithRecentDaysWiderThan90PassesWiderWindowUnclamped() {
+        Instant timestamp = Instant.parse("2026-02-01T10:00:00Z");
+
+        CurrencyUsageRepository.CurrencyUsageProjection eurRow = usageRowOf("EUR", 7L, timestamp);
+        CurrencyQueryEventRepository.CurrencyQueryEventProjection eurEvent = eventRowOf("EUR", timestamp);
+
+        when(currencyUsageRepository.findCurrencyUsage(null, 180)).thenReturn(List.of(eurRow));
+        when(currencyQueryEventRepository.findQueryTimestamps(List.of("EUR"), 180))
+                .thenReturn(List.of(eurEvent));
+
+        List<CurrencyUsageSummary> result = usageAnalyticsService.getUsageAnalytics(null, 180);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).queryTimestamps()).containsExactly(timestamp);
+    }
+
+    @Test
+    void getUsageAnalyticsOmittedRecentDaysStillUsesDefaultWindow() {
+        Instant timestamp = Instant.parse("2026-08-01T10:00:00Z");
+
+        CurrencyUsageRepository.CurrencyUsageProjection eurRow = usageRowOf("EUR", 2L, timestamp);
+        CurrencyQueryEventRepository.CurrencyQueryEventProjection eurEvent = eventRowOf("EUR", timestamp);
+
+        when(currencyUsageRepository.findCurrencyUsage(null, null)).thenReturn(List.of(eurRow));
+        when(currencyQueryEventRepository.findQueryTimestamps(
+                List.of("EUR"), UsageAnalyticsService.DEFAULT_HISTORY_WINDOW_DAYS))
+                .thenReturn(List.of(eurEvent));
+
+        List<CurrencyUsageSummary> result = usageAnalyticsService.getUsageAnalytics(null, null);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).queryTimestamps()).containsExactly(timestamp);
+    }
 }
