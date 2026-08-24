@@ -26,7 +26,8 @@ public class UsageAnalyticsService {
     /**
      * Returns one {@link CurrencyUsageSummary} per currency selected by
      * {@link CurrencyUsageRepository#findCurrencyUsage(Integer, Integer)}, enriched with that
-     * currency's query-event timestamps from the last {@value #DEFAULT_HISTORY_WINDOW_DAYS} days.
+     * currency's query-event timestamps from the last {@code recentDays} days, defaulting to
+     * {@value #DEFAULT_HISTORY_WINDOW_DAYS} days when {@code recentDays} is {@code null}.
      * Both repository calls observe the same transaction, so they see a consistent {@code now()}.
      */
     public List<CurrencyUsageSummary> getUsageAnalytics(Integer limit, Integer recentDays) {
@@ -41,8 +42,10 @@ public class UsageAnalyticsService {
                 .map(CurrencyUsageRepository.CurrencyUsageProjection::getCurrencyCode)
                 .toList();
 
+        int historyWindowDays = recentDays != null ? recentDays : DEFAULT_HISTORY_WINDOW_DAYS;
+
         List<CurrencyQueryEventRepository.CurrencyQueryEventProjection> eventRows =
-                currencyQueryEventRepository.findQueryTimestamps(currencyCodes, DEFAULT_HISTORY_WINDOW_DAYS);
+                currencyQueryEventRepository.findQueryTimestamps(currencyCodes, historyWindowDays);
 
         Map<String, List<Instant>> timestampsByCurrencyCode = eventRows.stream()
                 .collect(Collectors.groupingBy(

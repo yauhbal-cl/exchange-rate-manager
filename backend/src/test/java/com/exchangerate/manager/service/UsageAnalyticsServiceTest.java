@@ -68,8 +68,7 @@ class UsageAnalyticsServiceTest {
         CurrencyQueryEventRepository.CurrencyQueryEventProjection tieEvent2 = eventRowOf("EUR", tie);
 
         when(currencyUsageRepository.findCurrencyUsage(10, 30)).thenReturn(List.of(eurRow));
-        when(currencyQueryEventRepository.findQueryTimestamps(
-                List.of("EUR"), UsageAnalyticsService.DEFAULT_HISTORY_WINDOW_DAYS))
+        when(currencyQueryEventRepository.findQueryTimestamps(List.of("EUR"), 30))
                 .thenReturn(List.of(firstEvent, tieEvent1, tieEvent2));
 
         List<CurrencyUsageSummary> result = usageAnalyticsService.getUsageAnalytics(10, 30);
@@ -132,8 +131,7 @@ class UsageAnalyticsServiceTest {
         CurrencyQueryEventRepository.CurrencyQueryEventProjection eurEvent = eventRowOf("EUR", timestamp);
 
         when(currencyUsageRepository.findCurrencyUsage(10, 30)).thenReturn(List.of(eurRow));
-        when(currencyQueryEventRepository.findQueryTimestamps(
-                List.of("EUR"), UsageAnalyticsService.DEFAULT_HISTORY_WINDOW_DAYS))
+        when(currencyQueryEventRepository.findQueryTimestamps(List.of("EUR"), 30))
                 .thenReturn(List.of(eurEvent));
 
         List<CurrencyUsageSummary> firstCall = usageAnalyticsService.getUsageAnalytics(10, 30);
