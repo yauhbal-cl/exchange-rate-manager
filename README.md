@@ -30,6 +30,29 @@ AI-assisted trend commentary built for the Marcura Full Stack Developer technica
 | Docker + Docker Compose | PostgreSQL, Ollama, and Testcontainers-backed backend tests |
 | Fixer.io key | Free subscription is sufficient |
 
+### Option A: everything in Docker Compose
+
+`docker-compose.yml` also builds and runs the backend and frontend, so nobody needs a local
+Java/Node toolchain just to try the app.
+
+```bash
+export FIXER_API_KEY=replace-with-your-fixer-access-key
+docker compose up -d --build
+docker compose ps
+docker compose logs ollama-pull
+```
+
+The backend image is built from `backend/Dockerfile` and the frontend from `frontend/Dockerfile`
+(build context is the repo root, since both need `contracts/openapi.yaml` for codegen). The
+frontend container is nginx serving the built Angular app and reverse-proxying `/api/v1/*` to the
+`backend` service, so no source changes are needed between local and containerized runs. Open
+<http://localhost:4200>. The one-shot `ollama-pull` container downloads `llama3.2`; wait for a
+successful pull before testing AI insights.
+
+### Option B: backend/frontend on the host
+
+Useful for local development with hot reload. PostgreSQL and Ollama still run in Docker.
+
 ### 1. Configure the Fixer key
 
 The backend deliberately has no default API key and will not start without one.
@@ -43,7 +66,7 @@ export FIXER_API_KEY=replace-with-your-fixer-access-key
 From the repository root:
 
 ```bash
-docker compose up -d
+docker compose up -d postgres ollama ollama-pull
 docker compose ps
 docker compose logs ollama-pull
 ```

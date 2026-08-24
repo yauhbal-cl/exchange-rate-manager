@@ -14,3 +14,6 @@ Thumbs.db
 .gitignore
 .dockerignore
 docker-compose*.yml
+backend/target/
+frontend/dist/
+frontend/.angular/
