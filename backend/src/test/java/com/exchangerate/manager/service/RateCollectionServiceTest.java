@@ -166,7 +166,6 @@ class RateCollectionServiceTest {
     @Test
     void collectThrowsAndWritesNothingWhenResponseBaseCurrencyIsNull() {
         Map<String, BigDecimal> rates = new LinkedHashMap<>();
-        rates.put("EUR", BigDecimal.ONE);
         rates.put("USD", new BigDecimal("1.080000"));
 
         FixerLatestResponse response = new FixerLatestResponse();
