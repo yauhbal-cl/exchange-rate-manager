@@ -18,7 +18,7 @@
           data-testid="window-select"
         >
           @for (days of windowOptions; track days) {
-            <option [value]="days">Last {{ days }} days</option>
+            <option [value]="days" [selected]="days === windowDays()">Last {{ days }} days</option>
           }
         </select>
       </label>

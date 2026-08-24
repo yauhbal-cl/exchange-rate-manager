@@ -48,10 +48,14 @@ describe('UsageAnalytics', () => {
 
   it('loads the complete default-window payload with one request', async () => {
     getUsageAnalytics.mockReturnValue(of(response()));
-    await render(getUsageAnalytics);
+    const fixture = await render(getUsageAnalytics);
+    const select = fixture.nativeElement.querySelector(
+      '[data-testid="window-select"]',
+    ) as HTMLSelectElement;
 
     expect(getUsageAnalytics).toHaveBeenCalledOnce();
     expect(getUsageAnalytics).toHaveBeenCalledWith();
+    expect(select.value).toBe('90');
   });
 
   it('renders one table with the requested columns and one row per currency', async () => {
