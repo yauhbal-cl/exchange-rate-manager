@@ -18,16 +18,20 @@ import com.exchangerate.manager.service.TrendInsightService;
 import com.exchangerate.manager.service.UsageAnalyticsService;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 import java.time.LocalDate;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -184,6 +188,71 @@ class ExchangeControllerTest {
                 .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.detail", org.hamcrest.Matchers.containsString("to")));
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "/api/v1/exchange,date,not-a-date",
+            "/api/v1/exchange/trend,startDate,not-a-date",
+            "/api/v1/exchange/trend,endDate,not-a-date",
+            "/api/v1/exchange/trend/insight,startDate,not-a-date",
+            "/api/v1/exchange/trend/insight,endDate,not-a-date"
+    })
+    void malformedDateParameterReturnsStableProblemDetail(
+            String endpoint, String parameter, String invalidValue) throws Exception {
+        MockHttpServletRequestBuilder request = get(endpoint)
+                .param("from", "EUR")
+                .param("to", "USD")
+                .param(parameter, invalidValue);
+
+        mockMvc.perform(request)
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.title").value("Bad Request"))
+                .andExpect(jsonPath("$.detail").value(
+                        "Invalid value '%s' for request parameter '%s'; expected an ISO date in yyyy-MM-dd format."
+                                .formatted(invalidValue, parameter)));
+
+        verifyNoInteractions(exchangeRateService, trendInsightService, usageAnalyticsService);
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "limit,abc",
+            "recentDays,abc",
+            "limit,2147483648",
+            "recentDays,-2147483649"
+    })
+    void malformedIntegerParameterReturnsStableProblemDetail(
+            String parameter, String invalidValue) throws Exception {
+        mockMvc.perform(get("/api/v1/exchange/usage").param(parameter, invalidValue))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.title").value("Bad Request"))
+                .andExpect(jsonPath("$.detail").value(
+                        "Invalid value '%s' for request parameter '%s'; expected a 32-bit integer."
+                                .formatted(invalidValue, parameter)));
+
+        verifyNoInteractions(usageAnalyticsService);
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "limit,0",
+            "recentDays,0"
+    })
+    void nonPositiveUsageParameterReturnsProblemDetail(
+            String parameter, String invalidValue) throws Exception {
+        mockMvc.perform(get("/api/v1/exchange/usage").param(parameter, invalidValue))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.title").value("Bad Request"))
+                .andExpect(jsonPath("$.detail", org.hamcrest.Matchers.containsString(parameter)));
+
+        verifyNoInteractions(usageAnalyticsService);
     }
 
     @Test

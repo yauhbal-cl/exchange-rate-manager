@@ -91,7 +91,7 @@ paths:
         '400':
           description: >
             Invalid input — missing/malformed currency code, identical from/to currencies, or an
-            unknown currency code
+            unknown currency code, or a malformed date
           content:
             application/problem+json:
               schema:
@@ -147,7 +147,7 @@ paths:
                 $ref: '#/components/schemas/ExchangeRateTrendResponse'
         '400':
           description: >
-            Unknown currency code, or startDate after endDate
+            Unknown currency code, malformed startDate/endDate, or startDate after endDate
           content:
             application/problem+json:
               schema:
@@ -195,8 +195,8 @@ paths:
                 $ref: '#/components/schemas/TrendInsightResponse'
         '400':
           description: >
-            Unknown currency code, startDate after endDate, or the resolved range spans more than
-            ~365 daily observations
+            Unknown currency code, malformed startDate/endDate, startDate after endDate, or the
+            resolved range spans more than ~365 daily observations
           content:
             application/problem+json:
               schema:
