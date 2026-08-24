@@ -1,6 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
+import { timeout } from 'rxjs';
 import {
   ExchangeRateAIInsightService,
   ExchangeRateAnalyticsService,
@@ -151,7 +152,7 @@ export class HistoricalRates {
         params.to,
         params.startDate,
         params.endDate,
-      ),
+      ).pipe(timeout({ each: 35_000 })),
   });
   protected readonly aiInsightValue = computed(() =>
     this.aiInsight.hasValue() ? this.aiInsight.value() : undefined,

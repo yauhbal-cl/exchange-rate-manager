@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Subject, of, throwError } from 'rxjs';
+import { Observable, Subject, of, throwError } from 'rxjs';
 import { HistoricalRates } from './historical-rates';
 import {
   ExchangeRateAIInsightService,
@@ -362,6 +362,40 @@ describe('HistoricalRates', () => {
     expect(loading.getAttribute('role')).toBe('status');
     expect(loading.querySelector('.spinner')).not.toBeNull();
     expect(loading.textContent).toContain('Generating insight');
+  });
+
+  it('stops generating and shows unavailable when an insight request times out', async () => {
+    vi.useFakeTimers();
+    try {
+      getExchangeRateTrend.mockReturnValue(of(trendResponse()));
+      const unsubscribed = vi.fn();
+      getExchangeRateTrendInsight.mockReturnValue(
+        new Observable<TrendInsightResponse>(() => unsubscribed),
+      );
+
+      const fixture = TestBed.createComponent(HistoricalRates);
+      fixture.detectChanges();
+      await Promise.resolve();
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.textContent).toContain('Generating insight');
+
+      await vi.advanceTimersByTimeAsync(34_999);
+      fixture.detectChanges();
+      expect(fixture.nativeElement.textContent).toContain('Generating insight');
+      expect(unsubscribed).not.toHaveBeenCalled();
+
+      await vi.advanceTimersByTimeAsync(1);
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.textContent).not.toContain('Generating insight');
+      expect(fixture.nativeElement.textContent).toContain(
+        'AI interpretation unavailable right now. Please try again later.',
+      );
+      expect(unsubscribed).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('refreshes insight only when the currencies or date range change', async () => {
