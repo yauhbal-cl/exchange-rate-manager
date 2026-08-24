@@ -62,14 +62,15 @@ class UsageAnalyticsServiceTest {
         Instant first = Instant.parse("2026-08-01T10:00:00Z");
         Instant tie = Instant.parse("2026-08-02T10:00:00Z");
 
-        when(currencyUsageRepository.findCurrencyUsage(10, 30))
-                .thenReturn(List.of(usageRowOf("EUR", 3L, tie)));
+        CurrencyUsageRepository.CurrencyUsageProjection eurRow = usageRowOf("EUR", 3L, tie);
+        CurrencyQueryEventRepository.CurrencyQueryEventProjection firstEvent = eventRowOf("EUR", first);
+        CurrencyQueryEventRepository.CurrencyQueryEventProjection tieEvent1 = eventRowOf("EUR", tie);
+        CurrencyQueryEventRepository.CurrencyQueryEventProjection tieEvent2 = eventRowOf("EUR", tie);
+
+        when(currencyUsageRepository.findCurrencyUsage(10, 30)).thenReturn(List.of(eurRow));
         when(currencyQueryEventRepository.findQueryTimestamps(
                 List.of("EUR"), UsageAnalyticsService.DEFAULT_HISTORY_WINDOW_DAYS))
-                .thenReturn(List.of(
-                        eventRowOf("EUR", first),
-                        eventRowOf("EUR", tie),
-                        eventRowOf("EUR", tie)));
+                .thenReturn(List.of(firstEvent, tieEvent1, tieEvent2));
 
         List<CurrencyUsageSummary> result = usageAnalyticsService.getUsageAnalytics(10, 30);
 
@@ -83,11 +84,14 @@ class UsageAnalyticsServiceTest {
         Instant older = Instant.parse("2026-08-01T10:00:00Z");
         Instant newest = Instant.parse("2026-08-05T10:00:00Z");
 
-        when(currencyUsageRepository.findCurrencyUsage(5, 90))
-                .thenReturn(List.of(usageRowOf("GBP", 2L, newest)));
+        CurrencyUsageRepository.CurrencyUsageProjection gbpRow = usageRowOf("GBP", 2L, newest);
+        CurrencyQueryEventRepository.CurrencyQueryEventProjection olderEvent = eventRowOf("GBP", older);
+        CurrencyQueryEventRepository.CurrencyQueryEventProjection newestEvent = eventRowOf("GBP", newest);
+
+        when(currencyUsageRepository.findCurrencyUsage(5, 90)).thenReturn(List.of(gbpRow));
         when(currencyQueryEventRepository.findQueryTimestamps(
                 List.of("GBP"), UsageAnalyticsService.DEFAULT_HISTORY_WINDOW_DAYS))
-                .thenReturn(List.of(eventRowOf("GBP", older), eventRowOf("GBP", newest)));
+                .thenReturn(List.of(olderEvent, newestEvent));
 
         List<CurrencyUsageSummary> result = usageAnalyticsService.getUsageAnalytics(5, 90);
 
@@ -100,13 +104,14 @@ class UsageAnalyticsServiceTest {
     void getUsageAnalyticsNeverQueriedCurrencyReturnsEmptyListNeverNull() {
         Instant eurTimestamp = Instant.parse("2026-08-01T10:00:00Z");
 
-        when(currencyUsageRepository.findCurrencyUsage(null, null))
-                .thenReturn(List.of(
-                        usageRowOf("EUR", 1L, eurTimestamp),
-                        usageRowOf("JPY", 0L, null)));
+        CurrencyUsageRepository.CurrencyUsageProjection eurRow = usageRowOf("EUR", 1L, eurTimestamp);
+        CurrencyUsageRepository.CurrencyUsageProjection jpyRow = usageRowOf("JPY", 0L, null);
+        CurrencyQueryEventRepository.CurrencyQueryEventProjection eurEvent = eventRowOf("EUR", eurTimestamp);
+
+        when(currencyUsageRepository.findCurrencyUsage(null, null)).thenReturn(List.of(eurRow, jpyRow));
         when(currencyQueryEventRepository.findQueryTimestamps(
                 List.of("EUR", "JPY"), UsageAnalyticsService.DEFAULT_HISTORY_WINDOW_DAYS))
-                .thenReturn(List.of(eventRowOf("EUR", eurTimestamp)));
+                .thenReturn(List.of(eurEvent));
 
         List<CurrencyUsageSummary> result = usageAnalyticsService.getUsageAnalytics(null, null);
 
@@ -123,11 +128,13 @@ class UsageAnalyticsServiceTest {
     void getUsageAnalyticsReturnsByteIdenticalResultsForRepeatedIdenticalRequests() {
         Instant timestamp = Instant.parse("2026-08-01T10:00:00Z");
 
-        when(currencyUsageRepository.findCurrencyUsage(10, 30))
-                .thenReturn(List.of(usageRowOf("EUR", 1L, timestamp)));
+        CurrencyUsageRepository.CurrencyUsageProjection eurRow = usageRowOf("EUR", 1L, timestamp);
+        CurrencyQueryEventRepository.CurrencyQueryEventProjection eurEvent = eventRowOf("EUR", timestamp);
+
+        when(currencyUsageRepository.findCurrencyUsage(10, 30)).thenReturn(List.of(eurRow));
         when(currencyQueryEventRepository.findQueryTimestamps(
                 List.of("EUR"), UsageAnalyticsService.DEFAULT_HISTORY_WINDOW_DAYS))
-                .thenReturn(List.of(eventRowOf("EUR", timestamp)));
+                .thenReturn(List.of(eurEvent));
 
         List<CurrencyUsageSummary> firstCall = usageAnalyticsService.getUsageAnalytics(10, 30);
         List<CurrencyUsageSummary> secondCall = usageAnalyticsService.getUsageAnalytics(10, 30);
