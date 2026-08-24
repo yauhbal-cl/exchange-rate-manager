@@ -92,7 +92,8 @@ describe('HistoricalRates', () => {
     expect(metricsIndex).toBeGreaterThan(-1);
     expect(chartIndex).toBeGreaterThan(-1);
     expect(metricsIndex).toBeLessThan(chartIndex);
-    expect(fixture.nativeElement.textContent).toContain('0.9500000000');
+    expect(fixture.nativeElement.textContent).toContain('0.950000');
+    expect(fixture.nativeElement.textContent).not.toContain('0.9500000000');
   });
 
   it('renders the chart in its own full-width block, not a side-by-side split column (FR-001, FR-004)', async () => {
@@ -131,7 +132,7 @@ describe('HistoricalRates', () => {
       expect.any(String),
       expect.any(String),
     );
-    expect(fixture.nativeElement.textContent).toContain('1.2000000000');
+    expect(fixture.nativeElement.textContent).toContain('1.200000');
   });
 
   it('shows the explicit no-data state for both metrics and chart when points is empty (FR-015, Acceptance Scenario 2)', async () => {
@@ -313,7 +314,8 @@ describe('HistoricalRates', () => {
     expect(oldest).toBeDefined();
     if (!newest || !middle || !oldest) throw new Error('Expected three historical table rows');
     expect(newest.textContent).toContain('2026-08-23');
-    expect(newest.textContent).toContain('0.9100000000');
+    expect(newest.textContent).toContain('0.910000');
+    expect(newest.textContent).not.toContain('0.9100000000');
     expect(middle.textContent).toContain('2026-08-15');
     expect(oldest.textContent).toContain('2026-08-01');
     expect(oldest.textContent).toContain('—');
@@ -584,7 +586,7 @@ describe('HistoricalRates', () => {
     const fixture = TestBed.createComponent(HistoricalRates);
     fixture.detectChanges();
     await flush(fixture);
-    expect(fixture.nativeElement.textContent).toContain('0.9500000000');
+    expect(fixture.nativeElement.textContent).toContain('0.950000');
 
     const preset: HTMLButtonElement = fixture.nativeElement.querySelector(
       'button[data-preset="3M"]',
@@ -595,7 +597,7 @@ describe('HistoricalRates', () => {
     expect(
       fixture.nativeElement.querySelector('[data-testid="historical-loading"]'),
     ).not.toBeNull();
-    expect(fixture.nativeElement.textContent).not.toContain('0.9500000000');
+    expect(fixture.nativeElement.textContent).not.toContain('0.950000');
     expect(fixture.nativeElement.textContent).not.toContain('No historical rate data');
     expect(preset.getAttribute('aria-pressed')).toBe('true');
     expect(fixture.nativeElement.querySelector('label[for="range-start"]')?.textContent).toContain(

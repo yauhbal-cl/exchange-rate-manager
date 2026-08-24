@@ -69,7 +69,8 @@ describe('RateLookup', () => {
     const text: string = fixture.nativeElement.textContent;
     expect(text).toContain('USD');
     expect(text).toContain('EUR');
-    expect(text).toContain('0.9234500000');
+    expect(text).toContain('0.923450');
+    expect(text).not.toContain('0.9234500000');
     expect(text).toContain('2026-08-20');
     expect(text).toContain('3');
     expect(text).toContain('5');
@@ -297,7 +298,7 @@ describe('RateLookup', () => {
 
     const text: string = fixture.nativeElement.textContent;
     expect(text).not.toContain('No rate data found for that date.');
-    expect(text).toContain('0.9234500000');
+    expect(text).toContain('0.923450');
   });
 
   it('discards a stale response when a newer request resolves first', async () => {
@@ -345,8 +346,8 @@ describe('RateLookup', () => {
     fixture.detectChanges();
 
     const text: string = fixture.nativeElement.textContent;
-    expect(text).toContain('0.5000000000');
-    expect(text).not.toContain('0.6600000000');
+    expect(text).toContain('0.500000');
+    expect(text).not.toContain('0.660000');
   });
 
   it('uses status-specific fallbacks when a problem detail is absent or blank', async () => {

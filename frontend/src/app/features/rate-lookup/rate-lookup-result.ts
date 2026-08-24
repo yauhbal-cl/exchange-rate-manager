@@ -1,5 +1,6 @@
 import { Component, input } from '@angular/core';
 import type { ExchangeRateResponse } from '../../api-client';
+import { formatRate } from '../../shared/rate-format';
 
 export interface LookupError {
   category: 'invalid' | 'no-data' | 'unreachable';
@@ -87,7 +88,7 @@ export type RateLookupResultState =
                 <div
                   class="rate-value relative z-1 mt-1 overflow-hidden text-[clamp(18px,8.5cqw,36px)] leading-[1.08] font-[760] tracking-[-0.035em] text-ellipsis whitespace-nowrap text-[#18202a]"
                 >
-                  {{ value.rate }}
+                  {{ formatRate(value.rate) }}
                 </div>
               </div>
               <div
@@ -134,6 +135,8 @@ export type RateLookupResultState =
 })
 export class RateLookupResult {
   readonly state = input.required<RateLookupResultState>();
+  protected readonly formatRate = formatRate;
+
   protected errorState(): LookupError | null {
     const state = this.state();
     return state.kind === 'error' ? state.error : null;

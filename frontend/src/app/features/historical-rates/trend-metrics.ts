@@ -1,5 +1,6 @@
 import Decimal from 'decimal.js';
 import type { RateTrendPoint } from '../../api-client';
+import { formatRate } from '../../shared/rate-format';
 
 export interface DecimalDisplay {
   display: string;
@@ -40,7 +41,7 @@ export function computeLatest(points: readonly RateTrendPoint[]): DecimalDisplay
   if (!last) {
     return null;
   }
-  return { display: last.rate, value: new Decimal(last.rate) };
+  return { display: formatRate(last.rate), value: new Decimal(last.rate) };
 }
 
 export function computePeriodChange(points: readonly RateTrendPoint[]): PeriodChange | null {
@@ -75,7 +76,7 @@ function extremePoint(
   for (const point of points) {
     const value = new Decimal(point.rate);
     if (!best || isBetter(value, best.value)) {
-      best = { display: point.rate, value, date: point.rateDate };
+      best = { display: formatRate(point.rate), value, date: point.rateDate };
     }
   }
   return best;

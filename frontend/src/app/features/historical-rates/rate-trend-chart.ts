@@ -15,6 +15,7 @@ import {
   registerables,
 } from 'chart.js';
 import type { RateTrendPoint } from '../../api-client';
+import { formatRate } from '../../shared/rate-format';
 import type { DailyChange, ExtremePoint } from './trend-metrics';
 
 Chart.register(...registerables);
@@ -119,7 +120,12 @@ export function buildTrendChartConfig(
           grace: '15%',
           border: { display: false },
           grid: { color: '#eef1f4' },
-          ticks: { color: '#98a2b3', font: { size: 11 }, padding: 8 },
+          ticks: {
+            color: '#98a2b3',
+            font: { size: 11 },
+            padding: 8,
+            callback: (value) => formatRate(String(value)),
+          },
         },
       },
       plugins: {
@@ -140,7 +146,7 @@ export function buildTrendChartConfig(
                 return [];
               }
               const change = dailyChanges[item.dataIndex]?.percent;
-              return [`Rate: ${point.rate}`, `Daily change: ${change ?? '—'}`];
+              return [`Rate: ${formatRate(point.rate)}`, `Daily change: ${change ?? '—'}`];
             },
           },
         },

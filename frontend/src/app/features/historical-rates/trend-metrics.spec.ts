@@ -16,10 +16,10 @@ describe('computeLatest', () => {
     expect(computeLatest([])).toBeNull();
   });
 
-  it('returns the verbatim rate string of the last point', () => {
+  it('formats the last point to six decimal places', () => {
     const points = [point('2026-08-01', '0.9000000000'), point('2026-08-02', '0.9100000000')];
     const latest = computeLatest(points);
-    expect(latest?.display).toBe('0.9100000000');
+    expect(latest?.display).toBe('0.910000');
     expect(latest?.value.toString()).toBe('0.91');
   });
 });
@@ -58,7 +58,7 @@ describe('computePeriodHigh / computePeriodLow', () => {
     expect(computePeriodLow([])).toBeNull();
   });
 
-  it('find the max/min verbatim rate and their dates across multiple points', () => {
+  it('finds the max/min rates and formats them to six decimal places', () => {
     const points = [
       point('2026-08-01', '0.9000000000'),
       point('2026-08-02', '1.1000000000'),
@@ -66,8 +66,8 @@ describe('computePeriodHigh / computePeriodLow', () => {
     ];
     const high = computePeriodHigh(points);
     const low = computePeriodLow(points);
-    expect(high).toEqual({ display: '1.1000000000', value: high?.value, date: '2026-08-02' });
-    expect(low).toEqual({ display: '0.8500000000', value: low?.value, date: '2026-08-03' });
+    expect(high).toEqual({ display: '1.100000', value: high?.value, date: '2026-08-02' });
+    expect(low).toEqual({ display: '0.850000', value: low?.value, date: '2026-08-03' });
     expect(high?.value.toString()).toBe('1.1');
     expect(low?.value.toString()).toBe('0.85');
   });

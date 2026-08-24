@@ -1,5 +1,6 @@
 import { Component, computed, input } from '@angular/core';
 import type { RateTrendPoint } from '../../api-client';
+import { formatRate } from '../../shared/rate-format';
 import type { DailyChange } from './trend-metrics';
 
 interface Row {
@@ -87,7 +88,7 @@ export class HistoricalRatesTable {
     );
     return [...this.points()].reverse().map((point) => ({
       rateDate: point.rateDate,
-      rate: point.rate,
+      rate: formatRate(point.rate),
       percent: percentByDate.get(point.rateDate) ?? null,
     }));
   });

@@ -43,7 +43,7 @@ describe('rate trend chart configuration', () => {
     expect(config.options?.scales?.['x']?.ticks?.maxTicksLimit).toBe(8);
   });
 
-  it('builds tooltip date, verbatim rate, and daily-change content safely', () => {
+  it('builds tooltip date, six-decimal rate, and daily-change content safely', () => {
     const config = buildTrendChartConfig(
       points,
       computeDailyChanges(points),
@@ -55,7 +55,7 @@ describe('rate trend chart configuration', () => {
     const label = callbacks?.label as unknown as (item: TooltipItem<'line'>) => string[];
     expect(title([{ dataIndex: 1 } as TooltipItem<'line'>])).toBe('2026-08-02');
     expect(label({ dataIndex: 1 } as TooltipItem<'line'>)).toEqual([
-      'Rate: 1.1000000000',
+      'Rate: 1.100000',
       'Daily change: +10.00%',
     ]);
   });
