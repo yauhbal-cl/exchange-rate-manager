@@ -1,6 +1,7 @@
 package com.exchangerate.manager.controller;
 
 import com.exchangerate.manager.AbstractIntegrationTest;
+import com.exchangerate.manager.repository.CurrencyQueryEventRepository;
 import com.exchangerate.manager.repository.CurrencyUsageRepository;
 import com.exchangerate.manager.repository.ExchangeRateRepository;
 
@@ -20,6 +21,7 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -89,6 +91,9 @@ class ExchangeControllerIT extends AbstractIntegrationTest {
 
     @Autowired
     private CurrencyUsageRepository currencyUsageRepository;
+
+    @Autowired
+    private CurrencyQueryEventRepository currencyQueryEventRepository;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -253,6 +258,44 @@ class ExchangeControllerIT extends AbstractIntegrationTest {
     }
 
     @Test
+    void rejectedLookupsAndManualRefreshDoNotAddQueryEvents() throws Exception {
+        currencyUsageRepository.deleteAll();
+        exchangeRateRepository.deleteAll();
+        exchangeRateRepository.upsert(FROM_CURRENCY, FROM_RATE_TO_USD, RATE_DATE);
+        exchangeRateRepository.upsert(TO_CURRENCY, TO_RATE_TO_USD, RATE_DATE);
+
+        long before = currencyQueryEventRepository.count();
+
+        // (a) same-currency rejection — mirrors getExchangeRateReturns400ForSameCurrencyOnBothSides.
+        mockMvc.perform(get(ENDPOINT)
+                        .param("from", FROM_CURRENCY)
+                        .param("to", FROM_CURRENCY)
+                        .param("date", RATE_DATE.toString()))
+                .andExpect(status().isBadRequest());
+
+        // (b) unknown-currency rejection — mirrors getExchangeRateReturns400ForUnknownCurrency.
+        mockMvc.perform(get(ENDPOINT)
+                        .param("from", UNKNOWN_CURRENCY)
+                        .param("to", TO_CURRENCY)
+                        .param("date", RATE_DATE.toString()))
+                .andExpect(status().isBadRequest());
+
+        // (c) no rate data for the requested date — mirrors getExchangeRateReturns404WhenNoRateDataForDate.
+        mockMvc.perform(get(ENDPOINT)
+                        .param("from", FROM_CURRENCY)
+                        .param("to", TO_CURRENCY)
+                        .param("date", NO_DATA_DATE.toString()))
+                .andExpect(status().isNotFound());
+
+        // (d) manual refresh (POST /api/v1/exchange/refresh) deliberately not exercised here: it
+        // calls out to the real FixerClient/Fixer.io, which isn't mocked in this test class, so
+        // invoking it would make this test's outcome depend on network access/an external
+        // provider's availability. Sub-cases (a)-(c) above already cover every rejected-lookup
+        // path that's reachable without an external call.
+        assertThat(currencyQueryEventRepository.count()).isEqualTo(before);
+    }
+
+    @Test
     void getUsageAnalyticsReflectsMixedQueriedAndNeverQueriedCurrencies() throws Exception {
         // Real dev DB may carry rows from other tests/manual runs; establish a clean, deterministic
         // baseline within this test's transaction (rolled back afterwards, per the class convention).
@@ -305,6 +348,56 @@ class ExchangeControllerIT extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.currencies[0].currencyCode").value(FROM_CURRENCY))
                 .andExpect(jsonPath("$.currencies[0].queryCount").value(0))
                 .andExpect(jsonPath("$.currencies[0].lastQueriedAt").value(org.hamcrest.Matchers.nullValue()));
+    }
+
+    @Test
+    void getUsageAnalyticsIncludesNonNullQueryTimestampsArrayForQueriedCurrency() throws Exception {
+        currencyUsageRepository.deleteAll();
+        exchangeRateRepository.deleteAll();
+        exchangeRateRepository.upsert(FROM_CURRENCY, FROM_RATE_TO_USD, RATE_DATE);
+        exchangeRateRepository.upsert(TO_CURRENCY, TO_RATE_TO_USD, RATE_DATE);
+
+        mockMvc.perform(get(ENDPOINT)
+                        .param("from", FROM_CURRENCY)
+                        .param("to", TO_CURRENCY)
+                        .param("date", RATE_DATE.toString()))
+                .andExpect(status().isOk());
+
+        MvcResult result = mockMvc.perform(get(USAGE_ENDPOINT))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.currencies[?(@.currencyCode == '" + FROM_CURRENCY + "')].queryTimestamps")
+                        .exists())
+                .andReturn();
+
+        // Filter-path reads return one list entry per matching currency, and each entry here is
+        // itself the (array-valued) queryTimestamps field, i.e. a List<List<String>> — see
+        // JsonPath.parse(...).read(...) usage elsewhere in this file for the flat/scalar-field
+        // equivalent of this pattern.
+        List<List<String>> matchedQueryTimestamps = com.jayway.jsonpath.JsonPath
+                .parse(result.getResponse().getContentAsString())
+                .read("$.currencies[?(@.currencyCode == '" + FROM_CURRENCY + "')].queryTimestamps");
+
+        assertThat(matchedQueryTimestamps).hasSize(1);
+        assertThat(matchedQueryTimestamps.get(0))
+                .isNotNull()
+                .hasSizeGreaterThanOrEqualTo(1)
+                .allSatisfy(timestamp -> assertThat(timestamp).isNotNull());
+    }
+
+    @Test
+    void getUsageAnalyticsNeverQueriedCurrencyHasEmptyQueryTimestampsArray() throws Exception {
+        currencyUsageRepository.deleteAll();
+        exchangeRateRepository.deleteAll();
+        exchangeRateRepository.upsert(FROM_CURRENCY, FROM_RATE_TO_USD, RATE_DATE);
+
+        assertThat(currencyUsageRepository.findByCurrencyCode(FROM_CURRENCY)).isEmpty();
+
+        mockMvc.perform(get(USAGE_ENDPOINT))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.currencies", org.hamcrest.Matchers.hasSize(1)))
+                .andExpect(jsonPath("$.currencies[0].currencyCode").value(FROM_CURRENCY))
+                .andExpect(jsonPath("$.currencies[0].queryTimestamps").exists())
+                .andExpect(jsonPath("$.currencies[0].queryTimestamps", org.hamcrest.Matchers.hasSize(0)));
     }
 
     @Test
