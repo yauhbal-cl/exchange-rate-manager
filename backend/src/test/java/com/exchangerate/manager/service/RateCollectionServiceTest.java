@@ -65,7 +65,6 @@ class RateCollectionServiceTest {
     @Test
     void collectsAndUpsertsCrossRatesToUsdForEveryCurrencyInResponse() {
         Map<String, BigDecimal> rates = new LinkedHashMap<>();
-        rates.put("EUR", BigDecimal.ONE);
         rates.put("USD", new BigDecimal("1.080000"));
         rates.put("GBP", new BigDecimal("0.860000"));
         rates.put("JPY", new BigDecimal("160.500000"));
@@ -83,7 +82,7 @@ class RateCollectionServiceTest {
         BigDecimal eurToUsd = rates.get("USD");
         BigDecimal expectedGbp = rates.get("GBP").divide(eurToUsd, 6, RoundingMode.HALF_UP);
         BigDecimal expectedJpy = rates.get("JPY").divide(eurToUsd, 6, RoundingMode.HALF_UP);
-        BigDecimal expectedEur = rates.get("EUR").divide(eurToUsd, 6, RoundingMode.HALF_UP);
+        BigDecimal expectedEur = BigDecimal.ONE.divide(eurToUsd, 6, RoundingMode.HALF_UP);
 
         verify(exchangeRateRepository).upsert(
                 eq("USD"),
