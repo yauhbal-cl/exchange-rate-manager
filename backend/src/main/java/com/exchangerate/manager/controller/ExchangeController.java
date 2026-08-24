@@ -9,14 +9,15 @@ import com.exchangerate.manager.mapper.ExchangeRateResponseMapper;
 import com.exchangerate.manager.mapper.ExchangeRateTrendResponseMapper;
 import com.exchangerate.manager.mapper.TrendInsightResponseMapper;
 import com.exchangerate.manager.mapper.UsageAnalyticsMapper;
-import com.exchangerate.manager.repository.CurrencyUsageRepository;
 import com.exchangerate.manager.service.CollectionInProgressException;
+import com.exchangerate.manager.service.CurrencyUsageSummary;
 import com.exchangerate.manager.service.ExchangeRateLookupResult;
 import com.exchangerate.manager.service.ExchangeRateService;
 import com.exchangerate.manager.service.RateCollectionService;
 import com.exchangerate.manager.service.RateTrendPoint;
 import com.exchangerate.manager.service.TrendInsightResult;
 import com.exchangerate.manager.service.TrendInsightService;
+import com.exchangerate.manager.service.UsageAnalyticsService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -37,7 +38,7 @@ public class ExchangeController implements ExchangeApi {
     private final RateCollectionService rateCollectionService;
     private final ExchangeRateService exchangeRateService;
     private final ExchangeRateResponseMapper exchangeRateResponseMapper;
-    private final CurrencyUsageRepository currencyUsageRepository;
+    private final UsageAnalyticsService usageAnalyticsService;
     private final UsageAnalyticsMapper usageAnalyticsMapper;
     private final ExchangeRateTrendResponseMapper exchangeRateTrendResponseMapper;
     private final TrendInsightService trendInsightService;
@@ -82,8 +83,8 @@ public class ExchangeController implements ExchangeApi {
 
     @Override
     public ResponseEntity<UsageAnalyticsResponse> getUsageAnalytics(Integer limit, Integer recentDays) {
-        UsageAnalyticsResponse body =
-                usageAnalyticsMapper.toResponse(currencyUsageRepository.findCurrencyUsage(limit, recentDays));
+        List<CurrencyUsageSummary> summaries = usageAnalyticsService.getUsageAnalytics(limit, recentDays);
+        UsageAnalyticsResponse body = usageAnalyticsMapper.toResponse(summaries);
         return ResponseEntity.ok(body);
     }
 }

@@ -3,7 +3,10 @@ package com.exchangerate.manager.service;
 import com.exchangerate.manager.entity.CurrencyUsage;
 import com.exchangerate.manager.entity.ExchangeRate;
 import com.exchangerate.manager.exception.InvalidDateRangeException;
+import com.exchangerate.manager.exception.RateDataNotFoundException;
+import com.exchangerate.manager.exception.SameCurrencyException;
 import com.exchangerate.manager.exception.UnknownCurrencyException;
+import com.exchangerate.manager.repository.CurrencyQueryEventRepository;
 import com.exchangerate.manager.repository.CurrencyUsageRepository;
 import com.exchangerate.manager.repository.ExchangeRateRepository;
 
@@ -28,6 +31,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -52,6 +56,9 @@ class ExchangeRateServiceTest {
 
     @Mock
     private CurrencyUsageRepository currencyUsageRepository;
+
+    @Mock
+    private CurrencyQueryEventRepository currencyQueryEventRepository;
 
     @InjectMocks
     private ExchangeRateService exchangeRateService;
@@ -165,6 +172,90 @@ class ExchangeRateServiceTest {
         usageOrder.verify(currencyUsageRepository).findByCurrencyCode("CHF");
         assertThat(result.fromCurrencyUsageCount()).isEqualTo(22L);
         assertThat(result.toCurrencyUsageCount()).isEqualTo(11L);
+    }
+
+    @Test
+    void lookupRecordsOneEventPerCurrencyOnSuccess() {
+        LocalDate rateDate = LocalDate.of(2026, 8, 20);
+
+        when(exchangeRateRepository.existsByCurrencyCode("CHF")).thenReturn(true);
+        when(exchangeRateRepository.existsByCurrencyCode("AUD")).thenReturn(true);
+        when(exchangeRateRepository.findByCurrencyCodeAndRateDate("CHF", rateDate))
+                .thenReturn(Optional.of(rateOf("CHF", new BigDecimal("1.080000"), rateDate)));
+        when(exchangeRateRepository.findByCurrencyCodeAndRateDate("AUD", rateDate))
+                .thenReturn(Optional.of(rateOf("AUD", new BigDecimal("1.000000"), rateDate)));
+        when(spreadLookup.spreadFor("CHF")).thenReturn(BigDecimal.ZERO);
+        when(spreadLookup.spreadFor("AUD")).thenReturn(BigDecimal.ZERO);
+        when(currencyUsageRepository.findByCurrencyCode("AUD"))
+                .thenReturn(Optional.of(usageOf("AUD", 11L)));
+        when(currencyUsageRepository.findByCurrencyCode("CHF"))
+                .thenReturn(Optional.of(usageOf("CHF", 22L)));
+
+        exchangeRateService.lookup("CHF", "AUD", rateDate);
+
+        // AUD/CHF alphabetical order — same pairing used for incrementUsage above.
+        verify(currencyQueryEventRepository).insertEvents("AUD", "CHF");
+    }
+
+    @Test
+    void lookupCalledFiveTimesRecordsFiveEventCallsForSamePair() {
+        LocalDate rateDate = LocalDate.of(2026, 8, 20);
+
+        when(exchangeRateRepository.existsByCurrencyCode("CHF")).thenReturn(true);
+        when(exchangeRateRepository.existsByCurrencyCode("AUD")).thenReturn(true);
+        when(exchangeRateRepository.findByCurrencyCodeAndRateDate("CHF", rateDate))
+                .thenReturn(Optional.of(rateOf("CHF", new BigDecimal("1.080000"), rateDate)));
+        when(exchangeRateRepository.findByCurrencyCodeAndRateDate("AUD", rateDate))
+                .thenReturn(Optional.of(rateOf("AUD", new BigDecimal("1.000000"), rateDate)));
+        when(spreadLookup.spreadFor("CHF")).thenReturn(BigDecimal.ZERO);
+        when(spreadLookup.spreadFor("AUD")).thenReturn(BigDecimal.ZERO);
+        when(currencyUsageRepository.findByCurrencyCode("AUD"))
+                .thenReturn(Optional.of(usageOf("AUD", 11L)));
+        when(currencyUsageRepository.findByCurrencyCode("CHF"))
+                .thenReturn(Optional.of(usageOf("CHF", 22L)));
+
+        for (int i = 0; i < 5; i++) {
+            exchangeRateService.lookup("CHF", "AUD", rateDate);
+        }
+
+        // Mirrors how incrementUsage("AUD")/incrementUsage("CHF") would also each grow by 5 —
+        // one query-event pair is recorded per lookup call, same as the usage counters.
+        verify(currencyQueryEventRepository, times(5)).insertEvents("AUD", "CHF");
+    }
+
+    @Test
+    void lookupWithSameCurrencyDoesNotRecordAnyEvent() {
+        assertThatThrownBy(() -> exchangeRateService.lookup("EUR", "EUR", LocalDate.of(2026, 8, 20)))
+                .isInstanceOf(SameCurrencyException.class);
+
+        verifyNoInteractions(currencyQueryEventRepository);
+    }
+
+    @Test
+    void lookupWithUnknownCurrencyDoesNotRecordAnyEvent() {
+        when(exchangeRateRepository.existsByCurrencyCode("XXX")).thenReturn(false);
+
+        assertThatThrownBy(() -> exchangeRateService.lookup("XXX", "USD", LocalDate.of(2026, 8, 20)))
+                .isInstanceOf(UnknownCurrencyException.class);
+
+        verifyNoInteractions(currencyQueryEventRepository);
+    }
+
+    @Test
+    void lookupWithNoRateDataForDateDoesNotRecordAnyEvent() {
+        LocalDate rateDate = LocalDate.of(2026, 8, 20);
+
+        when(exchangeRateRepository.existsByCurrencyCode("EUR")).thenReturn(true);
+        when(exchangeRateRepository.existsByCurrencyCode("USD")).thenReturn(true);
+        when(exchangeRateRepository.findByCurrencyCodeAndRateDate("EUR", rateDate))
+                .thenReturn(Optional.of(rateOf("EUR", new BigDecimal("1.080000"), rateDate)));
+        when(exchangeRateRepository.findByCurrencyCodeAndRateDate("USD", rateDate))
+                .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> exchangeRateService.lookup("EUR", "USD", rateDate))
+                .isInstanceOf(RateDataNotFoundException.class);
+
+        verifyNoInteractions(currencyQueryEventRepository);
     }
 
     @Test

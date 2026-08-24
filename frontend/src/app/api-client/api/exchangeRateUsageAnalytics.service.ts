@@ -38,10 +38,10 @@ export class ExchangeRateUsageAnalyticsService extends BaseService {
     }
 
     /**
-     * Get per-currency usage analytics, optionally ranked and/or recency-filtered
+     * Get per-currency usage analytics including query-timestamp history, optionally ranked and/or recency-filtered 
      * @endpoint get /exchange/usage
      * @param limit Return at most this many currencies, ranked by queryCount descending
-     * @param recentDays Only include currencies last queried within this many days of today; currencies never queried are excluded when this parameter is supplied 
+     * @param recentDays Recency window, in days, applied two ways. (1) Currency selection, unchanged: only currencies last queried within this many days are included, and currencies never queried are excluded when this parameter is supplied. (2) History trimming: each returned currency\&#39;s queryTimestamps are limited to this same window. When omitted, currency selection is unfiltered (never-queried currencies are still returned) and queryTimestamps are trimmed to a default 90-day window. An explicitly supplied value is always honoured in full, including when it is wider than 90 days. Values wider than the 365-day retention period succeed and return whatever history is still retained. 
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      * @param options additional options

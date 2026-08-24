@@ -4,6 +4,7 @@ import com.exchangerate.manager.entity.ExchangeRate;
 import com.exchangerate.manager.exception.RateDataNotFoundException;
 import com.exchangerate.manager.exception.SameCurrencyException;
 import com.exchangerate.manager.exception.UnknownCurrencyException;
+import com.exchangerate.manager.repository.CurrencyQueryEventRepository;
 import com.exchangerate.manager.repository.CurrencyUsageRepository;
 import com.exchangerate.manager.repository.ExchangeRateRepository;
 
@@ -28,6 +29,7 @@ public class ExchangeRateService {
 
     private final ExchangeRateRepository exchangeRateRepository;
     private final CurrencyUsageRepository currencyUsageRepository;
+    private final CurrencyQueryEventRepository currencyQueryEventRepository;
     private final SpreadLookup spreadLookup;
 
     @Transactional
@@ -85,6 +87,8 @@ public class ExchangeRateService {
         Long toCurrencyUsageCount = fromCurrencyComesFirst
                 ? secondCurrencyUsageCount
                 : firstCurrencyUsageCount;
+
+        currencyQueryEventRepository.insertEvents(firstCurrency, secondCurrency);
 
         return new ExchangeRateLookupResult(
                 from, to, rate, effectiveDate, fromCurrencyUsageCount, toCurrencyUsageCount);

@@ -1,0 +1,110 @@
+# Proposed changes to contracts/openapi.yaml (applied during implementation, per the repo's
+# "edit the contract first, then regenerate both sides" workflow — this file is the design-phase
+# reference, not a second source of truth).
+#
+# Scope: GET /exchange/usage only. No new path, no new parameter, no removed or renamed field —
+# the change is one added response property plus documentation of the recentDays parameter's
+# second role (FR-011) and the 90-day default window (FR-012).
+#
+# After applying:
+#   cd backend  && ./mvnw verify          # openapi-generator-maven-plugin, generate-sources phase
+#   cd frontend && npm run generate:api   # regenerates the committed src/app/api-client/
+
+paths:
+  /exchange/usage:
+    get:
+      operationId: getUsageAnalytics
+      # CHANGED: summary now mentions the query history.
+      summary: >
+        Get per-currency usage analytics including query-timestamp history, optionally ranked
+        and/or recency-filtered
+      tags: [Exchange Rate Usage Analytics]
+      parameters:
+        # UNCHANGED.
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+          description: Return at most this many currencies, ranked by queryCount descending
+        # CHANGED: description only. Behaviour for currency selection is untouched (FR-015,
+        # FR-017); the parameter gains a second, consistent use as the history window (FR-011).
+        - name: recentDays
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+          description: >
+            Recency window, in days, applied two ways. (1) Currency selection, unchanged: only
+            currencies last queried within this many days are included, and currencies never
+            queried are excluded when this parameter is supplied. (2) History trimming: each
+            returned currency's queryTimestamps are limited to this same window. When omitted,
+            currency selection is unfiltered (never-queried currencies are still returned) and
+            queryTimestamps are trimmed to a default 90-day window. An explicitly supplied value
+            is always honoured in full, including when it is wider than 90 days. Values wider
+            than the 365-day retention period succeed and return whatever history is still
+            retained.
+      responses:
+        '200':
+          description: Per-currency usage statistics (empty array if none match)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsageAnalyticsResponse'
+        '400':
+          description: Non-positive or malformed limit/recentDays
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+
+components:
+  schemas:
+    # CHANGED: queryTimestamps added to both `required` and `properties`. The three existing
+    # properties keep their names, types, nullability and meaning (FR-016, User Story 3).
+    CurrencyUsageEntry:
+      type: object
+      required: [currencyCode, queryCount, lastQueriedAt, queryTimestamps]
+      properties:
+        currencyCode:
+          type: string
+        queryCount:
+          type: integer
+          format: int64
+          description: >
+            Lifetime number of successful queries this currency took part in. Never reduced by
+            history retention, so it may exceed the number of queryTimestamps returned when
+            activity is older than the applied window or older than the 365-day retention period.
+        lastQueriedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Null if this currency has never been queried
+        # NEW.
+        queryTimestamps:
+          type: array
+          description: >
+            Every moment at which this currency took part in a successful query, within the
+            applied window (see recentDays). Chronological, oldest first, and stable across
+            repeated identical requests. Never truncated, sampled, or capped to a maximum count —
+            the window is the only limit, so a heavily queried currency legitimately returns a
+            large array. Always present: a currency with no recorded activity in the window
+            returns an empty array, never null and never an omitted field. Timestamps are UTC.
+            Two entries may share an identical value when two queries landed on the same instant.
+          items:
+            type: string
+            format: date-time
+
+    # UNCHANGED — reproduced for context only.
+    UsageAnalyticsResponse:
+      type: object
+      required: [currencies]
+      properties:
+        currencies:
+          type: array
+          items:
+            $ref: '#/components/schemas/CurrencyUsageEntry'

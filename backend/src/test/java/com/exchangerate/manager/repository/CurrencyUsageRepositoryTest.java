@@ -160,6 +160,68 @@ class CurrencyUsageRepositoryTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void findAllCurrencyUsageIncludesEveryDistinctCurrencyFromExchangeRates() {
+        seedUsage("TAO", 7L, Instant.now());
+        seedExchangeRate(exchangeRateRepository, "TAP");
+
+        List<CurrencyUsageRepository.CurrencyUsageProjection> result =
+                currencyUsageRepository.findAllCurrencyUsage();
+
+        List<String> codes = result.stream()
+                .map(CurrencyUsageRepository.CurrencyUsageProjection::getCurrencyCode)
+                .toList();
+
+        assertThat(codes).contains("TAO", "TAP");
+    }
+
+    @Test
+    void findAllCurrencyUsageReturnsZeroCountAndNullLastQueriedAtForNeverQueriedCurrency() {
+        seedExchangeRate(exchangeRateRepository, "TAQ");
+
+        List<CurrencyUsageRepository.CurrencyUsageProjection> result =
+                currencyUsageRepository.findAllCurrencyUsage();
+
+        CurrencyUsageRepository.CurrencyUsageProjection neverQueried = result.stream()
+                .filter(row -> row.getCurrencyCode().equals("TAQ"))
+                .findFirst()
+                .orElseThrow();
+
+        assertThat(neverQueried.getQueryCount()).isZero();
+        assertThat(neverQueried.getLastQueriedAt()).isNull();
+    }
+
+    @Test
+    void findAllCurrencyUsageDoesNotApplyRecencyFiltering() {
+        seedUsage("TAR", 2L, Instant.now().minus(365, ChronoUnit.DAYS));
+
+        List<CurrencyUsageRepository.CurrencyUsageProjection> result =
+                currencyUsageRepository.findAllCurrencyUsage();
+
+        List<String> codes = result.stream()
+                .map(CurrencyUsageRepository.CurrencyUsageProjection::getCurrencyCode)
+                .toList();
+
+        assertThat(codes).contains("TAR");
+    }
+
+    @Test
+    void findAllCurrencyUsageReturnsAllRowsWithoutRankingOrLimitTruncation() {
+        seedUsage("TAS", 1L, Instant.now());
+        seedUsage("TAT", 2L, Instant.now());
+        seedUsage("TAU", 3L, Instant.now());
+
+        List<CurrencyUsageRepository.CurrencyUsageProjection> result =
+                currencyUsageRepository.findAllCurrencyUsage();
+
+        List<String> codes = result.stream()
+                .map(CurrencyUsageRepository.CurrencyUsageProjection::getCurrencyCode)
+                .filter(code -> code.equals("TAS") || code.equals("TAT") || code.equals("TAU"))
+                .toList();
+
+        assertThat(codes).containsExactlyInAnyOrder("TAS", "TAT", "TAU");
+    }
+
+    @Test
     void savesCurrencyUsageAndFindsItByCurrencyCode() {
         CurrencyUsage currencyUsage = new CurrencyUsage();
         currencyUsage.setCurrencyCode(TEST_CURRENCY_CODE);

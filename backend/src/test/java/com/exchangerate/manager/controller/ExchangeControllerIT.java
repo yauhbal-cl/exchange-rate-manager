@@ -1,6 +1,7 @@
 package com.exchangerate.manager.controller;
 
 import com.exchangerate.manager.AbstractIntegrationTest;
+import com.exchangerate.manager.repository.CurrencyQueryEventRepository;
 import com.exchangerate.manager.repository.CurrencyUsageRepository;
 import com.exchangerate.manager.repository.ExchangeRateRepository;
 
@@ -20,6 +21,7 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -89,6 +91,9 @@ class ExchangeControllerIT extends AbstractIntegrationTest {
 
     @Autowired
     private CurrencyUsageRepository currencyUsageRepository;
+
+    @Autowired
+    private CurrencyQueryEventRepository currencyQueryEventRepository;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -253,6 +258,44 @@ class ExchangeControllerIT extends AbstractIntegrationTest {
     }
 
     @Test
+    void rejectedLookupsAndManualRefreshDoNotAddQueryEvents() throws Exception {
+        currencyUsageRepository.deleteAll();
+        exchangeRateRepository.deleteAll();
+        exchangeRateRepository.upsert(FROM_CURRENCY, FROM_RATE_TO_USD, RATE_DATE);
+        exchangeRateRepository.upsert(TO_CURRENCY, TO_RATE_TO_USD, RATE_DATE);
+
+        long before = currencyQueryEventRepository.count();
+
+        // (a) same-currency rejection — mirrors getExchangeRateReturns400ForSameCurrencyOnBothSides.
+        mockMvc.perform(get(ENDPOINT)
+                        .param("from", FROM_CURRENCY)
+                        .param("to", FROM_CURRENCY)
+                        .param("date", RATE_DATE.toString()))
+                .andExpect(status().isBadRequest());
+
+        // (b) unknown-currency rejection — mirrors getExchangeRateReturns400ForUnknownCurrency.
+        mockMvc.perform(get(ENDPOINT)
+                        .param("from", UNKNOWN_CURRENCY)
+                        .param("to", TO_CURRENCY)
+                        .param("date", RATE_DATE.toString()))
+                .andExpect(status().isBadRequest());
+
+        // (c) no rate data for the requested date — mirrors getExchangeRateReturns404WhenNoRateDataForDate.
+        mockMvc.perform(get(ENDPOINT)
+                        .param("from", FROM_CURRENCY)
+                        .param("to", TO_CURRENCY)
+                        .param("date", NO_DATA_DATE.toString()))
+                .andExpect(status().isNotFound());
+
+        // (d) manual refresh (POST /api/v1/exchange/refresh) deliberately not exercised here: it
+        // calls out to the real FixerClient/Fixer.io, which isn't mocked in this test class, so
+        // invoking it would make this test's outcome depend on network access/an external
+        // provider's availability. Sub-cases (a)-(c) above already cover every rejected-lookup
+        // path that's reachable without an external call.
+        assertThat(currencyQueryEventRepository.count()).isEqualTo(before);
+    }
+
+    @Test
     void getUsageAnalyticsReflectsMixedQueriedAndNeverQueriedCurrencies() throws Exception {
         // Real dev DB may carry rows from other tests/manual runs; establish a clean, deterministic
         // baseline within this test's transaction (rolled back afterwards, per the class convention).
@@ -305,6 +348,56 @@ class ExchangeControllerIT extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.currencies[0].currencyCode").value(FROM_CURRENCY))
                 .andExpect(jsonPath("$.currencies[0].queryCount").value(0))
                 .andExpect(jsonPath("$.currencies[0].lastQueriedAt").value(org.hamcrest.Matchers.nullValue()));
+    }
+
+    @Test
+    void getUsageAnalyticsIncludesNonNullQueryTimestampsArrayForQueriedCurrency() throws Exception {
+        currencyUsageRepository.deleteAll();
+        exchangeRateRepository.deleteAll();
+        exchangeRateRepository.upsert(FROM_CURRENCY, FROM_RATE_TO_USD, RATE_DATE);
+        exchangeRateRepository.upsert(TO_CURRENCY, TO_RATE_TO_USD, RATE_DATE);
+
+        mockMvc.perform(get(ENDPOINT)
+                        .param("from", FROM_CURRENCY)
+                        .param("to", TO_CURRENCY)
+                        .param("date", RATE_DATE.toString()))
+                .andExpect(status().isOk());
+
+        MvcResult result = mockMvc.perform(get(USAGE_ENDPOINT))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.currencies[?(@.currencyCode == '" + FROM_CURRENCY + "')].queryTimestamps")
+                        .exists())
+                .andReturn();
+
+        // Filter-path reads return one list entry per matching currency, and each entry here is
+        // itself the (array-valued) queryTimestamps field, i.e. a List<List<String>> — see
+        // JsonPath.parse(...).read(...) usage elsewhere in this file for the flat/scalar-field
+        // equivalent of this pattern.
+        List<List<String>> matchedQueryTimestamps = com.jayway.jsonpath.JsonPath
+                .parse(result.getResponse().getContentAsString())
+                .read("$.currencies[?(@.currencyCode == '" + FROM_CURRENCY + "')].queryTimestamps");
+
+        assertThat(matchedQueryTimestamps).hasSize(1);
+        assertThat(matchedQueryTimestamps.get(0))
+                .isNotNull()
+                .hasSizeGreaterThanOrEqualTo(1)
+                .allSatisfy(timestamp -> assertThat(timestamp).isNotNull());
+    }
+
+    @Test
+    void getUsageAnalyticsNeverQueriedCurrencyHasEmptyQueryTimestampsArray() throws Exception {
+        currencyUsageRepository.deleteAll();
+        exchangeRateRepository.deleteAll();
+        exchangeRateRepository.upsert(FROM_CURRENCY, FROM_RATE_TO_USD, RATE_DATE);
+
+        assertThat(currencyUsageRepository.findByCurrencyCode(FROM_CURRENCY)).isEmpty();
+
+        mockMvc.perform(get(USAGE_ENDPOINT))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.currencies", org.hamcrest.Matchers.hasSize(1)))
+                .andExpect(jsonPath("$.currencies[0].currencyCode").value(FROM_CURRENCY))
+                .andExpect(jsonPath("$.currencies[0].queryTimestamps").exists())
+                .andExpect(jsonPath("$.currencies[0].queryTimestamps", org.hamcrest.Matchers.hasSize(0)));
     }
 
     @Test
@@ -503,5 +596,161 @@ class ExchangeControllerIT extends AbstractIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.currencies", org.hamcrest.Matchers.hasSize(1)))
                 .andExpect(jsonPath("$.currencies[0].currencyCode").value("BBB"));
+    }
+
+    // T019 [US3]: proves queryTimestamps is purely additive. A client coded against the
+    // pre-feature contract — reading only currencyCode/queryCount/lastQueriedAt — must keep
+    // getting correct, unchanged values with limit and recentDays combined, exactly as it would
+    // have before this feature existed. This test never references queryTimestamps at all (not
+    // even to check it's absent/present), which is itself the point: a strict-shape assertion
+    // built to check only these three fields must not be disturbed by the new field.
+    //
+    // DDD outranks everyone on queryCount alone but is seeded stale (30 days ago), so recentDays=7
+    // must still exclude it despite the high count — proving recentDays keeps shaping membership
+    // the same way it always did. CCC survives the recentDays cut but is the lowest-ranked of the
+    // three recent currencies, so limit=2 must still drop it. BBB and AAA are both recent and
+    // must come back ranked strictly by queryCount, highest first, same ordering rule as
+    // getUsageAnalyticsWithLimitReturnsTopRankedCurrenciesInOrder above.
+    @Test
+    void getUsageAnalyticsWithLimitAndRecentDaysPreservesOriginalThreeFieldsForExistingConsumers() throws Exception {
+        currencyUsageRepository.deleteAll();
+        exchangeRateRepository.deleteAll();
+
+        exchangeRateRepository.upsert("AAA", new BigDecimal("1.000000"), RATE_DATE);
+        exchangeRateRepository.upsert("BBB", new BigDecimal("1.000000"), RATE_DATE);
+        exchangeRateRepository.upsert("CCC", new BigDecimal("1.000000"), RATE_DATE);
+        exchangeRateRepository.upsert("DDD", new BigDecimal("1.000000"), RATE_DATE);
+
+        // Truncated to seconds so the round-tripped OffsetDateTime from JSON compares exactly
+        // equal to the seeded Instant, regardless of the TIMESTAMPTZ column's stored precision.
+        Instant aaaLastQueriedAt = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+        Instant bbbLastQueriedAt = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+        Instant cccLastQueriedAt = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+
+        jdbcTemplate.update(
+                "INSERT INTO currency_usage (currency_code, query_count, last_queried_at) VALUES (?, ?, ?)",
+                "AAA", 3, Timestamp.from(aaaLastQueriedAt));
+        jdbcTemplate.update(
+                "INSERT INTO currency_usage (currency_code, query_count, last_queried_at) VALUES (?, ?, ?)",
+                "BBB", 10, Timestamp.from(bbbLastQueriedAt));
+        jdbcTemplate.update(
+                "INSERT INTO currency_usage (currency_code, query_count, last_queried_at) VALUES (?, ?, ?)",
+                "CCC", 1, Timestamp.from(cccLastQueriedAt));
+        jdbcTemplate.update(
+                "INSERT INTO currency_usage (currency_code, query_count, last_queried_at) VALUES (?, ?, ?)",
+                "DDD", 99, Timestamp.from(Instant.now().minus(30, ChronoUnit.DAYS)));
+
+        MvcResult result = mockMvc.perform(get(USAGE_ENDPOINT).param("limit", "2").param("recentDays", "7"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.currencies", org.hamcrest.Matchers.hasSize(2)))
+                .andExpect(jsonPath("$.currencies[0].currencyCode").value("BBB"))
+                .andExpect(jsonPath("$.currencies[0].queryCount").value(10))
+                .andExpect(jsonPath("$.currencies[0].lastQueriedAt").value(org.hamcrest.Matchers.notNullValue()))
+                .andExpect(jsonPath("$.currencies[1].currencyCode").value("AAA"))
+                .andExpect(jsonPath("$.currencies[1].queryCount").value(3))
+                .andExpect(jsonPath("$.currencies[1].lastQueriedAt").value(org.hamcrest.Matchers.notNullValue()))
+                .andReturn();
+
+        // Beyond existence/non-null, confirm each entry's lastQueriedAt is the exact seeded
+        // instant for that currency (not swapped, truncated, or otherwise perturbed by the new
+        // queryTimestamps computation living alongside it in the same mapper/service).
+        var parsed = com.jayway.jsonpath.JsonPath.parse(result.getResponse().getContentAsString());
+        Instant actualBbbLastQueriedAt = java.time.OffsetDateTime
+                .parse(parsed.read("$.currencies[0].lastQueriedAt").toString())
+                .toInstant();
+        Instant actualAaaLastQueriedAt = java.time.OffsetDateTime
+                .parse(parsed.read("$.currencies[1].lastQueriedAt").toString())
+                .toInstant();
+
+        assertThat(actualBbbLastQueriedAt).isEqualTo(bbbLastQueriedAt);
+        assertThat(actualAaaLastQueriedAt).isEqualTo(aaaLastQueriedAt);
+    }
+
+    // NOT-yet-implemented behavior: UsageAnalyticsService currently hardcodes
+    // DEFAULT_HISTORY_WINDOW_DAYS (90) for the queryTimestamps history window regardless of the
+    // recentDays query parameter, instead of trimming that window to recentDays. queryCount itself
+    // must stay a lifetime count either way (it comes straight from currency_usage.query_count via
+    // findCurrencyUsage, untouched by any history-window trimming). This test is expected to FAIL
+    // against today's implementation: with recentDays=7, all 5 seeded events are still within the
+    // hardcoded 90-day window, so all 5 timestamps come back instead of the 2 that fall inside the
+    // last 7 days.
+    @Test
+    void getUsageAnalyticsWithRecentDaysTrimsQueryTimestampsWithoutChangingQueryCount() throws Exception {
+        currencyUsageRepository.deleteAll();
+        exchangeRateRepository.deleteAll();
+
+        exchangeRateRepository.upsert(FROM_CURRENCY, FROM_RATE_TO_USD, RATE_DATE);
+        jdbcTemplate.update(
+                "INSERT INTO currency_usage (currency_code, query_count, last_queried_at) VALUES (?, ?, ?)",
+                FROM_CURRENCY, 5, Timestamp.from(Instant.now()));
+
+        // 2 events inside the requested 7-day recentDays window.
+        jdbcTemplate.update(
+                "INSERT INTO currency_query_event (currency_code, queried_at) VALUES (?, ?)",
+                FROM_CURRENCY, Timestamp.from(Instant.now().minus(1, ChronoUnit.DAYS)));
+        jdbcTemplate.update(
+                "INSERT INTO currency_query_event (currency_code, queried_at) VALUES (?, ?)",
+                FROM_CURRENCY, Timestamp.from(Instant.now().minus(3, ChronoUnit.DAYS)));
+
+        // 3 events older than 7 days but still within the (hardcoded) 90-day default window.
+        jdbcTemplate.update(
+                "INSERT INTO currency_query_event (currency_code, queried_at) VALUES (?, ?)",
+                FROM_CURRENCY, Timestamp.from(Instant.now().minus(20, ChronoUnit.DAYS)));
+        jdbcTemplate.update(
+                "INSERT INTO currency_query_event (currency_code, queried_at) VALUES (?, ?)",
+                FROM_CURRENCY, Timestamp.from(Instant.now().minus(40, ChronoUnit.DAYS)));
+        jdbcTemplate.update(
+                "INSERT INTO currency_query_event (currency_code, queried_at) VALUES (?, ?)",
+                FROM_CURRENCY, Timestamp.from(Instant.now().minus(60, ChronoUnit.DAYS)));
+
+        MvcResult result = mockMvc.perform(get(USAGE_ENDPOINT).param("recentDays", "7"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.currencies", org.hamcrest.Matchers.hasSize(1)))
+                .andExpect(jsonPath("$.currencies[0].currencyCode").value(FROM_CURRENCY))
+                .andExpect(jsonPath("$.currencies[0].queryCount").value(5))
+                .andReturn();
+
+        List<List<String>> matchedQueryTimestamps = com.jayway.jsonpath.JsonPath
+                .parse(result.getResponse().getContentAsString())
+                .read("$.currencies[?(@.currencyCode == '" + FROM_CURRENCY + "')].queryTimestamps");
+
+        assertThat(matchedQueryTimestamps).hasSize(1);
+        assertThat(matchedQueryTimestamps.get(0)).hasSize(2);
+    }
+
+    // SC-010: no cap on returned history size — a recentDays wider than the seeded data (and
+    // wider than the current 90-day hardcoded default) must return every seeded event, none
+    // dropped/truncated. Against today's implementation this may or may not fail depending on
+    // whether all seeded offsets happen to fall inside the hardcoded 90-day window; the offsets
+    // below deliberately include some beyond 90 days (up to 99) specifically to exercise that gap.
+    @Test
+    void getUsageAnalyticsWithLargeRecentDaysReturnsFullWindowUntruncated() throws Exception {
+        currencyUsageRepository.deleteAll();
+        exchangeRateRepository.deleteAll();
+
+        exchangeRateRepository.upsert(FROM_CURRENCY, FROM_RATE_TO_USD, RATE_DATE);
+        jdbcTemplate.update(
+                "INSERT INTO currency_usage (currency_code, query_count, last_queried_at) VALUES (?, ?, ?)",
+                FROM_CURRENCY, 15, Timestamp.from(Instant.now()));
+
+        int[] dayOffsets = {1, 5, 10, 15, 20, 25, 30, 35, 40, 50, 60, 70, 80, 90, 99};
+        for (int offset : dayOffsets) {
+            jdbcTemplate.update(
+                    "INSERT INTO currency_query_event (currency_code, queried_at) VALUES (?, ?)",
+                    FROM_CURRENCY, Timestamp.from(Instant.now().minus(offset, ChronoUnit.DAYS)));
+        }
+
+        MvcResult result = mockMvc.perform(get(USAGE_ENDPOINT).param("recentDays", "180"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.currencies", org.hamcrest.Matchers.hasSize(1)))
+                .andExpect(jsonPath("$.currencies[0].currencyCode").value(FROM_CURRENCY))
+                .andReturn();
+
+        List<List<String>> matchedQueryTimestamps = com.jayway.jsonpath.JsonPath
+                .parse(result.getResponse().getContentAsString())
+                .read("$.currencies[?(@.currencyCode == '" + FROM_CURRENCY + "')].queryTimestamps");
+
+        assertThat(matchedQueryTimestamps).hasSize(1);
+        assertThat(matchedQueryTimestamps.get(0)).hasSize(dayOffsets.length);
     }
 }

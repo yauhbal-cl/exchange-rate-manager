@@ -16,5 +16,9 @@ export interface CurrencyUsageEntry {
      * Null if this currency has never been queried
      */
     lastQueriedAt: string | null;
+    /**
+     * Every moment at which this currency took part in a successful query, within the applied window (see recentDays). Chronological, oldest first, and stable across repeated identical requests. Never truncated, sampled, or capped to a maximum count — the window is the only limit, so a heavily queried currency legitimately returns a large array. Always present: a currency with no recorded activity in the window returns an empty array, never null and never an omitted field. Timestamps are UTC. Two entries may share an identical value when two queries landed on the same instant. 
+     */
+    queryTimestamps: Array<string>;
 }
 
