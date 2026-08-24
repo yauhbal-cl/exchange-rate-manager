@@ -597,4 +597,92 @@ class ExchangeControllerIT extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.currencies", org.hamcrest.Matchers.hasSize(1)))
                 .andExpect(jsonPath("$.currencies[0].currencyCode").value("BBB"));
     }
+
+    // NOT-yet-implemented behavior: UsageAnalyticsService currently hardcodes
+    // DEFAULT_HISTORY_WINDOW_DAYS (90) for the queryTimestamps history window regardless of the
+    // recentDays query parameter, instead of trimming that window to recentDays. queryCount itself
+    // must stay a lifetime count either way (it comes straight from currency_usage.query_count via
+    // findCurrencyUsage, untouched by any history-window trimming). This test is expected to FAIL
+    // against today's implementation: with recentDays=7, all 5 seeded events are still within the
+    // hardcoded 90-day window, so all 5 timestamps come back instead of the 2 that fall inside the
+    // last 7 days.
+    @Test
+    void getUsageAnalyticsWithRecentDaysTrimsQueryTimestampsWithoutChangingQueryCount() throws Exception {
+        currencyUsageRepository.deleteAll();
+        exchangeRateRepository.deleteAll();
+
+        exchangeRateRepository.upsert(FROM_CURRENCY, FROM_RATE_TO_USD, RATE_DATE);
+        jdbcTemplate.update(
+                "INSERT INTO currency_usage (currency_code, query_count, last_queried_at) VALUES (?, ?, ?)",
+                FROM_CURRENCY, 5, Timestamp.from(Instant.now()));
+
+        // 2 events inside the requested 7-day recentDays window.
+        jdbcTemplate.update(
+                "INSERT INTO currency_query_event (currency_code, queried_at) VALUES (?, ?)",
+                FROM_CURRENCY, Timestamp.from(Instant.now().minus(1, ChronoUnit.DAYS)));
+        jdbcTemplate.update(
+                "INSERT INTO currency_query_event (currency_code, queried_at) VALUES (?, ?)",
+                FROM_CURRENCY, Timestamp.from(Instant.now().minus(3, ChronoUnit.DAYS)));
+
+        // 3 events older than 7 days but still within the (hardcoded) 90-day default window.
+        jdbcTemplate.update(
+                "INSERT INTO currency_query_event (currency_code, queried_at) VALUES (?, ?)",
+                FROM_CURRENCY, Timestamp.from(Instant.now().minus(20, ChronoUnit.DAYS)));
+        jdbcTemplate.update(
+                "INSERT INTO currency_query_event (currency_code, queried_at) VALUES (?, ?)",
+                FROM_CURRENCY, Timestamp.from(Instant.now().minus(40, ChronoUnit.DAYS)));
+        jdbcTemplate.update(
+                "INSERT INTO currency_query_event (currency_code, queried_at) VALUES (?, ?)",
+                FROM_CURRENCY, Timestamp.from(Instant.now().minus(60, ChronoUnit.DAYS)));
+
+        MvcResult result = mockMvc.perform(get(USAGE_ENDPOINT).param("recentDays", "7"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.currencies", org.hamcrest.Matchers.hasSize(1)))
+                .andExpect(jsonPath("$.currencies[0].currencyCode").value(FROM_CURRENCY))
+                .andExpect(jsonPath("$.currencies[0].queryCount").value(5))
+                .andReturn();
+
+        List<List<String>> matchedQueryTimestamps = com.jayway.jsonpath.JsonPath
+                .parse(result.getResponse().getContentAsString())
+                .read("$.currencies[?(@.currencyCode == '" + FROM_CURRENCY + "')].queryTimestamps");
+
+        assertThat(matchedQueryTimestamps).hasSize(1);
+        assertThat(matchedQueryTimestamps.get(0)).hasSize(2);
+    }
+
+    // SC-010: no cap on returned history size — a recentDays wider than the seeded data (and
+    // wider than the current 90-day hardcoded default) must return every seeded event, none
+    // dropped/truncated. Against today's implementation this may or may not fail depending on
+    // whether all seeded offsets happen to fall inside the hardcoded 90-day window; the offsets
+    // below deliberately include some beyond 90 days (up to 99) specifically to exercise that gap.
+    @Test
+    void getUsageAnalyticsWithLargeRecentDaysReturnsFullWindowUntruncated() throws Exception {
+        currencyUsageRepository.deleteAll();
+        exchangeRateRepository.deleteAll();
+
+        exchangeRateRepository.upsert(FROM_CURRENCY, FROM_RATE_TO_USD, RATE_DATE);
+        jdbcTemplate.update(
+                "INSERT INTO currency_usage (currency_code, query_count, last_queried_at) VALUES (?, ?, ?)",
+                FROM_CURRENCY, 15, Timestamp.from(Instant.now()));
+
+        int[] dayOffsets = {1, 5, 10, 15, 20, 25, 30, 35, 40, 50, 60, 70, 80, 90, 99};
+        for (int offset : dayOffsets) {
+            jdbcTemplate.update(
+                    "INSERT INTO currency_query_event (currency_code, queried_at) VALUES (?, ?)",
+                    FROM_CURRENCY, Timestamp.from(Instant.now().minus(offset, ChronoUnit.DAYS)));
+        }
+
+        MvcResult result = mockMvc.perform(get(USAGE_ENDPOINT).param("recentDays", "180"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.currencies", org.hamcrest.Matchers.hasSize(1)))
+                .andExpect(jsonPath("$.currencies[0].currencyCode").value(FROM_CURRENCY))
+                .andReturn();
+
+        List<List<String>> matchedQueryTimestamps = com.jayway.jsonpath.JsonPath
+                .parse(result.getResponse().getContentAsString())
+                .read("$.currencies[?(@.currencyCode == '" + FROM_CURRENCY + "')].queryTimestamps");
+
+        assertThat(matchedQueryTimestamps).hasSize(1);
+        assertThat(matchedQueryTimestamps.get(0)).hasSize(dayOffsets.length);
+    }
 }
