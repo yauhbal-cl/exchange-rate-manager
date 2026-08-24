@@ -1,6 +1,6 @@
 package com.exchangerate.manager.scheduler;
 
-import com.exchangerate.manager.client.FixerApiException;
+import com.exchangerate.manager.service.RateCollectionException;
 import com.exchangerate.manager.service.RateCollectionService;
 
 import lombok.RequiredArgsConstructor;
@@ -20,7 +20,7 @@ public class RateCollectionScheduler {
     public void runScheduledCollection() {
         try {
             rateCollectionService.collect();
-        } catch (FixerApiException e) {
+        } catch (RateCollectionException e) {
             log.error("Scheduled Fixer.io rate collection failed: {}", e.getMessage(), e);
         }
     }

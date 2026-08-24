@@ -9,11 +9,10 @@ import com.exchangerate.manager.mapper.ExchangeRateResponseMapper;
 import com.exchangerate.manager.mapper.ExchangeRateTrendResponseMapper;
 import com.exchangerate.manager.mapper.TrendInsightResponseMapper;
 import com.exchangerate.manager.mapper.UsageAnalyticsMapper;
-import com.exchangerate.manager.service.CollectionInProgressException;
 import com.exchangerate.manager.service.CurrencyUsageSummary;
 import com.exchangerate.manager.service.ExchangeRateLookupResult;
 import com.exchangerate.manager.service.ExchangeRateService;
-import com.exchangerate.manager.service.RateCollectionService;
+import com.exchangerate.manager.service.ManualRefreshService;
 import com.exchangerate.manager.service.RateTrendPoint;
 import com.exchangerate.manager.service.TrendInsightResult;
 import com.exchangerate.manager.service.TrendInsightService;
@@ -35,7 +34,7 @@ import java.util.List;
 @Validated
 public class ExchangeController implements ExchangeApi {
 
-    private final RateCollectionService rateCollectionService;
+    private final ManualRefreshService manualRefreshService;
     private final ExchangeRateService exchangeRateService;
     private final ExchangeRateResponseMapper exchangeRateResponseMapper;
     private final UsageAnalyticsService usageAnalyticsService;
@@ -53,12 +52,7 @@ public class ExchangeController implements ExchangeApi {
 
     @Override
     public ResponseEntity<com.exchangerate.manager.api.model.RefreshResult> refreshExchangeRates() {
-        com.exchangerate.manager.service.RefreshResult result = rateCollectionService.collect();
-
-        if (result == null) {
-            throw new CollectionInProgressException(
-                    "A collection run is already in progress; try again shortly.");
-        }
+        com.exchangerate.manager.service.RefreshResult result = manualRefreshService.refresh();
 
         com.exchangerate.manager.api.model.RefreshResult body = new com.exchangerate.manager.api.model.RefreshResult(
                 result.getCurrenciesCollected(), result.getRateDate());

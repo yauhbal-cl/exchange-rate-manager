@@ -22,11 +22,8 @@ import java.util.Map;
  * Collects the latest EUR-based rates from Fixer.io and upserts USD-based cross-rates for every
  * currency in the response.
  *
- * <p>Lets {@link com.exchangerate.manager.client.FixerApiException} propagate on failure — the
- * caller decides how to react: {@link com.exchangerate.manager.scheduler.RateCollectionScheduler}
- * logs it (a null return from {@code collect()} would otherwise be indistinguishable from
- * ShedLock skipping the method because another run already holds the lock), and
- * {@code ExchangeController} maps it to a 502 response for the manual-refresh path.
+ * <p>Provider-specific failures are translated to {@link RateCollectionException} so callers do
+ * not depend on details of the configured rate provider.
  */
 @Service
 @RequiredArgsConstructor
@@ -41,14 +38,19 @@ public class RateCollectionService {
     @Transactional
     @SchedulerLock(name = "fixer-rate-collection")
     public RefreshResult collect() {
-        FixerLatestResponse response = fixerClient.getLatestRates();
+        FixerLatestResponse response;
+        try {
+            response = fixerClient.getLatestRates();
+        } catch (FixerApiException e) {
+            throw new RateCollectionException(e.getMessage(), e);
+        }
 
         String expectedBaseCurrency = exchangeRateProperties.baseCurrency();
         String actualBaseCurrency = response.getBase();
         if (actualBaseCurrency == null
                 || actualBaseCurrency.isBlank()
                 || !actualBaseCurrency.equals(expectedBaseCurrency)) {
-            throw new FixerApiException(
+            throw new RateCollectionException(
                     "Fixer.io /latest call returned unexpected base currency: expected '"
                             + expectedBaseCurrency + "' but got '" + actualBaseCurrency + "'");
         }
@@ -56,7 +58,7 @@ public class RateCollectionService {
         Map<String, BigDecimal> rates = response.getRates();
         BigDecimal baseCurrencySelfRate = rates == null ? null : rates.get(expectedBaseCurrency);
         if (baseCurrencySelfRate == null || baseCurrencySelfRate.compareTo(BigDecimal.ONE) != 0) {
-            throw new FixerApiException(
+            throw new RateCollectionException(
                     "Fixer.io /latest call sanity check failed: expected rates['"
                             + expectedBaseCurrency + "'] to equal 1 but got '"
                             + baseCurrencySelfRate + "'");

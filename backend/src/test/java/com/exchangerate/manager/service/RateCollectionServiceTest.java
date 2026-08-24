@@ -109,11 +109,16 @@ class RateCollectionServiceTest {
     }
 
     @Test
-    void collectPropagatesFailureWithZeroWritesAttempted() {
+    void collectTranslatesProviderFailureWithZeroWritesAttempted() {
         when(fixerClient.getLatestRates())
                 .thenThrow(new FixerApiException("simulated provider failure"));
 
-        assertThrows(FixerApiException.class, () -> rateCollectionService.collect());
+        RateCollectionException exception =
+                assertThrows(RateCollectionException.class, () -> rateCollectionService.collect());
+
+        org.assertj.core.api.Assertions.assertThat(exception)
+                .hasMessage("simulated provider failure")
+                .hasCauseInstanceOf(FixerApiException.class);
 
         verify(exchangeRateRepository, never()).upsert(any(), any(), any());
     }
@@ -155,7 +160,7 @@ class RateCollectionServiceTest {
 
         when(fixerClient.getLatestRates()).thenReturn(response);
 
-        assertThrows(FixerApiException.class, () -> rateCollectionService.collect());
+        assertThrows(RateCollectionException.class, () -> rateCollectionService.collect());
 
         verify(exchangeRateRepository, never()).upsert(any(), any(), any());
     }
@@ -174,7 +179,7 @@ class RateCollectionServiceTest {
 
         when(fixerClient.getLatestRates()).thenReturn(response);
 
-        assertThrows(FixerApiException.class, () -> rateCollectionService.collect());
+        assertThrows(RateCollectionException.class, () -> rateCollectionService.collect());
 
         verify(exchangeRateRepository, never()).upsert(any(), any(), any());
     }
@@ -193,7 +198,7 @@ class RateCollectionServiceTest {
 
         when(fixerClient.getLatestRates()).thenReturn(response);
 
-        assertThrows(FixerApiException.class, () -> rateCollectionService.collect());
+        assertThrows(RateCollectionException.class, () -> rateCollectionService.collect());
 
         verify(exchangeRateRepository, never()).upsert(any(), any(), any());
     }
@@ -212,7 +217,7 @@ class RateCollectionServiceTest {
 
         when(fixerClient.getLatestRates()).thenReturn(response);
 
-        assertThrows(FixerApiException.class, () -> rateCollectionService.collect());
+        assertThrows(RateCollectionException.class, () -> rateCollectionService.collect());
 
         verify(exchangeRateRepository, never()).upsert(any(), any(), any());
     }

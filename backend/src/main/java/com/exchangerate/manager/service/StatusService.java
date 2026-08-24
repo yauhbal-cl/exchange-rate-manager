@@ -1,8 +1,7 @@
 package com.exchangerate.manager.service;
 
-import com.exchangerate.manager.api.model.ServiceStatus;
+import lombok.RequiredArgsConstructor;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.sql.DataSource;
@@ -10,21 +9,15 @@ import java.sql.Connection;
 import java.time.OffsetDateTime;
 
 @Service
+@RequiredArgsConstructor
 public class StatusService {
 
-    @Autowired
-    private DataSource dataSource;
+    private final DataSource dataSource;
 
-    public ServiceStatus getStatus() {
+    public ServiceStatusResult getStatus() {
         boolean databaseConnected = isDatabaseConnected();
-        ServiceStatus.StatusEnum status = databaseConnected ? ServiceStatus.StatusEnum.UP : ServiceStatus.StatusEnum.DOWN;
-
-        ServiceStatus result = new ServiceStatus();
-        result.setStatus(status);
-        result.setDatabaseConnected(databaseConnected);
-        result.setTimestamp(OffsetDateTime.now());
-
-        return result;
+        ServiceStatusValue status = databaseConnected ? ServiceStatusValue.UP : ServiceStatusValue.DOWN;
+        return new ServiceStatusResult(status, databaseConnected, OffsetDateTime.now());
     }
 
     private boolean isDatabaseConnected() {

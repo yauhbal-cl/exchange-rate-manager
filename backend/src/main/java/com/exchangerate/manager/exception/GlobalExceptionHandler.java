@@ -1,7 +1,7 @@
 package com.exchangerate.manager.exception;
 
-import com.exchangerate.manager.client.FixerApiException;
 import com.exchangerate.manager.service.CollectionInProgressException;
+import com.exchangerate.manager.service.RateCollectionException;
 
 import jakarta.validation.ConstraintViolationException;
 
@@ -18,8 +18,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(FixerApiException.class)
-    public ProblemDetail handleFixerApiException(FixerApiException e) {
+    @ExceptionHandler(RateCollectionException.class)
+    public ProblemDetail handleRateCollectionException(RateCollectionException e) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_GATEWAY, e.getMessage());
     }
 
