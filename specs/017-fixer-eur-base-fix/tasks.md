@@ -66,7 +66,7 @@ Backend-only feature: `backend/src/main/java/com/exchangerate/manager/service/Ra
 
 ## Phase 4: Polish & Validation
 
-- [ ] T008 Run `cd backend && ./mvnw test -Dtest=RateCollectionServiceTest` per quickstart.md; confirm all tests pass.
+- [X] T008 Run `cd backend && ./mvnw test -Dtest=RateCollectionServiceTest` per quickstart.md; confirm all tests pass.
 - [ ] T009 Run `cd backend && ./mvnw verify` per quickstart.md; confirm no regression elsewhere in the backend suite.
 
 ---
