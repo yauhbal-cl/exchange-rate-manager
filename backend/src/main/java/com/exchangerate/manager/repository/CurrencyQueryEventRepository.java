@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
@@ -52,8 +53,12 @@ public interface CurrencyQueryEventRepository extends JpaRepository<CurrencyQuer
      * ctid ... LIMIT :batchSize)}) rather than the whole expired set at once, so a single purge
      * run never holds a long-lived lock or a huge transaction against the table. The caller —
      * {@code QueryEventPurgeService} — is expected to invoke this repeatedly, batch after batch,
-     * until it returns {@code 0}.
+     * until it returns {@code 0}. Explicitly {@code @Transactional} — unlike {@link #insertEvents}
+     * (which always runs inside its caller's existing transaction), the purge loop calls this
+     * repeatedly with no enclosing transaction, and a custom {@code @Modifying @Query} method gets
+     * no transaction of its own by default, so each call needs its own to execute at all.
      */
+    @Transactional
     @Modifying
     @Query(value = """
             DELETE FROM currency_query_event
