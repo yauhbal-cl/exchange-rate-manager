@@ -185,10 +185,11 @@ class RateCollectionServiceTest {
     }
 
     @Test
-    void collectThrowsAndWritesNothingWhenBaseCurrencySelfRateIsMissing() {
+    void collectAcceptsAndPersistsEurWhenEurAbsentFromRates() {
         Map<String, BigDecimal> rates = new LinkedHashMap<>();
         rates.put("USD", new BigDecimal("1.080000"));
         rates.put("GBP", new BigDecimal("0.860000"));
+        rates.put("JPY", new BigDecimal("160.500000"));
 
         FixerLatestResponse response = new FixerLatestResponse();
         response.setSuccess(true);
@@ -198,9 +199,34 @@ class RateCollectionServiceTest {
 
         when(fixerClient.getLatestRates()).thenReturn(response);
 
-        assertThrows(RateCollectionException.class, () -> rateCollectionService.collect());
+        rateCollectionService.collect();
 
-        verify(exchangeRateRepository, never()).upsert(any(), any(), any());
+        BigDecimal eurToUsd = rates.get("USD");
+        BigDecimal expectedEur = BigDecimal.ONE.divide(eurToUsd, 6, RoundingMode.HALF_UP);
+        BigDecimal expectedGbp = rates.get("GBP").divide(eurToUsd, 6, RoundingMode.HALF_UP);
+        BigDecimal expectedJpy = rates.get("JPY").divide(eurToUsd, 6, RoundingMode.HALF_UP);
+
+        verify(exchangeRateRepository).upsert(
+                eq("EUR"),
+                argThat(bd -> bd.compareTo(expectedEur) == 0),
+                eq(RATE_DATE));
+
+        verify(exchangeRateRepository).upsert(
+                eq("USD"),
+                argThat(bd -> bd.compareTo(new BigDecimal("1.000000")) == 0),
+                eq(RATE_DATE));
+
+        verify(exchangeRateRepository).upsert(
+                eq("GBP"),
+                argThat(bd -> bd.compareTo(expectedGbp) == 0),
+                eq(RATE_DATE));
+
+        verify(exchangeRateRepository).upsert(
+                eq("JPY"),
+                argThat(bd -> bd.compareTo(expectedJpy) == 0),
+                eq(RATE_DATE));
+
+        verify(exchangeRateRepository, times(4)).upsert(any(), any(), any());
     }
 
     @Test
