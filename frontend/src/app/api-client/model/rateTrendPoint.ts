@@ -12,7 +12,7 @@
 export interface RateTrendPoint { 
     rateDate: string;
     /**
-     * Spread-adjusted rate, exact decimal (transported as string)
+     * Raw, unadjusted cross-rate, exact decimal (transported as string)
      */
     rate: string;
 }

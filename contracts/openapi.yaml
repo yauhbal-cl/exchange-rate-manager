@@ -105,7 +105,7 @@ paths:
   /exchange/trend:
     get:
       operationId: getExchangeRateTrend
-      summary: Get the historical spread-adjusted exchange rate series for a currency pair
+      summary: Get the historical raw exchange rate series for a currency pair
       tags: [Exchange Rate Analytics]
       parameters:
         - name: from
@@ -342,7 +342,7 @@ components:
         rate:
           type: string
           format: decimal
-          description: Spread-adjusted rate, exact decimal (transported as string)
+          description: Raw, unadjusted cross-rate, exact decimal (transported as string)
     UsageAnalyticsResponse:
       type: object
       required: [currencies]

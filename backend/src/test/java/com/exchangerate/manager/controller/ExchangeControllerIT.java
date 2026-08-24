@@ -76,8 +76,8 @@ class ExchangeControllerIT extends AbstractIntegrationTest {
     private static final LocalDate NO_DATA_DATE = LocalDate.of(1999, 1, 1);
 
     // Currency pair dedicated to the /trend tests, distinct from FROM_CURRENCY/TO_CURRENCY above
-    // to avoid collisions with the /exchange tests in this class. Neither is in SpreadLookup's
-    // explicit tiers, so both fall to DEFAULT_SPREAD, same as FROM_CURRENCY/TO_CURRENCY.
+    // to avoid collisions with the /exchange tests in this class. Historical trends expose raw
+    // cross-rates, so configured commercial spread tiers do not affect these values.
     // CHF/AUD are reserved for ExchangeRateServiceConcurrencyIT's non-transactional, real-commit
     // concurrency test — using them here would collide with its committed currency_usage rows.
     private static final String TREND_FROM_CURRENCY = "NZD";
@@ -413,7 +413,7 @@ class ExchangeControllerIT extends AbstractIntegrationTest {
     }
 
     @Test
-    void getExchangeRateTrendReturnsSpreadAdjustedSeriesForExplicitRange() throws Exception {
+    void getExchangeRateTrendReturnsRawCrossRateSeriesForExplicitRange() throws Exception {
         LocalDate day1 = RATE_DATE;
         LocalDate day2 = RATE_DATE.plusDays(1);
         BigDecimal fromRateDay1 = new BigDecimal("1.000000");
@@ -426,8 +426,8 @@ class ExchangeControllerIT extends AbstractIntegrationTest {
         exchangeRateRepository.upsert(TREND_FROM_CURRENCY, fromRateDay2, day2);
         exchangeRateRepository.upsert(TREND_TO_CURRENCY, toRateDay2, day2);
 
-        BigDecimal expectedRateDay1 = computeExpectedRate(fromRateDay1, toRateDay1);
-        BigDecimal expectedRateDay2 = computeExpectedRate(fromRateDay2, toRateDay2);
+        BigDecimal expectedRateDay1 = toRateDay1.divide(fromRateDay1, RATE_MATH_CONTEXT);
+        BigDecimal expectedRateDay2 = toRateDay2.divide(fromRateDay2, RATE_MATH_CONTEXT);
 
         MvcResult result = mockMvc.perform(get(TREND_ENDPOINT)
                         .param("from", TREND_FROM_CURRENCY)

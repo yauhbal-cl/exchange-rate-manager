@@ -30,6 +30,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -309,8 +310,6 @@ class ExchangeRateServiceTest {
 
         when(exchangeRateRepository.existsByCurrencyCode("EUR")).thenReturn(true);
         when(exchangeRateRepository.existsByCurrencyCode("USD")).thenReturn(true);
-        when(spreadLookup.spreadFor("EUR")).thenReturn(BigDecimal.ZERO);
-        when(spreadLookup.spreadFor("USD")).thenReturn(BigDecimal.ZERO);
         when(exchangeRateRepository.findTrend(eq("EUR"), eq("USD"), any(), any()))
                 .thenReturn(List.of());
 
@@ -356,18 +355,16 @@ class ExchangeRateServiceTest {
     }
 
     @Test
-    void getTrendComputesSpreadAdjustedRateUsingSameFormulaAsLookup() {
+    void getTrendComputesRawCrossRateWithoutConsultingSpreadLookup() {
         LocalDate startDate = LocalDate.of(2026, 8, 1);
         LocalDate endDate = LocalDate.of(2026, 8, 3);
         BigDecimal eurToUsd = new BigDecimal("1.080000");
         BigDecimal gbpToUsd = new BigDecimal("1.260000");
-        BigDecimal eurSpread = new BigDecimal("2.75");
-        BigDecimal gbpSpread = new BigDecimal("3.25");
 
         when(exchangeRateRepository.existsByCurrencyCode("EUR")).thenReturn(true);
         when(exchangeRateRepository.existsByCurrencyCode("GBP")).thenReturn(true);
-        when(spreadLookup.spreadFor("EUR")).thenReturn(eurSpread);
-        when(spreadLookup.spreadFor("GBP")).thenReturn(gbpSpread);
+        lenient().when(spreadLookup.spreadFor("EUR")).thenReturn(new BigDecimal("2.75"));
+        lenient().when(spreadLookup.spreadFor("GBP")).thenReturn(new BigDecimal("3.25"));
 
         ExchangeRateRepository.RateTrendProjection row =
                 trendRowOf(LocalDate.of(2026, 8, 2), eurToUsd, gbpToUsd);
@@ -376,24 +373,20 @@ class ExchangeRateServiceTest {
 
         List<RateTrendPoint> result = exchangeRateService.getTrend("EUR", "GBP", startDate, endDate);
 
-        BigDecimal expected = expectedRate(eurToUsd, gbpToUsd, eurSpread.max(gbpSpread));
+        BigDecimal expected = gbpToUsd.divide(eurToUsd, RATE_MATH_CONTEXT);
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).rateDate()).isEqualTo(LocalDate.of(2026, 8, 2));
         assertThat(result.get(0).rate()).isEqualByComparingTo(expected);
+        verifyNoInteractions(spreadLookup);
     }
 
     @Test
     void getTrendPreservesOrderOfRepositoryResults() {
         LocalDate startDate = LocalDate.of(2026, 8, 1);
         LocalDate endDate = LocalDate.of(2026, 8, 5);
-        BigDecimal eurSpread = new BigDecimal("2.75");
-        BigDecimal gbpSpread = new BigDecimal("3.25");
-
         when(exchangeRateRepository.existsByCurrencyCode("EUR")).thenReturn(true);
         when(exchangeRateRepository.existsByCurrencyCode("GBP")).thenReturn(true);
-        when(spreadLookup.spreadFor("EUR")).thenReturn(eurSpread);
-        when(spreadLookup.spreadFor("GBP")).thenReturn(gbpSpread);
 
         LocalDate day1 = LocalDate.of(2026, 8, 1);
         LocalDate day2 = LocalDate.of(2026, 8, 2);
@@ -422,8 +415,6 @@ class ExchangeRateServiceTest {
 
         when(exchangeRateRepository.existsByCurrencyCode("EUR")).thenReturn(true);
         when(exchangeRateRepository.existsByCurrencyCode("GBP")).thenReturn(true);
-        when(spreadLookup.spreadFor("EUR")).thenReturn(BigDecimal.ZERO);
-        when(spreadLookup.spreadFor("GBP")).thenReturn(BigDecimal.ZERO);
         when(exchangeRateRepository.findTrend("EUR", "GBP", startDate, endDate))
                 .thenReturn(List.of());
 
