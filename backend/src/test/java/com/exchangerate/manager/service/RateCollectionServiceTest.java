@@ -230,7 +230,7 @@ class RateCollectionServiceTest {
     }
 
     @Test
-    void collectThrowsAndWritesNothingWhenBaseCurrencySelfRateIsNotExactlyOne() {
+    void collectOverridesStaleEurSelfRateWhenPresentInRates() {
         Map<String, BigDecimal> rates = new LinkedHashMap<>();
         rates.put("EUR", new BigDecimal("0.980000"));
         rates.put("USD", new BigDecimal("1.080000"));
@@ -243,8 +243,21 @@ class RateCollectionServiceTest {
 
         when(fixerClient.getLatestRates()).thenReturn(response);
 
-        assertThrows(RateCollectionException.class, () -> rateCollectionService.collect());
+        rateCollectionService.collect();
 
-        verify(exchangeRateRepository, never()).upsert(any(), any(), any());
+        BigDecimal eurToUsd = rates.get("USD");
+        BigDecimal expectedEur = BigDecimal.ONE.divide(eurToUsd, 6, RoundingMode.HALF_UP);
+
+        verify(exchangeRateRepository).upsert(
+                eq("EUR"),
+                argThat(bd -> bd.compareTo(expectedEur) == 0),
+                eq(RATE_DATE));
+
+        verify(exchangeRateRepository).upsert(
+                eq("USD"),
+                argThat(bd -> bd.compareTo(new BigDecimal("1.000000")) == 0),
+                eq(RATE_DATE));
+
+        verify(exchangeRateRepository, times(2)).upsert(any(), any(), any());
     }
 }
