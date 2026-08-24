@@ -598,6 +598,74 @@ class ExchangeControllerIT extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.currencies[0].currencyCode").value("BBB"));
     }
 
+    // T019 [US3]: proves queryTimestamps is purely additive. A client coded against the
+    // pre-feature contract — reading only currencyCode/queryCount/lastQueriedAt — must keep
+    // getting correct, unchanged values with limit and recentDays combined, exactly as it would
+    // have before this feature existed. This test never references queryTimestamps at all (not
+    // even to check it's absent/present), which is itself the point: a strict-shape assertion
+    // built to check only these three fields must not be disturbed by the new field.
+    //
+    // DDD outranks everyone on queryCount alone but is seeded stale (30 days ago), so recentDays=7
+    // must still exclude it despite the high count — proving recentDays keeps shaping membership
+    // the same way it always did. CCC survives the recentDays cut but is the lowest-ranked of the
+    // three recent currencies, so limit=2 must still drop it. BBB and AAA are both recent and
+    // must come back ranked strictly by queryCount, highest first, same ordering rule as
+    // getUsageAnalyticsWithLimitReturnsTopRankedCurrenciesInOrder above.
+    @Test
+    void getUsageAnalyticsWithLimitAndRecentDaysPreservesOriginalThreeFieldsForExistingConsumers() throws Exception {
+        currencyUsageRepository.deleteAll();
+        exchangeRateRepository.deleteAll();
+
+        exchangeRateRepository.upsert("AAA", new BigDecimal("1.000000"), RATE_DATE);
+        exchangeRateRepository.upsert("BBB", new BigDecimal("1.000000"), RATE_DATE);
+        exchangeRateRepository.upsert("CCC", new BigDecimal("1.000000"), RATE_DATE);
+        exchangeRateRepository.upsert("DDD", new BigDecimal("1.000000"), RATE_DATE);
+
+        // Truncated to seconds so the round-tripped OffsetDateTime from JSON compares exactly
+        // equal to the seeded Instant, regardless of the TIMESTAMPTZ column's stored precision.
+        Instant aaaLastQueriedAt = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+        Instant bbbLastQueriedAt = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+        Instant cccLastQueriedAt = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+
+        jdbcTemplate.update(
+                "INSERT INTO currency_usage (currency_code, query_count, last_queried_at) VALUES (?, ?, ?)",
+                "AAA", 3, Timestamp.from(aaaLastQueriedAt));
+        jdbcTemplate.update(
+                "INSERT INTO currency_usage (currency_code, query_count, last_queried_at) VALUES (?, ?, ?)",
+                "BBB", 10, Timestamp.from(bbbLastQueriedAt));
+        jdbcTemplate.update(
+                "INSERT INTO currency_usage (currency_code, query_count, last_queried_at) VALUES (?, ?, ?)",
+                "CCC", 1, Timestamp.from(cccLastQueriedAt));
+        jdbcTemplate.update(
+                "INSERT INTO currency_usage (currency_code, query_count, last_queried_at) VALUES (?, ?, ?)",
+                "DDD", 99, Timestamp.from(Instant.now().minus(30, ChronoUnit.DAYS)));
+
+        MvcResult result = mockMvc.perform(get(USAGE_ENDPOINT).param("limit", "2").param("recentDays", "7"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.currencies", org.hamcrest.Matchers.hasSize(2)))
+                .andExpect(jsonPath("$.currencies[0].currencyCode").value("BBB"))
+                .andExpect(jsonPath("$.currencies[0].queryCount").value(10))
+                .andExpect(jsonPath("$.currencies[0].lastQueriedAt").value(org.hamcrest.Matchers.notNullValue()))
+                .andExpect(jsonPath("$.currencies[1].currencyCode").value("AAA"))
+                .andExpect(jsonPath("$.currencies[1].queryCount").value(3))
+                .andExpect(jsonPath("$.currencies[1].lastQueriedAt").value(org.hamcrest.Matchers.notNullValue()))
+                .andReturn();
+
+        // Beyond existence/non-null, confirm each entry's lastQueriedAt is the exact seeded
+        // instant for that currency (not swapped, truncated, or otherwise perturbed by the new
+        // queryTimestamps computation living alongside it in the same mapper/service).
+        var parsed = com.jayway.jsonpath.JsonPath.parse(result.getResponse().getContentAsString());
+        Instant actualBbbLastQueriedAt = java.time.OffsetDateTime
+                .parse(parsed.read("$.currencies[0].lastQueriedAt").toString())
+                .toInstant();
+        Instant actualAaaLastQueriedAt = java.time.OffsetDateTime
+                .parse(parsed.read("$.currencies[1].lastQueriedAt").toString())
+                .toInstant();
+
+        assertThat(actualBbbLastQueriedAt).isEqualTo(bbbLastQueriedAt);
+        assertThat(actualAaaLastQueriedAt).isEqualTo(aaaLastQueriedAt);
+    }
+
     // NOT-yet-implemented behavior: UsageAnalyticsService currently hardcodes
     // DEFAULT_HISTORY_WINDOW_DAYS (90) for the queryTimestamps history window regardless of the
     // recentDays query parameter, instead of trimming that window to recentDays. queryCount itself
