@@ -46,6 +46,26 @@ public interface CurrencyQueryEventRepository extends JpaRepository<CurrencyQuer
                                                             @Param("windowDays") Integer windowDays);
 
     /**
+     * Deletes up to {@code batchSize} query-event rows older than the 365-day retention window,
+     * returning the number of rows actually deleted. This is the batched retention-purge
+     * primitive: it deliberately deletes a bounded slice per call (via {@code ctid IN (SELECT
+     * ctid ... LIMIT :batchSize)}) rather than the whole expired set at once, so a single purge
+     * run never holds a long-lived lock or a huge transaction against the table. The caller —
+     * {@code QueryEventPurgeService} — is expected to invoke this repeatedly, batch after batch,
+     * until it returns {@code 0}.
+     */
+    @Modifying
+    @Query(value = """
+            DELETE FROM currency_query_event
+            WHERE ctid IN (
+                SELECT ctid FROM currency_query_event
+                WHERE queried_at < now() - INTERVAL '365 days'
+                LIMIT :batchSize
+            )
+            """, nativeQuery = true)
+    int deleteExpiredBatch(@Param("batchSize") int batchSize);
+
+    /**
      * Interface-based projection for {@link #findQueryTimestamps(List, Integer)}; getter names
      * map to the native query's column aliases (case-insensitive, underscore-to-camelCase).
      */
