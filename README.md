@@ -46,8 +46,10 @@ The backend image is built from `backend/Dockerfile` and the frontend from `fron
 (build context is the repo root, since both need `contracts/openapi.yaml` for codegen). The
 frontend container is nginx serving the built Angular app and reverse-proxying `/api/v1/*` to the
 `backend` service, so no source changes are needed between local and containerized runs. Open
-<http://localhost:4200>. The one-shot `ollama-pull` container downloads `llama3.2`; wait for a
-successful pull before testing AI insights.
+<http://localhost:4200>. The one-shot `ollama-pull` container downloads `llama3.2`. Compose waits
+for that download to finish successfully before starting the backend, and the frontend then waits
+for the backend to become healthy. On the first run, the application can therefore take several
+minutes to become available while the model is downloaded.
 
 Docker Compose activates the Spring `dev` profile. On backend startup, Flyway therefore loads the
 repeatable development seeds, including Fixer historical rates for the 14 calendar days from
@@ -426,5 +428,4 @@ network timeout/retry policy (`f645706`), and corrected malformed-query Problem 
   tests cover the principal states.
 - A clean database needs a scheduled or manual refresh before calculator/history views contain
   rate data.
-
 
