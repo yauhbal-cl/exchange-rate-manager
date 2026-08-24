@@ -9,6 +9,7 @@ import {
 } from '../../api-client';
 import { formatIsoDateUtc } from '../../shared/date-utils';
 import { problemDetail } from '../../shared/problem-detail';
+import { AI_INSIGHT_TIMEOUT_MS, STANDARD_BACKEND_TIMEOUT_MS } from '../../shared/http-policy';
 import { CurrencyCombobox } from '../rate-lookup/currency-combobox';
 import type { Currency } from '../rate-lookup/currencies';
 import { AiInsightsPanel } from './ai-insights-panel';
@@ -107,7 +108,7 @@ export class HistoricalRates {
         params.to,
         params.startDate,
         params.endDate,
-      ),
+      ).pipe(timeout({ each: STANDARD_BACKEND_TIMEOUT_MS })),
   });
 
   protected readonly requestState = computed<HistoricalRequestState>(() => {
@@ -152,7 +153,7 @@ export class HistoricalRates {
         params.to,
         params.startDate,
         params.endDate,
-      ).pipe(timeout({ each: 35_000 })),
+      ).pipe(timeout({ each: AI_INSIGHT_TIMEOUT_MS })),
   });
   protected readonly aiInsightValue = computed(() =>
     this.aiInsight.hasValue() ? this.aiInsight.value() : undefined,

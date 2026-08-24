@@ -13,6 +13,7 @@ import { timeout } from 'rxjs';
 import { ExchangeRateLookupService } from '../../api-client';
 import { formatIsoDateUtc, todayIsoUtc } from '../../shared/date-utils';
 import { problemDetail } from '../../shared/problem-detail';
+import { STANDARD_BACKEND_TIMEOUT_MS } from '../../shared/http-policy';
 import { CurrencyCombobox } from './currency-combobox';
 import {
   RateLookupResult,
@@ -87,7 +88,7 @@ export class RateLookup {
     stream: ({ params }) =>
       this.service
         .getExchangeRate(params.from, params.to, params.date)
-        .pipe(timeout({ each: 10_000 })),
+        .pipe(timeout({ each: STANDARD_BACKEND_TIMEOUT_MS })),
   });
 
   protected readonly resultState = computed<RateLookupResultState>(() => {

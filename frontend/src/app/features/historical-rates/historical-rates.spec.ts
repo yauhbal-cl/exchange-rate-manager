@@ -9,6 +9,7 @@ import {
   type TrendInsightResponse,
 } from '../../api-client';
 import { PERIOD_PRESETS, resolveRange, subtractMonths, todayIso } from './period-presets';
+import { STANDARD_BACKEND_TIMEOUT_MS } from '../../shared/http-policy';
 
 function selectCurrency(
   fixture: { nativeElement: HTMLElement; detectChanges(): void },
@@ -530,6 +531,27 @@ describe('HistoricalRates', () => {
     expect(loading?.getAttribute('role')).toBe('status');
     expect(fixture.nativeElement.textContent).not.toContain('No historical rate data');
     expect(fixture.nativeElement.textContent).not.toContain('Latest rate');
+  });
+
+  it('cancels a trend request after the standard backend deadline and shows unavailable', async () => {
+    vi.useFakeTimers();
+    try {
+      const pending = new Subject<ExchangeRateTrendResponse>();
+      getExchangeRateTrend.mockReturnValue(pending);
+      const fixture = TestBed.createComponent(HistoricalRates);
+      fixture.detectChanges();
+
+      expect(pending.observed).toBe(true);
+      await vi.advanceTimersByTimeAsync(STANDARD_BACKEND_TIMEOUT_MS);
+      fixture.detectChanges();
+
+      expect(pending.observed).toBe(false);
+      expect(fixture.nativeElement.textContent).toContain(
+        'Unable to reach the historical-rate service.',
+      );
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it.each([

@@ -107,6 +107,11 @@ key authenticates that call. There is no default (`fixer.api-key: ${FIXER_API_KE
   export FIXER_API_KEY=your-key-here
   ```
 - `FIXER_BASE_URL` is optional and defaults to `https://data.fixer.io/api`.
+- `FIXER_CONNECT_TIMEOUT_SECONDS` and `FIXER_READ_TIMEOUT_SECONDS` default to `3` and `10`.
+- Fixer makes at most three total attempts for transport failures, HTTP 408/429, and 5xx
+  responses. Configure this with `FIXER_RETRY_MAX_ATTEMPTS` (default `3`),
+  `FIXER_RETRY_INITIAL_DELAY_MILLIS` (default `500`), `FIXER_RETRY_MULTIPLIER` (default `2.0`),
+  and `FIXER_RETRY_MAX_DELAY_MILLIS` (default `1000`).
 
 The AI trend insight feature (Spring AI + Ollama) is configured via the same
 `application.yml`:
@@ -114,6 +119,8 @@ The AI trend insight feature (Spring AI + Ollama) is configured via the same
   a local Ollama instance.
 - `AI_INSIGHT_TIMEOUT_SECONDS` is optional and defaults to `30`, the read-timeout (in seconds) for
   AI insight calls.
+- `AI_INSIGHT_CONNECT_TIMEOUT_SECONDS` is optional and defaults to `5`, the connection timeout
+  (in seconds) for AI insight calls. AI calls use a single attempt.
 
 ## Prerequisites
 
