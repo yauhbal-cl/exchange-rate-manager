@@ -49,6 +49,11 @@ frontend container is nginx serving the built Angular app and reverse-proxying `
 <http://localhost:4200>. The one-shot `ollama-pull` container downloads `llama3.2`; wait for a
 successful pull before testing AI insights.
 
+Docker Compose activates the Spring `dev` profile. On backend startup, Flyway therefore loads the
+repeatable development seeds, including Fixer historical rates for the 14 calendar days from
+2026-08-11 through 2026-08-24. The rate seed uses an upsert, so it is safe with both a fresh and an
+existing PostgreSQL volume.
+
 ### Option B: backend/frontend on the host
 
 Useful for local development with hot reload. PostgreSQL and Ollama still run in Docker.
@@ -421,6 +426,5 @@ network timeout/retry policy (`f645706`), and corrected malformed-query Problem 
   tests cover the principal states.
 - A clean database needs a scheduled or manual refresh before calculator/history views contain
   rate data.
-
 
 
