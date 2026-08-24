@@ -1,7 +1,6 @@
 package com.exchangerate.manager.controller;
 
 import com.exchangerate.manager.api.model.TrendInsightResponse;
-import com.exchangerate.manager.client.FixerApiException;
 import com.exchangerate.manager.exception.AiInsightUnavailableException;
 import com.exchangerate.manager.exception.RateDataNotFoundException;
 import com.exchangerate.manager.exception.TrendRangeTooLargeException;
@@ -9,25 +8,30 @@ import com.exchangerate.manager.mapper.ExchangeRateResponseMapper;
 import com.exchangerate.manager.mapper.ExchangeRateTrendResponseMapper;
 import com.exchangerate.manager.mapper.TrendInsightResponseMapper;
 import com.exchangerate.manager.mapper.UsageAnalyticsMapper;
+import com.exchangerate.manager.service.CollectionInProgressException;
 import com.exchangerate.manager.service.ExchangeRateService;
-import com.exchangerate.manager.service.RateCollectionService;
+import com.exchangerate.manager.service.ManualRefreshService;
+import com.exchangerate.manager.service.RateCollectionException;
 import com.exchangerate.manager.service.RefreshResult;
 import com.exchangerate.manager.service.TrendInsightResult;
 import com.exchangerate.manager.service.TrendInsightService;
 import com.exchangerate.manager.service.UsageAnalyticsService;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 import java.time.LocalDate;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -43,9 +47,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  *
  * <p>Uses a standard {@code @WebMvcTest} slice (no datasource, no repository layer loaded) with
  * {@code @MockitoBean} to stub every constructor collaborator of {@code ExchangeController}
- * ({@link RateCollectionService}, {@link ExchangeRateService}, {@link ExchangeRateResponseMapper},
+ * ({@link ManualRefreshService}, {@link ExchangeRateService}, {@link ExchangeRateResponseMapper},
  * {@link UsageAnalyticsService}, {@link UsageAnalyticsMapper}) — only {@code
- * rateCollectionService} is actually exercised by the tests below — following the same MockMvc
+ * manualRefreshService} is actually exercised by the tests below — following the same MockMvc
  * conventions as the rest of this codebase's REST layer (see {@link StatusController}).
  */
 @WebMvcTest(ExchangeController.class)
@@ -58,7 +62,7 @@ class ExchangeControllerTest {
     private MockMvc mockMvc;
 
     @MockitoBean
-    private RateCollectionService rateCollectionService;
+    private ManualRefreshService manualRefreshService;
 
     @MockitoBean
     private ExchangeRateService exchangeRateService;
@@ -84,7 +88,7 @@ class ExchangeControllerTest {
     @Test
     void refreshReturns200WithResultOnSuccess() throws Exception {
         RefreshResult result = new RefreshResult(5, LocalDate.of(2026, 8, 22));
-        when(rateCollectionService.collect()).thenReturn(result);
+        when(manualRefreshService.refresh()).thenReturn(result);
 
         mockMvc.perform(post(REFRESH_ENDPOINT))
                 .andExpect(status().isOk())
@@ -94,7 +98,7 @@ class ExchangeControllerTest {
 
     @Test
     void refreshReturns502OnProviderFailure() throws Exception {
-        when(rateCollectionService.collect()).thenThrow(new FixerApiException("simulated failure"));
+        when(manualRefreshService.refresh()).thenThrow(new RateCollectionException("simulated failure"));
 
         mockMvc.perform(post(REFRESH_ENDPOINT))
                 .andExpect(status().isBadGateway());
@@ -186,19 +190,80 @@ class ExchangeControllerTest {
                 .andExpect(jsonPath("$.detail", org.hamcrest.Matchers.containsString("to")));
     }
 
-    /**
-     * FR: when a scheduled run already holds the ShedLock lock, a concurrent manual refresh should
-     * receive 409 Conflict. Genuine ShedLock contention requires two competing transactions racing
-     * against the same lock row in the real database-backed lock provider — that is a concurrency
-     * scenario, not something a single-threaded {@code @WebMvcTest} slice (which mocks
-     * {@code RateCollectionService} entirely and never touches ShedLock's JDBC lock table) can
-     * exercise meaningfully. Simulating it here would only test that the controller maps some
-     * chosen sentinel/exception to 409 — not that real lock contention is detected — so it is left
-     * to a dedicated integration/concurrency test instead of being faked at this layer.
-     */
-    @Disabled("True ShedLock contention can't be simulated in a @WebMvcTest slice; belongs in an integration/concurrency test.")
+    @ParameterizedTest
+    @CsvSource({
+            "/api/v1/exchange,date,not-a-date",
+            "/api/v1/exchange/trend,startDate,not-a-date",
+            "/api/v1/exchange/trend,endDate,not-a-date",
+            "/api/v1/exchange/trend/insight,startDate,not-a-date",
+            "/api/v1/exchange/trend/insight,endDate,not-a-date"
+    })
+    void malformedDateParameterReturnsStableProblemDetail(
+            String endpoint, String parameter, String invalidValue) throws Exception {
+        MockHttpServletRequestBuilder request = get(endpoint)
+                .param("from", "EUR")
+                .param("to", "USD")
+                .param(parameter, invalidValue);
+
+        mockMvc.perform(request)
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.title").value("Bad Request"))
+                .andExpect(jsonPath("$.detail").value(
+                        "Invalid value '%s' for request parameter '%s'; expected an ISO date in yyyy-MM-dd format."
+                                .formatted(invalidValue, parameter)));
+
+        verifyNoInteractions(exchangeRateService, trendInsightService, usageAnalyticsService);
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "limit,abc",
+            "recentDays,abc",
+            "limit,2147483648",
+            "recentDays,-2147483649"
+    })
+    void malformedIntegerParameterReturnsStableProblemDetail(
+            String parameter, String invalidValue) throws Exception {
+        mockMvc.perform(get("/api/v1/exchange/usage").param(parameter, invalidValue))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.title").value("Bad Request"))
+                .andExpect(jsonPath("$.detail").value(
+                        "Invalid value '%s' for request parameter '%s'; expected a 32-bit integer."
+                                .formatted(invalidValue, parameter)));
+
+        verifyNoInteractions(usageAnalyticsService);
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "limit,0",
+            "recentDays,0"
+    })
+    void nonPositiveUsageParameterReturnsProblemDetail(
+            String parameter, String invalidValue) throws Exception {
+        mockMvc.perform(get("/api/v1/exchange/usage").param(parameter, invalidValue))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.title").value("Bad Request"))
+                .andExpect(jsonPath("$.detail", org.hamcrest.Matchers.containsString(parameter)));
+
+        verifyNoInteractions(usageAnalyticsService);
+    }
+
     @Test
-    void refreshReturns409WhenScheduledRunHoldsLock() {
-        // Intentionally left unimplemented — see class-level Javadoc and @Disabled reason above.
+    void refreshReturns409WhenScheduledRunHoldsLock() throws Exception {
+        when(manualRefreshService.refresh()).thenThrow(new CollectionInProgressException(
+                "A collection run is already in progress; try again shortly."));
+
+        mockMvc.perform(post(REFRESH_ENDPOINT))
+                .andExpect(status().isConflict())
+                .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.detail")
+                        .value("A collection run is already in progress; try again shortly."));
     }
 }

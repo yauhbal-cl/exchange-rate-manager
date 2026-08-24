@@ -2,6 +2,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { timeout } from 'rxjs';
 import { ExchangeRateUsageAnalyticsService, type CurrencyUsageEntry } from '../../api-client';
+import { STANDARD_BACKEND_TIMEOUT_MS } from '../../shared/http-policy';
 import {
   DEFAULT_USAGE_WINDOW_DAYS,
   USAGE_WINDOW_OPTIONS,
@@ -26,7 +27,8 @@ export class UsageAnalytics {
   protected readonly windowOptions = USAGE_WINDOW_OPTIONS;
   protected readonly windowDays = signal<number>(DEFAULT_USAGE_WINDOW_DAYS);
   protected readonly usage = rxResource({
-    stream: () => this.service.getUsageAnalytics().pipe(timeout({ each: 10_000 })),
+    stream: () =>
+      this.service.getUsageAnalytics().pipe(timeout({ each: STANDARD_BACKEND_TIMEOUT_MS })),
   });
   protected readonly entries = computed<readonly CurrencyUsageEntry[]>(() =>
     this.usage.hasValue() ? (this.usage.value()?.currencies ?? []) : [],

@@ -91,7 +91,7 @@ paths:
         '400':
           description: >
             Invalid input — missing/malformed currency code, identical from/to currencies, or an
-            unknown currency code
+            unknown currency code, or a malformed date
           content:
             application/problem+json:
               schema:
@@ -105,7 +105,7 @@ paths:
   /exchange/trend:
     get:
       operationId: getExchangeRateTrend
-      summary: Get the historical spread-adjusted exchange rate series for a currency pair
+      summary: Get the historical raw exchange rate series for a currency pair
       tags: [Exchange Rate Analytics]
       parameters:
         - name: from
@@ -147,7 +147,7 @@ paths:
                 $ref: '#/components/schemas/ExchangeRateTrendResponse'
         '400':
           description: >
-            Unknown currency code, or startDate after endDate
+            Unknown currency code, malformed startDate/endDate, or startDate after endDate
           content:
             application/problem+json:
               schema:
@@ -195,8 +195,8 @@ paths:
                 $ref: '#/components/schemas/TrendInsightResponse'
         '400':
           description: >
-            Unknown currency code, startDate after endDate, or the resolved range spans more than
-            ~365 daily observations
+            Unknown currency code, malformed startDate/endDate, startDate after endDate, or the
+            resolved range spans more than ~365 daily observations
           content:
             application/problem+json:
               schema:
@@ -342,7 +342,7 @@ components:
         rate:
           type: string
           format: decimal
-          description: Spread-adjusted rate, exact decimal (transported as string)
+          description: Raw, unadjusted cross-rate, exact decimal (transported as string)
     UsageAnalyticsResponse:
       type: object
       required: [currencies]

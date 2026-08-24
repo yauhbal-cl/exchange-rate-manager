@@ -38,7 +38,7 @@ export class ExchangeRateAnalyticsService extends BaseService {
     }
 
     /**
-     * Get the historical spread-adjusted exchange rate series for a currency pair
+     * Get the historical raw exchange rate series for a currency pair
      * @endpoint get /exchange/trend
      * @param from Source currency code
      * @param to Target currency code

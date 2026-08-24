@@ -35,11 +35,12 @@ spring:
       # and reports unavailability immediately instead (research.md "Recovery/reset behavior").
       max-attempts: 1
   # spring-ai-ollama 2.0.1 exposes no chat/client-level read-timeout property;
-  # OllamaApi uses Boot's shared auto-configured RestClient.Builder, so its read
-  # timeout is set via the generic property below (applies to all Boot-managed
-  # RestClient/WebClient builders, not just the Ollama one).
+  # OllamaApi uses Boot's shared auto-configured RestClient.Builder, so its connect/read
+  # timeouts are set via the generic properties below. The Fixer client deliberately uses
+  # its own request factory and does not inherit these AI-oriented values.
   http:
     clients:
+      connect-timeout: ${AI_INSIGHT_CONNECT_TIMEOUT_SECONDS:5}s
       read-timeout: ${AI_INSIGHT_TIMEOUT_SECONDS:30}s
 
 management:
@@ -68,6 +69,14 @@ app:
 fixer:
   api-key: ${FIXER_API_KEY}
   base-url: ${FIXER_BASE_URL:https://data.fixer.io/api}
+  http:
+    connect-timeout: ${FIXER_CONNECT_TIMEOUT_SECONDS:3}s
+    read-timeout: ${FIXER_READ_TIMEOUT_SECONDS:10}s
+    retry:
+      max-attempts: ${FIXER_RETRY_MAX_ATTEMPTS:3}
+      initial-delay: ${FIXER_RETRY_INITIAL_DELAY_MILLIS:500}ms
+      multiplier: ${FIXER_RETRY_MULTIPLIER:2.0}
+      max-delay: ${FIXER_RETRY_MAX_DELAY_MILLIS:1000}ms
 
 exchange-rates:
   base-currency: EUR

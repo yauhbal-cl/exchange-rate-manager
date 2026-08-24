@@ -22,13 +22,13 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 /**
- * Generates a short, data-grounded AI narrative describing the trend in the spread-adjusted
- * historical rate series between two currencies over a resolved date range.
+ * Generates a short, data-grounded AI narrative describing the trend in the raw, unadjusted
+ * historical cross-rate series between two currencies over a resolved date range.
  *
- * <p>The historical rate rows for the resolved range are serialized verbatim (dates + values) into
- * the prompt sent to the local Ollama model via Spring AI's {@link ChatClient} — no RAG, no
- * fine-tuning. If the AI model is unreachable, times out, or otherwise fails, this degrades to
- * {@link AiInsightUnavailableException} rather than fabricating a narrative.
+ * <p>The raw historical cross-rates for the resolved range are serialized verbatim (dates +
+ * values) into the prompt sent to the local Ollama model via Spring AI's {@link ChatClient} — no
+ * RAG, no fine-tuning. If the AI model is unreachable, times out, or otherwise fails, this
+ * degrades to {@link AiInsightUnavailableException} rather than fabricating a narrative.
  */
 @Service
 @RequiredArgsConstructor

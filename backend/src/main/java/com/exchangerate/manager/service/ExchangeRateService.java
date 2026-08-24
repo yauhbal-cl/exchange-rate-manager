@@ -95,7 +95,7 @@ public class ExchangeRateService {
     }
 
     /**
-     * Returns the spread-adjusted historical rate series for {@code from}/{@code to} across
+     * Returns the raw, unadjusted historical cross-rate series for {@code from}/{@code to} across
      * {@code [startDate, endDate]}, one entry per date both currencies have stored data for,
      * ordered chronologically ascending. Read-only: never increments usage counters.
      */
@@ -112,19 +112,10 @@ public class ExchangeRateService {
         LocalDate effectiveStartDate = dateRange.startDate();
         LocalDate effectiveEndDate = dateRange.endDate();
 
-        BigDecimal fromSpread = spreadLookup.spreadFor(from);
-        BigDecimal toSpread = spreadLookup.spreadFor(to);
-        BigDecimal maxSpread = fromSpread.max(toSpread);
-        BigDecimal spreadFactor = BigDecimal.valueOf(100)
-                .subtract(maxSpread)
-                .divide(BigDecimal.valueOf(100), RATE_MATH_CONTEXT);
-
         return exchangeRateRepository.findTrend(from, to, effectiveStartDate, effectiveEndDate).stream()
-                .map(row -> {
-                    BigDecimal rateRatio = row.getToRateToUsd().divide(row.getFromRateToUsd(), RATE_MATH_CONTEXT);
-                    BigDecimal rate = rateRatio.multiply(spreadFactor, RATE_MATH_CONTEXT);
-                    return new RateTrendPoint(row.getRateDate(), rate);
-                })
+                .map(row -> new RateTrendPoint(
+                        row.getRateDate(),
+                        row.getToRateToUsd().divide(row.getFromRateToUsd(), RATE_MATH_CONTEXT)))
                 .toList();
     }
 }
