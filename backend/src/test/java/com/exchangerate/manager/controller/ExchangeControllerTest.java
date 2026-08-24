@@ -9,12 +9,12 @@ import com.exchangerate.manager.mapper.ExchangeRateResponseMapper;
 import com.exchangerate.manager.mapper.ExchangeRateTrendResponseMapper;
 import com.exchangerate.manager.mapper.TrendInsightResponseMapper;
 import com.exchangerate.manager.mapper.UsageAnalyticsMapper;
-import com.exchangerate.manager.repository.CurrencyUsageRepository;
 import com.exchangerate.manager.service.ExchangeRateService;
 import com.exchangerate.manager.service.RateCollectionService;
 import com.exchangerate.manager.service.RefreshResult;
 import com.exchangerate.manager.service.TrendInsightResult;
 import com.exchangerate.manager.service.TrendInsightService;
+import com.exchangerate.manager.service.UsageAnalyticsService;
 
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -44,7 +44,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * <p>Uses a standard {@code @WebMvcTest} slice (no datasource, no repository layer loaded) with
  * {@code @MockitoBean} to stub every constructor collaborator of {@code ExchangeController}
  * ({@link RateCollectionService}, {@link ExchangeRateService}, {@link ExchangeRateResponseMapper},
- * {@link CurrencyUsageRepository}, {@link UsageAnalyticsMapper}) — only {@code
+ * {@link UsageAnalyticsService}, {@link UsageAnalyticsMapper}) — only {@code
  * rateCollectionService} is actually exercised by the tests below — following the same MockMvc
  * conventions as the rest of this codebase's REST layer (see {@link StatusController}).
  */
@@ -67,7 +67,7 @@ class ExchangeControllerTest {
     private ExchangeRateResponseMapper exchangeRateResponseMapper;
 
     @MockitoBean
-    private CurrencyUsageRepository currencyUsageRepository;
+    private UsageAnalyticsService usageAnalyticsService;
 
     @MockitoBean
     private UsageAnalyticsMapper usageAnalyticsMapper;
