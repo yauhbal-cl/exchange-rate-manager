@@ -125,7 +125,6 @@ class RateCollectionServiceTest {
     @Test
     void collectUpsertsOnlyCurrenciesPresentInResponse() {
         Map<String, BigDecimal> rates = new LinkedHashMap<>();
-        rates.put("EUR", BigDecimal.ONE);
         rates.put("USD", new BigDecimal("1.080000"));
         rates.put("GBP", new BigDecimal("0.860000"));
 
