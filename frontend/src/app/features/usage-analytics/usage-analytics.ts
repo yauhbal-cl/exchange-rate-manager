@@ -1,19 +1,19 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { timeout } from 'rxjs';
 import { ExchangeRateUsageAnalyticsService, type CurrencyUsageEntry } from '../../api-client';
-import { RecentActivityPanel } from './recent-activity-panel';
-import { UsageBreakdownPanel } from './usage-breakdown-panel';
 import {
-  buildBreakdownView,
-  buildRecentActivity,
-  computeUsageSummary,
+  DEFAULT_USAGE_WINDOW_DAYS,
+  USAGE_WINDOW_OPTIONS,
+  buildUsageTableRows,
+  computeUsageWindowSummary,
   formatCount,
 } from './usage-metrics';
+import { UsageAnalyticsTable } from './usage-analytics-table';
 
 @Component({
   selector: 'app-usage-analytics',
-  imports: [UsageBreakdownPanel, RecentActivityPanel],
+  imports: [UsageAnalyticsTable],
   host: {
     class:
       'block min-h-[calc(100vh-57px)] bg-[var(--app-page-bg)] text-[var(--app-text)] tabular-nums',
@@ -23,6 +23,8 @@ import {
 export class UsageAnalytics {
   private readonly service = inject(ExchangeRateUsageAnalyticsService);
   protected readonly now = new Date();
+  protected readonly windowOptions = USAGE_WINDOW_OPTIONS;
+  protected readonly windowDays = signal<number>(DEFAULT_USAGE_WINDOW_DAYS);
   protected readonly usage = rxResource({
     stream: () => this.service.getUsageAnalytics().pipe(timeout({ each: 10_000 })),
   });
@@ -33,8 +35,16 @@ export class UsageAnalytics {
   protected readonly hasError = computed(
     () => !this.isLoading() && this.usage.error() !== undefined,
   );
-  protected readonly summary = computed(() => computeUsageSummary(this.entries()));
-  protected readonly breakdown = computed(() => buildBreakdownView(this.entries()));
-  protected readonly recentActivity = computed(() => buildRecentActivity(this.entries(), this.now));
+  protected readonly rows = computed(() =>
+    buildUsageTableRows(this.entries(), this.windowDays(), this.now),
+  );
+  protected readonly windowSummary = computed(() => computeUsageWindowSummary(this.rows()));
   protected readonly formatCount = formatCount;
+
+  protected selectWindow(event: Event): void {
+    const value = Number((event.target as HTMLSelectElement).value);
+    if (USAGE_WINDOW_OPTIONS.some((option) => option === value)) {
+      this.windowDays.set(value);
+    }
+  }
 }

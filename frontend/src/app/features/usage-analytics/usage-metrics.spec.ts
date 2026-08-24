@@ -12,6 +12,7 @@ function entry(currencyCode: string, queryCount: number): CurrencyUsageEntry {
     currencyCode,
     queryCount,
     lastQueriedAt: queryCount > 0 ? '2026-08-23T09:00:00Z' : null,
+    queryTimestamps: [],
   };
 }
 
@@ -345,7 +346,7 @@ describe('buildRecentActivity', () => {
     lastQueriedAt: string | null,
     queryCount = 1,
   ): CurrencyUsageEntry {
-    return { currencyCode, queryCount, lastQueriedAt };
+    return { currencyCode, queryCount, lastQueriedAt, queryTimestamps: [] };
   }
 
   /** The FR-012a formatting contract, expressed locale-independently (data-model.md §3). */
@@ -531,11 +532,26 @@ describe('usage derivation determinism (SC-006, INV-6)', () => {
   it('produces identical complete views repeatedly without mutating the resource input', () => {
     const now = new Date('2026-08-23T12:00:00Z');
     const entries: CurrencyUsageEntry[] = [
-      { currencyCode: 'USD', queryCount: 12, lastQueriedAt: '2026-08-23T11:00:00Z' },
-      { currencyCode: 'AUD', queryCount: 3, lastQueriedAt: null },
-      { currencyCode: 'EUR', queryCount: 12, lastQueriedAt: '2026-08-23T11:00:00Z' },
-      { currencyCode: 'CHF', queryCount: 12, lastQueriedAt: '2026-08-23T11:00:00Z' },
-      { currencyCode: 'GBP', queryCount: 0, lastQueriedAt: null },
+      {
+        currencyCode: 'USD',
+        queryCount: 12,
+        lastQueriedAt: '2026-08-23T11:00:00Z',
+        queryTimestamps: [],
+      },
+      { currencyCode: 'AUD', queryCount: 3, lastQueriedAt: null, queryTimestamps: [] },
+      {
+        currencyCode: 'EUR',
+        queryCount: 12,
+        lastQueriedAt: '2026-08-23T11:00:00Z',
+        queryTimestamps: [],
+      },
+      {
+        currencyCode: 'CHF',
+        queryCount: 12,
+        lastQueriedAt: '2026-08-23T11:00:00Z',
+        queryTimestamps: [],
+      },
+      { currencyCode: 'GBP', queryCount: 0, lastQueriedAt: null, queryTimestamps: [] },
     ];
     const inputSnapshot = entries.map((item) => ({ ...item }));
     const derive = () => ({

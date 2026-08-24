@@ -9,6 +9,109 @@
 import type { CurrencyUsageEntry } from '../../api-client';
 import { absoluteLocal, isParsableInstant, relativePhrase } from './relative-time';
 
+export const DEFAULT_USAGE_WINDOW_DAYS = 90;
+export const USAGE_WINDOW_OPTIONS = [7, 30, DEFAULT_USAGE_WINDOW_DAYS] as const;
+export const ACTIVITY_BUCKET_COUNT = 12;
+
+export interface ActivityBucket {
+  count: number;
+  heightPercent: number;
+  startsAt: string;
+  endsAt: string;
+}
+
+export interface UsageTableRow {
+  currencyCode: string;
+  totalQueries: number;
+  queriesInWindow: number;
+  lastQueriedAt: string | null;
+  lastQueriedRelative: string;
+  lastQueriedAbsolute: string | null;
+  activity: ActivityBucket[];
+  busiestDay: { date: string; queryCount: number } | null;
+  averageQueriesPerDay: number;
+}
+
+export interface UsageWindowSummary {
+  totalQueries: number;
+  mostPopular: { currencyCode: string; queryCount: number } | null;
+}
+
+export function computeUsageWindowSummary(rows: readonly UsageTableRow[]): UsageWindowSummary {
+  const totalQueries = rows.reduce((total, row) => total + row.queriesInWindow, 0);
+  const [mostPopular] = rows
+    .filter((row) => row.queriesInWindow > 0)
+    .sort(
+      (a, b) => b.queriesInWindow - a.queriesInWindow || (a.currencyCode < b.currencyCode ? -1 : 1),
+    );
+
+  return {
+    totalQueries,
+    mostPopular: mostPopular
+      ? { currencyCode: mostPopular.currencyCode, queryCount: mostPopular.queriesInWindow }
+      : null,
+  };
+}
+
+/** Builds the single-table view from the additive query history returned by the API. */
+export function buildUsageTableRows(
+  entries: readonly CurrencyUsageEntry[],
+  windowDays: number,
+  now: Date,
+  bucketCount = ACTIVITY_BUCKET_COUNT,
+): UsageTableRow[] {
+  const endMs = now.getTime();
+  const startMs = endMs - windowDays * 24 * 60 * 60 * 1_000;
+  const bucketDurationMs = (endMs - startMs) / bucketCount;
+
+  return entries.map((entry) => {
+    const counts = Array.from({ length: bucketCount }, () => 0);
+    const dailyCounts = new Map<string, number>();
+
+    for (const timestamp of entry.queryTimestamps) {
+      const timestampMs = Date.parse(timestamp);
+      if (!Number.isFinite(timestampMs) || timestampMs < startMs || timestampMs > endMs) {
+        continue;
+      }
+
+      const bucketIndex = Math.min(
+        bucketCount - 1,
+        Math.floor((timestampMs - startMs) / bucketDurationMs),
+      );
+      counts[bucketIndex] = (counts[bucketIndex] ?? 0) + 1;
+      const day = new Date(timestampMs).toISOString().slice(0, 10);
+      dailyCounts.set(day, (dailyCounts.get(day) ?? 0) + 1);
+    }
+
+    const highestCount = Math.max(0, ...counts);
+    const activity = counts.map((count, index) => ({
+      count,
+      heightPercent: highestCount === 0 ? 0 : (count / highestCount) * 100,
+      startsAt: new Date(startMs + index * bucketDurationMs).toISOString(),
+      endsAt: new Date(startMs + (index + 1) * bucketDurationMs).toISOString(),
+    }));
+    const hasLastQueriedAt = entry.lastQueriedAt !== null && isParsableInstant(entry.lastQueriedAt);
+    const queriesInWindow = counts.reduce((total, count) => total + count, 0);
+    const [busiestDay] = [...dailyCounts.entries()].sort(
+      ([dateA, countA], [dateB, countB]) => countB - countA || dateB.localeCompare(dateA),
+    );
+
+    return {
+      currencyCode: entry.currencyCode,
+      totalQueries: entry.queryCount,
+      queriesInWindow,
+      lastQueriedAt: hasLastQueriedAt ? entry.lastQueriedAt : null,
+      lastQueriedRelative: hasLastQueriedAt
+        ? relativePhrase(entry.lastQueriedAt as string, now)
+        : 'Never',
+      lastQueriedAbsolute: hasLastQueriedAt ? absoluteLocal(entry.lastQueriedAt as string) : null,
+      activity,
+      busiestDay: busiestDay ? { date: busiestDay[0], queryCount: busiestDay[1] } : null,
+      averageQueriesPerDay: queriesInWindow / windowDays,
+    };
+  });
+}
+
 /**
  * Backs the three KPI cards (data-model.md §2.1, FR-003 … FR-005a). Computed from the
  * complete, unlimited entry set — the display caps below never narrow its input (INV-2).
